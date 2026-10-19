@@ -24,6 +24,13 @@ este script nao serve para isso: o gerador original se foi com a branch.
 
 Uso: ``python specs/_tools/gerar-registro-nao-comprovados.py`` (a partir da raiz do
 pacote ``simulador-nuvem``)
+
+Este script mantem DOIS documentos: o original em pt-BR
+(``docs/NAO-COMPROVADOS.md``) e o gemeo em ingles
+(``docs/NAO-COMPROVADOS.en.md``). Os dois vem das MESMAS specs e tem os MESMOS
+itens; o que muda e a moldura -- o preambulo, o bloco de numeros, o cabecalho da
+tabela e o rotulo do tipo ("campo"/"tema" em pt, "field"/"topic" em en). O
+preambulo de cada documento e escrito a mao e preservado byte a byte, como antes.
 """
 
 from __future__ import annotations
@@ -44,6 +51,7 @@ from tools.synthetic_clouds.fidelity.spec import (  # noqa: E402
 
 SPECS = REPO / "specs"
 DOC = REPO / "docs" / "NAO-COMPROVADOS.md"
+DOC_EN = REPO / "docs" / "NAO-COMPROVADOS.en.md"
 
 #: As tres linhas do bloco "Numeros" que este script recalcula.
 #: ``RE_TOTAL`` casa a LINHA INTEIRA (``.*$``), e nao so o prefixo: casando so o prefixo, o
@@ -62,22 +70,78 @@ RE_SECAO = re.compile(r"^## `(?P<surface>[^`]+)` — (?P<n>\d+) item[^\n]*$", re
 #: crases e pipes, entao o nome e lido ate a primeira crase em vez de ate o proximo pipe.
 RE_ITEM = re.compile(r"^\| (campo|tema) \| `(?P<item>.*?)` \|", re.M)
 
+#: The English twin: the SAME specs, the SAME items, an English framing.
+#:
+#: The section header (``## `surface` -- N item(ns)``) is already
+#: language-neutral, so RE_SECAO serves both documents. What differs is the
+#: kind labels, the table header and the three count lines -- and the
+#: preamble, which is hand-written and preserved byte-for-byte, exactly as in
+#: the PT document. That is why the twin's preamble lives in the file itself:
+#: a new clone already carries it.
+RE_ITEM_EN = re.compile(r"^\| (field|topic) \| `(?P<item>.*?)` \|", re.M)
+RE_TOTAL_EN = re.compile(r"^\* \*\*\d+ unproven items\*\* in \*\*\d+ of \d+ surfaces\*\*.*$", re.M)
+RE_JUNTOS_EN = re.compile(r"together they give \d+ items in \*\*\d+\*\* surfaces", re.M)
+RE_PROVEDOR_EN = re.compile(r"^\* By provider: .*$", re.M)
 
-def _itens(spec) -> list[tuple[str, str]]:
+#: Per-language rendering. ``kind`` maps the two kinds of declared gap to the
+#: label each document uses: a name that does not belong to the contract
+#: ("campo"/"field") and a topic that exists but whose proof is missing
+#: ("tema"/"topic").
+LINGUAGENS: dict[str, dict[str, object]] = {
+    "pt": {
+        "path": DOC,
+        "kind": {"campo": "campo", "tema": "tema"},
+        "re_item": RE_ITEM,
+        "re_total": RE_TOTAL,
+        "re_juntos": RE_JUNTOS,
+        "re_provedor": RE_PROVEDOR,
+        "tabela": "\n| tipo | item | motivo declarado |\n|---|---|---|",
+        "total": (
+            lambda t, s: f"* **{t} itens não comprovados** em **{s} de {s} superfícies** "
+            "(ou seja: **nenhuma** superfície está sem lacuna declarada)."
+        ),
+        "juntos": lambda t, s: f"juntos dão {t} itens em **{s}** superfícies",
+        "provedor": lambda pp: "* Por provedor: "
+        + ", ".join(f"**{n}** {c}" for n, c in sorted(pp.items()))
+        + ".",
+    },
+    "en": {
+        "path": DOC_EN,
+        "kind": {"campo": "field", "tema": "topic"},
+        "re_item": RE_ITEM_EN,
+        "re_total": RE_TOTAL_EN,
+        "re_juntos": RE_JUNTOS_EN,
+        "re_provedor": RE_PROVEDOR_EN,
+        "tabela": "\n| kind | item | declared reason |\n|---|---|---|",
+        "total": (
+            lambda t, s: f"* **{t} unproven items** in **{s} of {s} surfaces** "
+            "(that is: **no** surface is without a declared gap)."
+        ),
+        "juntos": lambda t, s: f"together they give {t} items in **{s}** surfaces",
+        "provedor": lambda pp: "* By provider: "
+        + ", ".join(f"**{n}** {c}" for n, c in sorted(pp.items()))
+        + ".",
+    },
+}
+
+
+def _itens(spec, lang: str = "pt") -> list[tuple[str, str]]:
     """The declared items of one surface as ``(name, row)``, in spec order.
 
     ``row`` is the markdown line the document spells, built by the same expression
     :func:`_sections_from_specs` uses, so an appended row is indistinguishable from a row
-    rendered from scratch.
+    rendered from scratch. ``lang`` picks the kind label each document uses
+    ("campo"/"field", "tema"/"topic").
     """
+    kinds = LINGUAGENS[lang]["kind"]
     linhas = []
     for row in spec.unverified_fields:
-        kind = "campo" if row.kind == UNVERIFIED_FIELD else "tema"
+        kind = kinds["campo"] if row.kind == UNVERIFIED_FIELD else kinds["tema"]
         linhas.append((row.name, f"| {kind} | `{row.name}` | {row.reason or ''} |"))
     return linhas
 
 
-def _reconcilar(texto: str, specs: dict[str, object]) -> tuple[str, list[str]]:
+def _reconcilar(texto: str, specs: dict[str, object], lang: str = "pt") -> tuple[str, list[str]]:
     """Add DECLARED items missing from an existing section. Never remove a row.
 
     This generator used to append a section only when the surface had NO section at all, so a
@@ -96,6 +160,7 @@ def _reconcilar(texto: str, specs: dict[str, object]) -> tuple[str, list[str]]:
 
     Idempotent: a second run finds every declared item already present and changes nothing.
     """
+    re_item = LINGUAGENS[lang]["re_item"]
     inicios = list(RE_SECAO.finditer(texto))
     mudancas: list[str] = []
     # De tras para frente: assim os offsets das secoes ainda nao visitadas continuam valendo.
@@ -109,13 +174,13 @@ def _reconcilar(texto: str, specs: dict[str, object]) -> tuple[str, list[str]]:
         secao = texto[marca.start():fim]
         corpo = secao.rstrip("\n")
         cauda = secao[len(corpo):]  # exatamente a corrida de \n que ja estava depois do corpo
-        ja_no_doc = {nome for _tipo, nome in RE_ITEM.findall(corpo)}
-        faltando = [linha for nome, linha in _itens(spec) if nome not in ja_no_doc]
+        ja_no_doc = {nome for _tipo, nome in re_item.findall(corpo)}
+        faltando = [linha for nome, linha in _itens(spec, lang) if nome not in ja_no_doc]
         novo_corpo = corpo + "\n" + "\n".join(faltando) if faltando else corpo
         # O cabecalho e normalizado para a forma canonica e para a contagem de linhas que a
         # secao REALMENTE mostra. Medido: nas 44 secoes a contagem ja bate com as linhas, entao
         # normalizar so reescreve cabecalho cujo TEXTO estava fora da forma -- e nada mais.
-        linhas = len(RE_ITEM.findall(novo_corpo))
+        linhas = len(re_item.findall(novo_corpo))
         novo_corpo = RE_SECAO.sub(
             lambda _m: f"## `{superficie}` — {linhas} item(ns)", novo_corpo, count=1
         )
@@ -146,8 +211,9 @@ def _specs_com_lacunas() -> dict[str, SurfaceSpec]:
     return specs
 
 
-def _sections_from_specs(specs: dict[str, SurfaceSpec]) -> dict[str, str]:
+def _sections_from_specs(specs: dict[str, SurfaceSpec], lang: str = "pt") -> dict[str, str]:
     """Render one markdown section per surface that declares unproven names."""
+    cfg = LINGUAGENS[lang]
     secoes: dict[str, str] = {}
     for path in sorted(SPECS.glob("*/*.schema.json")):
         spec = load_spec(path)
@@ -157,9 +223,9 @@ def _sections_from_specs(specs: dict[str, SurfaceSpec]) -> dict[str, str]:
             f"\n## `{spec.surface}` — {len(list(spec.unverified_fields))} item(ns)\n",
             f"\nSpec: [`{(path.relative_to(REPO).as_posix())}`]"
             f"](../{path.relative_to(REPO).as_posix()})\n",
-            "\n| tipo | item | motivo declarado |\n|---|---|---|",
+            cfg["tabela"],
         ]
-        for _nome, linha in _itens(spec):
+        for _nome, linha in _itens(spec, lang):
             linhas.append(linha)
         secoes[spec.surface] = "\n".join(linhas)
     return secoes
@@ -180,51 +246,64 @@ def _counts(specs: dict[str, SurfaceSpec]) -> tuple[int, int, Counter[str]]:
     return total, len(specs), por_provedor
 
 
-def main() -> int:
-    if not DOC.exists():
-        print(f"aviso: {DOC} nao existe; nada a preservar.", flush=True)
-        return 1
-    texto = DOC.read_text(encoding="utf-8")
+def _manter(
+    lang: str,
+    specs_por_superficie: dict[str, SurfaceSpec],
+    total: int,
+    superficies: int,
+    por_provedor: Counter[str],
+) -> tuple[bool, str]:
+    """Mantem UM documento: o original pt-BR ou o gemeo em ingles.
+
+    Devolve ``(mudou, relatorio)``. O caminho pt-BR e byte a byte o que este
+    script fazia antes de existir o gemeo -- a unica diferenca e de onde vem
+    o rotulo (kind, cabecalho da tabela e as tres linhas de numeros).
+    """
+    cfg = LINGUAGENS[lang]
+    doc = cfg["path"]
+    if not doc.exists():
+        return False, f"aviso: {doc} nao existe; nada a preservar."
+    texto = doc.read_text(encoding="utf-8")
     original = texto
 
-    # Lida UMA vez: numeros, reconciliacao e acrescimo precisam ver a mesma coisa.
-    specs_por_superficie = _specs_com_lacunas()
-    total, superficies, por_provedor = _counts(specs_por_superficie)
-
-    texto = RE_TOTAL.sub(
-        f"* **{total} itens não comprovados** em **{superficies} de {superficies} superfícies** "
-        "(ou seja: **nenhuma** superfície está sem lacuna declarada).",
-        texto,
-    )
-    texto = RE_JUNTOS.sub(f"juntos dão {total} itens em **{superficies}** superfícies", texto)
-    texto = RE_PROVEDOR.sub(
-        "* Por provedor: "
-        + ", ".join(f"**{name}** {count}" for name, count in sorted(por_provedor.items()))
-        + ".",
-        texto,
-    )
+    texto = cfg["re_total"].sub(cfg["total"](total, superficies), texto)
+    texto = cfg["re_juntos"].sub(cfg["juntos"](total, superficies), texto)
+    texto = cfg["re_provedor"].sub(cfg["provedor"](por_provedor), texto)
 
     # Reconcilia o CORPO das secoes existentes com as specs, e so depois acrescenta as
     # superficies que ainda nao tem secao. Reconciliar antes mantem as secoes novas no fim,
     # como sempre -- e a reconciliacao so depende de cabecalhos, que o acrescimo nao move.
-    texto, reconciliadas = _reconcilar(texto, specs_por_superficie)
-    secoes = _sections_from_specs(specs_por_superficie)
+    texto, reconciliadas = _reconcilar(texto, specs_por_superficie, lang)
+    secoes = _sections_from_specs(specs_por_superficie, lang)
     faltando = [s for s in secoes if f"## `{s}`" not in texto]
     if faltando:
         novas = "\n".join(secoes[superficie] for superficie in faltando)
         texto = texto.rstrip() + "\n" + novas + "\n"
 
     if texto == original:
-        print(f"ok: sem mudanca ({total} itens em {superficies} superficies)")
-        return 0
-    DOC.write_text(texto, encoding="utf-8")
-    print(
+        return False, f"ok: sem mudanca ({total} itens em {superficies} superficies)"
+    doc.write_text(texto, encoding="utf-8")
+    return True, (
         f"ok: {total} itens em {superficies} superficies; "
         f"{len(reconciliadas)} secao(oes) reconciliada(s) "
         f"({', '.join(reconciliadas) or 'nenhuma'}); "
-        f"{len(faltando)} secao(oes) acrescentada(s) -> {DOC.relative_to(REPO)}"
+        f"{len(faltando)} secao(oes) acrescentada(s) -> {doc.relative_to(REPO)}"
     )
-    return 0
+
+
+def main() -> int:
+    # Lida UMA vez: numeros, reconciliacao e acrescimo precisam ver a mesma coisa.
+    specs_por_superficie = _specs_com_lacunas()
+    total, superficies, por_provedor = _counts(specs_por_superficie)
+
+    rc = 0
+    for lang in ("pt", "en"):
+        doc = LINGUAGENS[lang]["path"]
+        if not doc.exists():
+            rc = 1
+        mudou, relatorio = _manter(lang, specs_por_superficie, total, superficies, por_provedor)
+        print(relatorio, flush=True)
+    return rc
 
 
 if __name__ == "__main__":

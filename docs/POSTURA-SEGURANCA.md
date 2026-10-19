@@ -1,5 +1,7 @@
 # Postura de segurança no simulador — o domínio, o contrato e a ordem
 
+> Idioma: **Português** | [English](POSTURA-SEGURANCA.en.md)
+
 **Decisão de 2026-10-16: o simulador passa a representar postura de segurança, nas três nuvens.**
 
 Por quê, com evidência: o FinOps varre a nuvem com 4 checks AWS próprios — **S3 público**,

@@ -1,5 +1,7 @@
 # simulador — gerador de nuvens sinteticas + emuladores de API
 
+> Idioma: **Português** | [English](README.en.md)
+
 Simulador multi-nuvem **independente**. Gera todos os dados necessarios —
 FinOps, seguranca, rede e instancias — para **AWS, GCP e Azure**, e os entrega
 seguindo o mecanismo e o formato de export que **cada nuvem realmente usa**.
@@ -29,9 +31,9 @@ O repositorio tem duas partes:
 | Testes | **1095 passam, 20 skip** (1115 coletados) | `pytest tools\synthetic_clouds\tests --collect-only -q` |
 | Specs em prosa | **28** | `specs/<provedor>/*.md` |
 | Emuladores | **3** — AWS · Azure · GCP | `emulators/` |
-| Arquivos versionados | **436** | `git ls-files` |
+| Arquivos versionados | **445** | `git ls-files` |
 
-> No disco sao **438** arquivos: os **436** versionados + `.publish-manifest.json`
+> No disco sao **447** arquivos: os **445** versionados + `.publish-manifest.json`
 > (artefato de build, fora do git) + `tools/synthetic_clouds/schedule/simulador-nuvem-daily.xml`
 > (ignorado pelo `.gitignore`).
 

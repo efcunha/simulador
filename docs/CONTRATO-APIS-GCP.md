@@ -1,5 +1,7 @@
 # Contrato oficial das APIs GCP que o `gcp_rest_fixtures` emula (G11)
 
+> Idioma: **Português** | [English](CONTRATO-APIS-GCP.en.md)
+
 > **Este documento chama-se CONTRATO-APIS-GCP.md e trata das APIs do Google Cloud.** O contrato do
 > **OCSF da AWS** (levantado para o item E5) está em seção própria no fim do arquivo, com a
 > indicação de que pertence a outro provedor — o nome do arquivo não acompanhou o segundo uso.

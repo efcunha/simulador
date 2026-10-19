@@ -1,5 +1,7 @@
 # Decisões — registro do que foi decidido
 
+> Idioma: **Português** | [English](DECISOES-PENDENTES.en.md)
+
 Cada item aqui **travava** trabalho verificável. Este documento passou de "registro para
 decisão" a **registro de decisão**: em **2026-10-14** as recomendações abaixo foram
 aprovadas pelo responsável pelo produto, e o que resta em cada bloco é **execução**, não

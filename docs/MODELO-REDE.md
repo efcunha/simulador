@@ -1,5 +1,7 @@
 # Modelo canônico de rede
 
+> Idioma: **Português** | [English](MODELO-REDE.en.md)
+
 > **Estado (2026-10-14): implementado no modelo.** `model/network.py` traz
 > `NetworkSegment`, `NetworkInterface` e `NetworkFlow`; `estate_builder` gera os
 > três com streams nomeados; o gate recusa interface órfã, fluxo sem ponta e

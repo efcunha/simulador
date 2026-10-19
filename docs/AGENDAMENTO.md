@@ -1,5 +1,7 @@
 # Agendamento da geração diária
 
+> Idioma: **Português** | [English](AGENDAMENTO.en.md)
+
 Documento operacional. Responde **como configurar o horário**, **o que acontece quando
 a máquina fica desligada** e **o que ainda não está resolvido** — sem repetir o que já
 está em [`ESTADO.md`](ESTADO.md).

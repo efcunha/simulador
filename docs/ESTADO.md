@@ -1,5 +1,7 @@
 # Estado do simulador-nuvem
 
+> Idioma: **Português** | [English](ESTADO.en.md)
+
 Documento vivo. Registra o que existe, o que foi decidido e por quê, para que o
 trabalho continue sem depender de contexto de conversa.
 

@@ -1,5 +1,7 @@
 # D3 — Ingestão de segurança: do simulador para a tabela `findings`
 
+> Idioma: **Português** | [English](INGESTAO-D3-SEGURANCA.en.md)
+
 **Status em 2026-10-16: reescrito. A versão anterior partia de uma premissa errada.**
 
 ---
