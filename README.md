@@ -27,7 +27,11 @@ O repositorio tem duas partes:
 | Testes | **1095 passam, 20 skip** (1115 coletados) | `pytest tools\synthetic_clouds\tests --collect-only -q` |
 | Specs em prosa | **28** | `specs/<provedor>/*.md` |
 | Emuladores | **3** — AWS · Azure · GCP | `emulators/` |
-| Arquivos versionados | **434** | `git ls-files` |
+| Arquivos versionados | **432** | `git ls-files` |
+
+> No disco sao **434** arquivos: os **432** versionados + `.publish-manifest.json`
+> (artefato de build, fora do git) + `tools/synthetic_clouds/schedule/simulador-nuvem-daily.xml`
+> (ignorado pelo `.gitignore`).
 
 A unica superficie bloqueada e uma **recusa deliberada**, nao uma falta: a
 Microsoft publica os 132 nomes sem tipos, e nenhum deles aparece nos cinco
