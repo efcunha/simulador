@@ -1,4 +1,5 @@
-# simulador — gerador de nuvens sinteticas + emuladores de API
+# Simulador  
+# Gerador de nuvens sinteticas + emuladores de API
 
 > Idioma: **Português** | [English](README.en.md)
 
