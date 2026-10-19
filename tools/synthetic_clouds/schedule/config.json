@@ -1,0 +1,12 @@
+{
+  "backfill_max_days": 31,
+  "currency": "USD",
+  "enabled": true,
+  "lag_days": 1,
+  "profile": "medium",
+  "renderers": null,
+  "retention_days": 30,
+  "seed": 123,
+  "time": "12:00",
+  "time_zone": "America/Sao_Paulo"
+}

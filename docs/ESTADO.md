@@ -1,0 +1,1085 @@
+# Estado do simulador-nuvem
+
+Documento vivo. Registra o que existe, o que foi decidido e por quê, para que o
+trabalho continue sem depender de contexto de conversa.
+
+Última atualização: 2026-10-18.
+
+## Entregas registradas
+
+| Commit | Fase | O que trouxe |
+|---|---|---|
+| `9848e1e` H-01…`0f7e174` H-09 | **Domínio de postura — FECHADO (2026-10-19)** | Os **8 checks** que os três `SecurityScanner` do FinOps rodam têm, cada um, a superfície do simulador que os produz, medida contra o consumidor real. Série de **15 commits** (9 feat, 5 docs, 1 fix), contados na época por `git rev-list --count 9848e1e^..0f7e174` (comando que hoje não roda — ver PROVENANCIA-HISTORICO.md §3.1). Commits-âncora: AWS `9848e1e` H-01 (Config by-rule), `5169404` H-02 (Security Groups), `c65faeb` H-03 (S3), `d38b325` H-04 (IAM), `a80bc1f` H-05 (resíduo de Config); GCP `69b721d` H-06 (SCC), `dead1b0` H-07 (Firewall); Azure `85951d9` H-08 (NSG), `0f7e174` H-09 (Defender). Evidência: 46 superfícies, suíte **1095 passed / 20 skipped**, `--matrix` `gerado=45 falta=0 bloqueado=1`. Detalhe do marco em [POSTURA-SEGURANCA.md](POSTURA-SEGURANCA.md#marco--o-domínio-de-postura-fechado-2026-10-19); débitos residuais em [A área de postura](#a-área-de-postura--completa-2026-10-19). |
+| `d38b325` H-04 | IAM — incremento 4 | A identidade da conta AWS: três regras de Config saíram de `INSUFFICIENT_DATA` (medido: 14/10/102 → 32/19/75). O commit **trouxe também, FORA do plano de postura AWS, três superfícies de categoria C** — `gcp/observability-partial`, o bloco regional do S3 e o diagnóstico `fidelity/review.py --state IAM`. Elas estão nomeadas em [o bloco C](#as-três-superfícies-que-entraram-fora-do-plano-categoria-c) porque são dívida de **granularidade de commit**, não parte da fase IAM — o próximo incremento não deve classificá-las como IAM. |
+
+## Princípio
+
+O simulador gera dados de nuvem **fiéis ao formato de export oficial** de AWS,
+GCP e Azure. A fidelidade não é presumida: cada campo tem URL da documentação
+oficial e data de consulta, e a regra é *se a documentação não afirma, o
+simulador não afirma*. Um campo marcado como não comprovado é um resultado
+esperado, não uma pendência a preencher com um palpite.
+
+## Isolamento
+
+Este repositório é autônomo. Nada é criado ou alterado em `D:\synthetic-clouds`,
+em `<arvore-de-origem>` ou em qualquer banco/container do FinOps.
+
+O container `cp-sim-fix` — criado à mão, sem definição declarativa — rodava com
+`DATABASE_URL` apontando para `postgres:5432/<banco-do-consumidor>`, e o alias `postgres`
+resolvia para o `postgres-do-consumidor` real (<ip-do-consumidor>) porque ambos estavam na
+mesma rede. **Foi parado.** Era o vetor de escrita no banco real.
+
+## Arquitetura da fidelidade
+
+| Peça | Papel |
+|---|---|
+| `specs/<provider>/*.schema.json` | Contrato legível por máquina, derivado da documentação oficial. Fonte da verdade. |
+| `specs/<provider>/*.md` | A mesma informação em prosa, com citações, divergências e lacunas. |
+| `fidelity/spec.py` | Carrega e **recusa** spec sem evidência (falha fechada). |
+| `fidelity/checker.py` | Compara o artefato emitido com a spec: nomes **e** valores. |
+| `fidelity/artifacts.py` | Lê os campos e os valores REAIS de um arquivo gerado (Parquet/CSV/JSON). |
+| `fidelity/sources.py` | Lista fechada de domínios oficiais — procedência é regra, não impressão. |
+| `fidelity/matrix.py` | Liga cada superfície especificada ao renderer que a produz. |
+| `fidelity/__main__.py` | Relatório de auditoria (`--matrix` mostra o que falta gerar). |
+| `fidelity/review.py` | Diagnóstico **retrospectivo** por estado (`--state IAM`): o que a tela mostraria hoje, e de qual das três causas vem o `INSUFFICIENT_DATA`. |
+| `render/_config_evaluators.py` | **A** semântica de veredito das regras gerenciadas que leem estado. Chamado pelo renderer de Config **e** pelo diagnóstico, para que os dois não possam divergir. |
+
+### Duas decisões, não uma
+
+Confundir "a coluna existe no arquivo" com "a coluna pode ser preenchida" custa
+fidelidade nos dois sentidos:
+
+| | **Pertence ao formato** (`belongs_to_schema`) | **Pode receber valor** (`is_generatable`) |
+|---|---|---|
+| Exigências | nome, tipo, `verified`, `source_url`, `evidence` ∈ {`declared`, `null-empty`} | as mesmas, com `evidence: declared` e `type_source` válido |
+| Efeito | a coluna tem de existir no artefato | a coluna pode ser preenchida |
+
+`null-empty` é o caso que obriga a separação: a documentação afirma que a coluna
+**existe** e que **nunca tem valor**. Omiti-la é infiel ao formato; preenchê-la é
+infiel ao contrato. O correto é emiti-la vazia. Já `example-only` **não** pertence
+ao formato.
+
+E o auditor confere **valores**, não só nomes: `check_values` acusa coluna
+declarada sempre vazia que saiu preenchida — antes disso, escrever um valor
+inventado numa dessas colunas passava em silêncio. `check_artifact` faz nome e
+valor num passo, e é o que os testes golden chamam.
+
+### Regras do contrato
+
+- **`status`** é estritamente binário: `verified` ou `unverified`.
+- **`evidence`** carrega a nuance: `declared`, `null-empty`, `example-only`,
+  `name-only`, `deprecated`, `author-classification`.
+- **`type_source`**: `documented` (o provedor publica o tipo) ou
+  `format-observed` (o provedor não publica tabela de tipos, mas descreve o campo
+  normativamente e o formato oficial fixa a representação). `format-observed`
+  exige que o campo seja declarado — não se deriva a forma de um exemplo para um
+  campo que só existe no exemplo.
+- **`unverified`** aceita string ou objeto com `name`/`field`/`column` e `reason`.
+  Entradas com `item`/`topic`/`gap` são **lacunas de tópico** (particionamento,
+  clustering), não nomes de campo — não poluem a lista de proibidos.
+- **`sets`** existe porque uma superfície pode ter vários esquemas, e eles podem
+  ser **disjuntos**. Conferir um artefato de um contrato contra a união de todos
+  acusaria ausência de tudo o que os outros declaram; por isso `check()` exige
+  `scope=` quando há mais de um conjunto nomeado.
+- **Ordem** só é contratual quando o provedor publica ordem fixa (ex.: CSV da
+  Azure). Num Data Export da AWS a ordem vem do `SELECT` da definição do export.
+
+## Cobertura atual
+
+45 superfícies geradas de 46 declaradas (a bloqueada é a que a documentação não sustenta).
+Os três comandos abaixo são a fonte viva disto:
+
+```powershell
+cd <raiz-do-repo>
+$env:PYTHONPATH='<raiz-do-repo>'
+& .\.venv\Scripts\python.exe -m tools.synthetic_clouds.fidelity            # specs validas?
+& .\.venv\Scripts\python.exe -m tools.synthetic_clouds.fidelity --matrix   # o que falta gerar
+& .\.venv\Scripts\python.exe -m tools.synthetic_clouds.fidelity --golden   # o que falta provar
+```
+
+```
+gerado=45  falta=0  bloqueado=1  total=46
+specs: 46 superfícies, 2610 colunas, 1972 geráveis, 258 não comprovadas, 0 problemas
+tipo derivado do formato oficial (type_source=format-observed): 45
+```
+
+> **Medido em 2026-10-19**, depois da série que fechou o domínio de postura
+> (`9848e1e` H-01…`0f7e174` H-09, 15 commits). Antes dela a matriz contava **43 geradas de 44 declaradas**. As
+> linhas `gerado` e `specs` são as que esta medição produziu; a linha de suíte está registrada em
+> [A área de postura](#a-área-de-postura--completa-2026-10-19).
+
+Toda superfície especificada tem renderer e teste golden que confronta o artefato
+com a spec, exceto a bloqueada pela documentação.
+
+| Estado | O que significa |
+|---|---|
+| **gerado** | Existe renderer que produz o artefato, com teste golden. |
+| **falta** | A documentação sustenta a geração e o renderer ainda não existe. |
+| **bloqueado** | A documentação não sustenta a geração. Não é atraso: é recusa deliberada a inventar. |
+
+Uma superfície só conta como pronta quando as três coisas fecham: spec válida,
+renderer que emite, e **teste golden que compara o artefato com a spec**. O
+`--golden` denuncia superfície declarada como gerada que nenhum teste confronta —
+fidelidade não verificada é fidelidade presumida.
+
+O `--matrix` **detecta quando a própria matriz envelhece** — se uma superfície
+marcada como bloqueada passa a ter colunas geráveis, ele avisa. Foi assim que
+Resource Graph, NSG flow logs e ARM foram pegos depois de destravados por
+`format-observed`. Ele também nomeia duas coisas que nenhum teste deveria
+esconder:
+
+* **`untyped_required`** — colunas obrigatórias cujo tipo o provedor não publica.
+  São a causa de o auditor acusar `missing` num renderer **correto**: a coluna
+  está sempre presente no arquivo real, mas num alvo tipado não pode ser escrita
+  sem inventar o tipo. Hoje são 4 superfícies e 401 colunas (`cost-details` 272,
+  `vnet` 107, `nsg` 18, `scc` 4). O residual é irredutível enquanto a
+  documentação não publicar o tipo — e o lugar de nomeá-lo é aqui, não no
+  contrato do gerador.
+* **renderer sem superfície** — `gcp_bigquery` produz a tabela padrão em forma
+  aninhada, ao lado de `gcp_bigquery_topology`; `gcp_rest_fixtures` é plano de
+  API, não formato de export. Ambos são legítimos, mas têm de estar declarados.
+
+Superfície ainda **bloqueada**:
+
+| Superfície | Motivo |
+|---|---|
+| `azure/cost-management-export-cost-details` | O dataset clássico publica **nomes, sem tipos**, e nenhum dos 132 nomes aparece nos cinco contratos ao mesmo tempo. Gerar exigiria inventar tipo e escolher contrato. |
+
+### Decisão limítrofe registrada
+
+A coluna `tags` do ARM ficou **não gerável**. A referência de templates descreve-a
+em prosa ("Dictionary of tag names and values") sem a palavra-chave de tipo que
+usa nas outras linhas (`string[]`, `bool`, `int`). O critério do projeto exige que
+o formato **fixe** a representação; prosa descritiva ficou do lado conservador. Se
+o dono do produto aceitar a prosa como tipo publicado, é uma linha: `documented` +
+`object`. Não foi forçado.
+
+## A área de postura — **completa** (2026-10-19)
+
+**Estado: completo.** Os **8 checks** que os três `SecurityScanner` do FinOps rodam — 4 na AWS
+(Config by-rule, Security Groups, S3 público, IAM sem MFA), 2 no GCP (SCC findings, Firewall) e 2
+na Azure (NSG rules, Defender/Assessments) — têm, cada um, a superfície do simulador que os
+produz, **medida contra o consumidor real**. O marco e a tabela provedor × check × superfície ×
+commit estão em [POSTURA-SEGURANCA.md](POSTURA-SEGURANCA.md#marco--o-domínio-de-postura-fechado-2026-10-19).
+
+**Evidência:**
+
+| Medida | Valor | Como medir |
+|---|---|---|
+| Superfícies declaradas | **46** | `--matrix` → `gerado=45 falta=0 bloqueado=1 total=46` |
+| Superfícies prontas | **45** | `--ready` → `PRONTO: 45 superficies`, 0 coluna inventada em qualquer provedor |
+| Conformidade de Config | **45 COMPLIANT / 27 NON_COMPLIANT / 54 INSUFFICIENT_DATA** | rodando o renderer `config_compliance_by_rule` (seed 123, perfil `small`): 14 regras × 9 escopos = 126 itens |
+| Suíte | **1095 passed / 20 skipped** | `pytest tools\synthetic_clouds\tests -q` |
+
+A única superfície bloqueada é `azure/cost-management-export-cost-details`, que é de **custo** —
+não pertence ao domínio de postura.
+
+**Débitos remanescentes nomeados.** "Completo" é o estado do *domínio* — os 8 checks têm
+superfície. Não é a afirmação de que nada ficou por fazer, e os débitos abaixo são reais,
+**limitados e nomeados**:
+
+| Débito | Onde | Por que fica |
+|---|---|---|
+| `displayName` do Defender sai vazio | `azure/security-assessments-list` | O estado não tem qual verificação o Defender aplicou a uma VNet, e inventar um nome de avaliação seria afirmar sobre o provedor algo que nenhuma página consultada sustenta. **Efeito visível:** o consumidor usa `display_name` como **título** do achado, então o título sai vazio. |
+| `status.cause` sai vazio | `azure/security-assessments-list` | Caso-limite: o exemplo de resposta traz `"cause": "OffByPolicy"`, mas **exemplo de payload fixa a forma do campo, não o vocabulário**. |
+| 2 `unverified` no SCC | `gcp/scc-findings` | `sourceProperties.{Explanation,Recommendation}` (o proto diz que as chaves do mapa são geridas pela fonte e publica só a gramática do nome — não há enumeração oficial) e `listFindingsResults[].resourceUuid` (plano best-effort legado que nenhum dos seis contratos oficiais declara). |
+| Plural de portas da Azure não exercitado | `azure/arm-network-security-group-rules` | `destinationPortRanges` (plural) sai vazio porque o modelo guarda a forma singular, então o ramo `if ranges:` de `_parse_ports` nunca executa contra o artefato. Fechá-lo exige modelar a forma plural em `SecurityRule`, compartilhado com os renderers de NSG flow logs — é ganho de cobertura de ramo, não de fidelidade. |
+| `<root_account>` não comprovado | `aws/iam-get-credential-report` | Nem `API_GetCredentialReport.html` nem a página de colunas do IAM User Guide declaram o literal da coluna `user` na linha da conta root. A linha **é** emitida (sem ela `root-account-mfa-enabled` não teria linha onde ler o MFA da raiz) e o literal é `<root_account>`, com o motivo no `_provenance`. |
+
+Nenhum desses débitos é uma lacuna de **superfície**: cada um está escrito no lugar que o produz e
+none deles impede um check de rodar. `NAO-COMPROVADOS.md` **não** foi regerado nesta rodada — nada
+de spec mudou.
+
+## Mecanismos de export que NÃO existem
+
+Refutações verificadas na documentação — o simulador não vai fingir que existem:
+
+- **Security Hub → S3 em ASFF**: não existe. `FindingsOutput.Format` aceita apenas
+  `CSV` ou `OCSF_JSON`. ASFF é o formato interno da finding, não um formato de export.
+- **EC2 `DescribeInstances` → artefato durável**: não existe; é API paginada, e a
+  referência publica só XML.
+- **VPC Flow Logs (GCP) → BigQuery direto**: não existe. O destino é o Cloud
+  Logging; o caminho BigQuery é dataset vinculado, que o Google descreve como
+  consulta "sem exportar os dados".
+- **Defender for Cloud → Azure Storage**: não é destino documentado (só Log
+  Analytics, Event Hubs e Logic Apps), e não há schema publicado do payload além de
+  `SecurityAlert` e `SecurityRecommendation`.
+- **Manifesto de export da Microsoft**: sem schema formal; a definição oficial é um
+  único exemplo.
+- **`aka.ms/ASCAutomationSchemas`**: o ponteiro da própria página oficial
+  redireciona para a raiz do GitHub — morto.
+
+## Decisões tomadas
+
+1. **Projeto independente**, nada dentro do FinOps.
+2. **Tipos derivados do formato documentado são permitidos** (`format-observed`),
+   com qualificador auditável e a trava de exigir campo declarado. Sem isso, a
+   Azure ficaria sem rede e sem instâncias.
+3. **Geradores dirigidos por spec**, FinOps primeiro, depois segurança, rede e
+   instâncias.
+4. **O pacote `coverage/` foi para `attic/product-coupled/`**: ele varre
+   `<arvore-do-consumidor>` do FinOps, ou seja, é assunto da fase de ingestão.
+5. **O teste da CUR da AWS passou a comparar com a spec citada**, não com o
+   arquivo-âncora copiado do FinOps: antes o teste se comparava com uma cópia
+   de si mesmo.
+6. **As decisões abertas com o FinOps (D1–D8, E1–E3) foram aprovadas em 2026-10-14** e o
+   registro respectivo ([DECISOES-PENDENTES.md](DECISOES-PENDENTES.md)) passou de proposta a
+   decisão com destino de execução. O que depende daqui foi feito (D7 vigente, D8 implementado,
+   E3 aplicado); o que depende de escrita no repositório do FinOps continua pendente, porque
+   a regra nº 1 segue de pé.
+
+## Verificação
+
+```powershell
+cd <raiz-do-repo>
+$env:PYTHONPATH='<raiz-do-repo>'
+
+# auditoria das especificações (exit 1 se alguma estiver sem evidência)
+& .\.venv\Scripts\python.exe -m tools.synthetic_clouds.fidelity
+
+# lint e tipos (o ruff deve rodar DE DENTRO do pacote: o per-file-ignores e o
+# isort dependem de a raiz do projeto ser o pacote)
+cd tools\synthetic_clouds; & ..\..\.venv\Scripts\ruff.exe check .
+cd <raiz-do-repo>
+& .\.venv\Scripts\mypy.exe --config-file tools\synthetic_clouds\pyproject.toml tools\synthetic_clouds
+
+# suíte
+& .\.venv\Scripts\python.exe -m pytest tools\synthetic_clouds\tests -q
+```
+
+Ferramentas de auditoria das specs em `specs/_tools/`:
+
+| Ferramenta | O que responde |
+|---|---|
+| `check_urls.py` | Toda citação de evidência resolve de fato? Uma citação que dá 404 não é evidência. Depende de rede, então é ferramenta de manutenção — não entra na suíte. |
+| `audit_sources.py` | De que domínio vem a evidência de cada coluna. |
+| `show_urls.py` | URLs distintas de uma superfície, com contagem — uma spec inteira apontando para uma única URL genérica é sinal de alerta. |
+| `list_columns.py` | Amostra de colunas de uma superfície filtradas por origem, para a verificação hostil. |
+
+**Resultado de 2026-10-14: 74 URLs distintas de evidência, 74 resolvem (HTTP 200), 0 falhas.**
+
+Duas verificações de procedência, refeitas depois das últimas edições de spec:
+
+* **Domínio da evidência**: `audit_sources.py` percorre toda coluna de toda spec e
+  confere o domínio da `source_url`. Resultado: **0 especificações com problema**,
+  nenhuma coluna sem URL, nenhuma fora de domínio oficial (resultado por superfície
+  no comando).
+* **Tipo derivado do formato** (`type_source = format-observed`, a qualificação
+  auditável que o projeto admite onde a documentação não declara o tipo): são **45
+  colunas, todas no Azure e todas com evidência em `learn.microsoft.com`**. As 45
+  têm `source_url` **e** o qualificador textual explícito — nenhuma entrou por
+  dedução silenciosa.
+
+### O veredito: `--ready`
+
+```powershell
+& .\.venv\Scripts\python.exe -m tools.synthetic_clouds.fidelity --ready          # tudo
+& .\.venv\Scripts\python.exe -m tools.synthetic_clouds.fidelity --ready azure    # um provedor
+```
+
+Renderiza cada superfície declarada como gerada e aplica **cinco critérios
+objetivos**. Nenhum deles é taxa de preenchimento: quanto uma superfície preenche
+depende do que o modelo tem fonte para afirmar, e isso varia por superfície. O que
+se exige é:
+
+1. renderiza sem erro;
+2. entrega ao menos um registro — formato sem dado não é dado;
+3. entrega ao menos um artefato que carregue **algum nome próprio** — sem este
+   critério, uma superfície que divide renderer com outra passa lendo o artefato da
+   irmã (foi o caso do manifesto do cost export da Azure);
+4. nenhuma coluna fora de spec alguma;
+5. existe teste que **confronta** o artefato (`check_artifact`/`columns_of`) — não
+   basta citar a spec.
+
+O `--audit` (mesma renderização) mostra, por superfície, arquivos, registros,
+**caminhos com valor** e colunas inventadas. A taxa de preenchimento é evidência
+para decidir onde investir, não critério de aprovação.
+
+**Toda medição termina se identificando (D8).** `--audit`, `--matrix`, `--golden`, `--ready` e a
+auditoria de specs imprimem a última linha como
+
+```
+revisao=d44624c  branch=master  arvore=com alteracoes nao commitadas
+```
+
+Os números por superfície só valem para a revisão que os produziu, e um relatório sem ela não é
+comparável com o próximo — foi assim que o registro de decisões passou a exigir a revisão junto
+do ambiente. A detecção vive em `fidelity/revision.py` e tem três propriedades deliberadas: fora
+de um repositório git a revisão vira `desconhecida` e a medição continua valendo (a auditoria
+mede artefatos, não git); `arvore` distingue uma medição reproduzível de uma que nenhum commit
+contém; e o campo nunca diz "limpa" sem ter olhado.
+
+Duas colunas de preenchimento, e a diferença importa: **`caminhos`** conta os
+caminhos que a spec enumera (`invoice.month`, `networkInterfaces[].id`) com valor
+no artefato, e **`topo`** conta só os nomes no nível de topo. O artefato de billing
+do GCP **aninha** os campos enquanto a spec enumera caminhos pontuados (50 dos 71
+nomes têm ponto), então `topo` dizia 17 onde havia 43. `topo` continua no relatório
+porque é a leitura certa para as superfícies que **achatam** a chave (`"finding.name"`
+como chave literal, no SCC e no flow log do GCP) — olhar só uma das formas erra
+para baixo na outra, e foi o que aconteceu ao implementar apenas o aninhamento: o
+SCC caiu para zero caminhos como se não entregasse nada.
+
+A terceira coluna, **`obrig.vazias`**, conta as colunas que a spec marca
+`required` e que estão **sem valor em todas as linhas**. Ela não é critério de
+aprovação, e a ressalva é da própria especificação: no FOCUS, `required` significa
+que a **coluna** deve existir, e o valor pode ser nulo quando não se aplica
+(`ChargeClass` só vale em linha de correção). Exigir valor tornaria o veredito
+impossível de satisfazer honestamente. Mas ausência em massa ou tem fonte faltando
+ou tem motivo a declarar — e ausência silenciosa foi como estas passaram:
+
+| superfície | obrigatórias vazias | leitura |
+|---|---|---|
+| `aws/bcm-data-exports-focus12` | 0 de 19 | completo |
+| `gcp/billing-export-standard` / `detailed` | 0 de 13 | completo |
+| `azure/cost-management-export-focus12` | **61 de 104** | outlier; classificadas uma a uma pelo agente (preenchível / não aplicável / lacuna) |
+| `aws/aws-config-snapshot-s3` e `ec2-describe-instances` | 1 cada (`requestId`) | identificador de requisição: cunhável, não identidade de recurso |
+| `aws/security-hub-asff` | 1 (`ProductArn`) | lacuna declarada: o ARN exige ids de produto, e o modelo tem nomes |
+| `aws/config-describe-compliance-by-config-rule` | 0 | nenhuma coluna é `required`: a API Reference marca **todos** os membros desta resposta como `Required: No` |
+| `gcp/security-command-center` | 4 (`source_id`, `finding_id`, `event_time`, `finding`) | envelope do export ausente: o artefato achata os 68 campos internos e omite as 6 colunas de envelope |
+
+Quando a superfície tem mais de um conjunto, parte da contagem pode ser
+**posicional** e não ausência real: o artefato do NSG entrega `flowTuples` como uma
+string de 13 campos separados por vírgula (a forma documentada do blob) enquanto a
+spec modela as 13 posições como caminhos próprios. O relatório declara essa
+ressalva em vez de apresentar o número como se fosse ausência.
+
+**Resultado de 2026-10-14 (tarde):** AWS 6/6 e GCP 7/7 prontas; Azure 6/7, com o
+manifesto do cost export pendente de decisão — o renderer entrega só o artefato da
+superfície irmã (FOCUS), então ele ou passa a ter artefato próprio ou consta como
+bloqueado, e não como gerado.
+
+
+## O que falta para "gerar todos os dados"
+
+Fidelidade de coluna não é o mesmo que dado presente. Uma superfície pode emitir
+exatamente os campos documentados e ainda assim sair vazia, porque o **modelo
+canônico** não carrega aquele dado. O estado de 2026-10-14, medido:
+
+| Domínio | O que o modelo canônico oferece | Consequência |
+|---|---|---|
+| **FinOps** | `DailyConsumption`, `BillingLine`, `ListPrice`, `ContractedPrice`, `Commitment`, `Credit`, `Tax`, `Invoice`, e o preço de lista por SKU | FOCUS AWS com 59 caminhos preenchidos e **0 de 19 obrigatórias vazias**; GCP com 43/47/7; Azure FOCUS com 43 — e **61 obrigatórias vazias**, em tratamento |
+| **Instâncias** | `Resource`, `InventoryAsset.config_json` e `InstanceProfile` | id nativo por nuvem (o mesmo `aws_resource_id` que as superfícies AWS usam), tipo derivado do SKU do catálogo, zona, estado, IP privado **igual ao da própria NIC**, imagem e lançamento |
+| **Segurança** | `NativeFinding` com `title`, `description`, `types`, `generator_id`, procedência, `first_observed_at` e as escalas 0–100 | os campos obrigatórios do ASFF têm fonte; o que continua vazio é o que a documentação não publica (faixas de `Severity.Normalized`, `ProductArn` que exigiria ids de produto) ou o que a spec não transcreve |
+| **Rede** | `NetworkSegment` (por escopo **e região**), `NetworkInterface` e `NetworkFlow` | 24 segmentos, 222 interfaces e 2.664 fluxos; **zero interfaces fora da região do próprio segmento**; as quatro superfícies de flow log entregam registros de verdade |
+
+O que **não** está resolvido, e a diferença importa:
+
+* **Barreiras de especificação, não de modelo.** No `gcp/compute-instances-rest`,
+  os IPs privado e público só têm casa documentada em
+  `networkInterfaces[].networkIP` e `accessConfigs[].natIP`, e a spec **não
+  transcreveu** esses subcampos — escrevê-los poria um nome não citado dentro de uma
+  coluna documentada. Preencher exige trabalho de **spec** (ler a página oficial e
+  citar), não de renderer. Mesma natureza no VNet flow log, cujas 57+12 colunas de
+  fluxo são `example-only`.
+* **Contagem posicional.** Onde a spec modela as posições de um campo como
+  caminhos próprios (as 13 posições do `flowTuples` do NSG) e o artefato entrega o
+  campo como uma string, a contagem de obrigatórias vazias **superestima** — o
+  relatório declara a ressalva.
+* **A ingestão não é deste repositório.** O desenho está em
+  <doc-de-ingestao>.md, escrito a partir de leitura
+  somente-leitura: 11 das 21 superfícies têm ponto de ingestão identificado, 10 são
+  `NÃO IDENTIFICADO` e **nenhuma superfície de rede tem destino em nenhum dos dois
+  modelos de integração do FinOps** (emulação de API e ingestão de arquivo).
+  Aplicar é do time do FinOps.
+
+### Questões abertas herdadas do gerador original
+
+O README do pacote carregava uma lista `TODO-verificar` escrita para o **outro**
+projeto (a cópia dentro do FinOps) e que apontava para lá. A lista foi retirada
+do README, e as três questões ficam aqui para não se perderem:
+
+| item | estado |
+|---|---|
+| **OA-2** — algum leitor do FinOps filtra `source IN ('ce','cur')` e descartaria um valor `'synthetic'`? | **RESPONDIDA**: todos os leitores FOCUS de `<arvore-do-consumidor>` fixam `source = 'cur'`, e os promotores gravam `'cur'` de propósito; linhas sob qualquer outro valor ficam invisíveis. Evidência citada em <doc-de-ingestao>.md §4.5 |
+| **OA-5** — o conjunto de campos aninhados do billing do GCP | **RESOLVIDA**: três specs extraídas das páginas oficiais (71/77/37 colunas, evidência em `docs.cloud.google.com`); o residual são os 8/9/10 nomes que cada spec lista em `unverified` |
+| **OA-6** — os conjuntos de valores de `BillingPeriodStatus` / `InvoiceIssueStatus` do FOCUS | **ABERTA**: não está transcrita em spec nenhuma. Quando for, o lugar é a lista `unverified` da superfície correspondente, com o motivo |
+| **Codificação de `Tags` em Parquet** | **ABERTA**: a codificação oficial não é documentada; a forma escolhida (string JSON de pares) se justifica pelo que o parser real aceita, e está declarada |
+
+## G1 — NSG da Azure: a metade deste repositório (2026-10-14)
+
+A lacuna **G1** tinha duas metades: o `azure-sim` respondia lista vazia para
+`networkSecurityGroups` ("the estate models no network security group"), e este repositório
+também não modelava NSG — só o **flow log**, que é registro de tráfego, não a **regra** que o
+scanner avalia. A consequência era medida: o scanner Azure reportava a subscription como
+**limpa porque não havia o que varrer**.
+
+A metade daqui está feita, em sete peças, na ordem que a especificação fixava:
+
+| # | Peça | Onde |
+|---|---|---|
+| 1 | Identidade da superfície | `azure/arm-network-security-group-rules` (nova) |
+| 2 | Contrato citado | `specs/azure/arm-network-security-group-rules.{md,schema.json}` — **27 colunas** (25 antes do Incremento 7), todas geráveis, 5 itens em `unverified` |
+| 3 | Modelo | `model/network.py`: `NetworkSecurityGroup`, `SecurityRule`, `SECURITY_RULE_PROTOCOLS`, `SECURITY_RULE_PRIORITY_RANGE` |
+| 4 | Postura | `generate/constants.py`: `NSG_SECURITY_RULES` (posicional, **3 regras**), `NETWORK_FABRIC_RESOURCE_TYPES` |
+| 5 | Geração | `generate/estate_builder.py`: um NSG por segmento Azure, com `Inbound/Allow` **e** `Deny` no mesmo NSG |
+| 6 | Renderer + teste golden | `render/azure_nsg_rules.py`, `tests/test_azure_nsg_rules_fidelity.py` (22 testes) |
+| 7 | Matriz + gate | `fidelity/matrix.py`, `validate/integrity.py` (vocabulário, prioridade única, presença de `Inbound/Allow`) |
+
+Três decisões que valem registro, porque não são óbvias:
+
+1. **O envelope é o do recurso PAI** (`GET .../networkSecurityGroups`), com as regras em
+   `properties.securityRules[]`. O recurso filho publica a **mesma**
+   `SecurityRulePropertiesFormat`, e a escolha veio do consumidor: é o `list` de
+   `networkSecurityGroups` que um scanner chama, e é essa coleção que ele itera. O envelope de
+   **lista** (`{"value": [...], "nextLink"}`) **não** é emitido: é paginação de coleção, não campo
+   do recurso, e o SDK desembrulha `value` antes de entregar cada NSG.
+2. **Os dois `id` são emitidos** (Incremento 7), e saem da mesma composição
+   (`NetworkSecurityGroup.arm_id()`), então o id do envelope, o caminho do arquivo e o caminho
+   aninhado da regra não podem divergir. Isto **corrige** a decisão anterior: o
+   `properties.securityRules[].id` estava em `unverified` porque a página de *template* publica o
+   tipo mas não a forma — e a página **REST** publica as duas (`id | string | Resource ID.`, com o
+   exemplo do GET fixando `<id-do-NSG>/securityRules/<nome>`). O `nsg.id` do próprio recurso também
+   é publicado lá, e o consumidor o lê (`security.py:121` e `:125`) para o `resource_id` do achado e
+   para o `--resource-group` do comando de remediação.
+3. **Os prefixos majoritariamente usam `'*'`, não um CIDR** — exceção: a regra crítica
+   `AllowInternetInboundSsh` usa o service tag `Internet`, que a própria página publica como valor
+   válido. Um CIDR exigiria afirmar a faixa da VNet, que o modelo não carrega, e um prefixo que não
+   contivesse as NICs da mesma VNet seria uma afirmação **falsa** sobre a rede.
+
+**A postura mudou no Incremento 7 por uma medição, não por gosto.** Com as duas regras anteriores
+(`AllowVnetInboundTls` na 443 e `DenyInternetInboundRdp` na 3389), rodar a lógica real de
+`_list_open_nsgs` sobre os artefatos entregues dava **0 achados** em 6/6 NSGs: 443 não está no
+`_CRITICAL_PORTS` do consumidor, e a única regra com porta crítica era `Deny`, descartada pelo filtro
+de acesso antes de a porta ser lida. Entrou `AllowInternetInboundSsh` (`Internet` → `22`, prioridade
+100), e a mesma medição passou a dar **6 achados**. É o caso em que um estado "coerente" produz
+silenciosamente uma assinatura limpa.
+
+Verificação: `--matrix` → `gerado=21 falta=0 bloqueado=1 total=22`; `--audit` mede a superfície
+nova em **12 artefatos / 16 caminhos / 0 colunas inventadas**; `--ready` → **exit 0** com
+**21 superfícies**; suíte **754 passed, 10 skipped, 0 failed**; `ruff` e `mypy` limpos em
+**111 arquivos**.
+
+**O que continua aberto — e é do outro lado:** o `return []` de
+`azure_sim/projections/network.py`. Ele agora é **escrevível** (o estado tem o NSG com as
+regras, e `projections/arm.py` já mapeia o tipo `network_security_group`), mas a escrita é do
+time do FinOps: a regra inviolável nº 1 deste repositório proíbe alterar aquele repositório.
+O docstring de lá deve ser **substituído, não apagado em silêncio** — ele registra uma decisão
+correta para o estado de então, e a mudança de premissa é a informação.
+
+## G11 — o `gcp_rest_fixtures` sob contrato (2026-10-14, em andamento)
+
+A G11 é a lacuna que o próprio `--matrix` denunciava: dois renderers **sem superfície
+especificada**, e um deles é o caminho por onde o inventário GCP chega ao plano de API. A
+reconhecimento mudou o escopo, e a mudança importa:
+
+| Renderer | O que é, medido | Lacuna |
+|---|---|---|
+| `gcp_bigquery` (189 linhas) | probe Phase-1 que **deriva as colunas da spec** `gcp/billing-export-standard`, pelas mesmas funções do topology (`render/gcp_bigquery_topology.py:61-68`) | **nenhuma de superfície** — emite o mesmo contrato que o `gcp_bigquery_topology`, que já tem spec, golden e matriz. A matriz credita cada superfície a **um** renderer, então um segundo produtor do mesmo contrato aparece como "não mapeado" sem ser buraco de auditoria |
+| `gcp_rest_fixtures` (590 linhas) | 13 fixtures de resposta de API em **6 famílias** | **é a lacuna** |
+
+### O contrato foi levantado, e está preservado
+
+As 6 famílias foram levantadas nas fontes que o Google publica **em máquina** — o documento de
+descoberta de cada API e os `.proto` oficiais — porque as páginas do `docs.cloud.google.com` não
+cabem no fetch (a navegação consome o orçamento antes das tabelas de campos). O resultado está em
+[CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.md), com URL e trecho por campo. Dois resultados que
+mudam o trabalho:
+
+1. **Nenhum erro de envelope existe.** Os dez nomes de campo de lista que o renderer usa estão
+   todos **corretos** nos documentos oficiais.
+2. **`resourceUuid` não é campo de nenhuma das 6 famílias** — zero ocorrências nos seis
+   documentos completos. É uma chave de junção que o renderer inventou, emitida como campo de
+   topo em cinco famílias. O risco foi **delimitado** pela documentação: a rejeição de campo
+   desconhecido é do caminho **JSON → proto** (`ParseDict(..., ignore_unknown_fields=False)` é o
+   default); o transporte **gRPC binário preserva** o campo em vez de falhar. Como o consumidor
+   usa os dois caminhos, o campo é sempre não documentado — o que basta para a fidelidade — mas o
+   efeito em produção depende do transporte, e isso está dito assim nas specs.
+
+### Primeira família fechada: CAI `searchAllResources`
+
+Superfície `gcp/asset-search-all-resources`, com **dois escopos** (o envelope e o item), spec
+citada no proto oficial, renderer novo (`gcp_cai_search_all_resources`), projeção nos dois níveis
+(`render/gcp_api_projection.py`, compartilhado pelas famílias restantes) e **13 testes golden**.
+
+O `gcp_rest_fixtures` **não foi tocado**: ele alimenta o emulador e tem testes que o fixam, e
+aposentá-lo — ou fazê-lo emitir a forma conforme — é decisão de produto (item **E2**), não efeito
+colateral de uma auditoria.
+
+Duas decisões de método que valem registro, porque a evidência as forçou:
+
+* **A spec não usa o host do discovery document como `source_url`** — `cloudasset.googleapis.com`
+  não está na lista fechada de domínios oficiais que a suíte verifica, e o teste de contrato
+  **pegou** a primeira versão. O que o documento afirma está transcrito no `type_note`, e a
+  citação aponta para a página oficial do método.
+* **Um mapa é UMA coluna.** `labels` é `map<string,string>`, e a projeção não abre as suas chaves;
+  o precedente é o `tags` do `azure-resource-graph-virtual-machines`. Abrir produzia
+  `labels.app`, `labels.env`… e o auditor acusava de inventado cada campo do mapa.
+
+**As 11 fixtures estão fechadas** (mesma data): cada endpoint virou uma superfície com contrato
+conferido nos dois níveis — o envelope e o item —, num **driver de dados**
+(`render/gcp_api_fixtures.py`) em vez de onze renderers copiados. A forma vive uma vez; cada
+família entra como uma entrada de dados. As specs foram **geradas** de uma tabela compacta
+(`.artifacts/gerar-specs-gcp-api.py`), porque escrever onze JSON com centenas de entradas à mão
+convida ao erro de digitação numa citação — que é exatamente o defeito que a suíte existe para
+pegar.
+
+**Duas decisões de método que a evidência forçou**, e que valem para as próximas superfícies de
+API:
+
+* **A profundidade da projeção é decidida pela spec.** Descer sempre produziria `labels.app`,
+  `labels.env`… e o auditor acusaria de inventado cada campo do **mapa**; nunca descer produziria
+  `stateInfo` no lugar de `stateInfo.state` e acusaria ausência do filho declarado. Nenhuma das
+  duas regras fixas funciona sozinha: a única fonte que sabe a diferença é o contrato — desce num
+  objeto quando a spec declara um caminho por dentro dele, para quando a spec o nomeia como coluna.
+* **O contrato é conferido na UNIÃO das linhas quando o campo é condicional.** Um mapa
+  `resource.labels` carrega as chaves do **tipo monitorado**: `instance_id`/`zone` numa instância,
+  `database_id`/`region` num banco. Numa linha só, metade está ausente por construção.
+
+**Três defeitos que os testes pegaram** — todos meus, e todos silenciosos sem eles: as onze
+classes de renderer não entravam no registro (o `__slots__` sombreava o atributo de classe que a
+descoberta lê); a projeção de uma lista não descia para dentro dos itens (o separador `[]` entre
+o prefixo e o filho); e o diretório de saída usava um nome derivado da superfície em vez do nome
+**registrado** do renderer, então os arquivos caíam fora do lugar.
+
+## E5 — o export OCSF do Security Hub (2026-10-14)
+
+O E5 estava escrito como *"reespecificar `aws/security-hub-asff` para `CSV`/`OCSF_JSON`"*. A
+leitura da fonte **reorientou o item**, e o resultado é uma superfície nova em vez de uma
+reescrita:
+
+* O `aws/security-hub-asff` **não estava errado**: ele descreve a **resposta da API**
+  (`AwsSecurityFinding`), e a spec já registrava que ASFF não é formato de export.
+* O que faltava era o artefato que a AWS **exporta**. A página do `FindingsOutput` fixa a forma:
+  *"`OCSF_JSON` produces newline-delimited JSON records in the Open Cybersecurity Schema Framework
+  (OCSF) format"* — ou seja, **JSON por linha**, e não um array.
+
+**A analogia que a evidência recusou.** O candidato natural para o envelope seria a classe
+`compliance_finding` (uid 3) do repositório normativo do OCSF. A lista de campos que a AWS publica
+recusa essa analogia: ela mistura `vulnerabilities.*`, `malware.*`, `databucket.*` e `evidences.*`
+com `cloud.*` e `finding_info.*`. Emitir o `compliance_finding` teria sido construir o contrato por
+semelhança — e é o motivo de a superfície entregar **27 colunas** com o residual declarado, em vez
+de um envelope inventado.
+
+**O que fica declarado como lacuna, e não resolvido:** a **classe OCSF** do envelope
+(`class_uid`/`category_uid`/`type_uid`) e o `metadata.version` — que o OCSF declara obrigatório e a
+AWS não afirma qual revisão usa. A última lançada do OCSF foi verificada (`1.9.0`, via a API de
+releases, `prerelease: false`), mas **escolhê-la para o artefato seria afirmar um fato que a fonte
+da AWS não publica**. As duas ausências estão em `unverified` na spec e o teste **exige** que não
+sejam emitidas — uma declaração que não falha quando violada não protege nada.
+
+**O residual foi procurado de novo em 2026-10-15**, antes de ser dado por encerrado, e a busca
+mudou o **motivo** (não o resultado). O que apareceu: (1) a AWS publica `class_name` como caminho
+válido do próprio export, na lista de `FindingsOutput.SelectedFields` e na tabela de campos OCSF
+das regras de automação — mas **não** publica o `class_uid`, nem a categoria, nem o tipo, nem os
+valores possíveis de `class_name`; (2) a única frase da AWS sobre versão é *"Security Hub currently
+supports findings in OCSF schema version 1.6"*, que fala da revisão **suportada** pelos achados do
+serviço, e não do valor do campo no arquivo exportado — e a lista de campos do export nem publica
+`metadata.version`. Ou seja: a fonte agora **nomeia** o discriminador de classe e não dá o valor,
+e nomeia uma versão que não é a do arquivo. Continua fora do artefato, por um motivo mais forte:
+não é mais só "a AWS não diz", é "quando a AWS diz, ela diz outra coisa". A página real da operação
+de export (`securityhub-v2-findings-export.html`) também foi localizada e lida — o slug antigo
+`securityhub-findings-export.html` redireciona para o índice, o que fez a primeira rodada achar que
+ela não existia. Registro completo, com URLs e data, em
+[`CONTRATO-APIS-GCP.md`](CONTRATO-APIS-GCP.md#o-residual-procurado-de-novo-2026-10-15).
+
+**E a mesma rodada fechou uma lacuna: `severity_id`.** A entrada existia com um motivo honesto e
+incompleto — *"a tabela literal->inteiro do OCSF não foi lida"* — e ela **esperava leitura, não
+decisão**. O `base_event.json` que a spec procurava não existe em nenhuma tag: os atributos base
+vivem no `dictionary.json` da raiz (258 KB), e é lá que a enum estava — 0 Unknown, 1 Informational,
+2 Low, 3 Medium, 4 High, 5 Critical, 6 Fatal, 99 Other. O detalhe que dá solidez ao número: a enum
+da tag `1.9.0` é **idêntica**, então o valor **não depende** de resolver a lacuna de
+`metadata.version`, que segue declarada. E a leitura expôs uma inconsistência que ninguém tinha
+percebido: o `severity` saía com o literal **nativo em maiúsculas** (`"HIGH"`), quando o
+dicionário define o campo como *"normalized to the caption of the `severity_id` value"* — a
+**legenda** (`"High"`). O par saía em desacordo com a fonte que o justificava, enquanto o par
+vizinho `status`/`status_id` já saía certo. Corrigido junto, com a normalização de caixa declarada.
+A superfície foi de 26 para **27 colunas** e o registro de não comprovados caiu de **299 para 296**
+(AWS 117 → 114): as primeiras lacunas fechadas por evidência. Detalhe em
+[`CONTRATO-APIS-GCP.md`](CONTRATO-APIS-GCP.md#a-lacuna-que-a-busca-fechou-severity_id-2026-10-15).
+
+**O item 5 da fila foi aberto e rendeu mais uma leva.** Triando o registro, os itens da AWS quase
+todos dizem *"a fonte não publica"* — mas dois deles registravam que a página **não tinha sido lida**,
+o que é trabalho de leitura, não ausência de fonte. Lendo `API_Severity.html`: o `Severity.Label`
+ganhou o **enum formal** (`Valid Values: INFORMATIONAL | LOW | MEDIUM | HIGH | CRITICAL`, que
+substituiu o "guidance, not a formal enum" que estava na spec), e o `Severity.Normalized`, que era
+declarado impossível, saiu `null` — agora sai com **o número que a AWS publica** para cada rótulo
+(LOW=1, MEDIUM=40, HIGH=70, CRITICAL=90). O campo é *deprecated quanto à entrada*, mas o Security Hub
+o preenche sozinho, e esta superfície descreve a resposta da API — `null` afirmava um retorno que não
+acontece. Uma tentativa **não** fechou e virou evidência a favor da recusa: o padrão do `az-id` não
+existe — `Placement.AvailabilityZone` é só `Type: String`, enquanto o mesmo objeto publica `Valid
+Values` para `Tenancy`.
+
+Verificação: `--matrix` `gerado=34 falta=0 bloqueado=1`; `--audit aws`: 1 arquivo, **59 registros**,
+26 caminhos, **0 colunas inventadas**; `--ready` 34 superfícies PRONTO; 10 testes golden próprios.
+
+## E4 — os labels condicionais do Monitoring (2026-10-14)
+
+A auditoria da G11 deixou esta lacuna nomeada, e ela **não era de fidelidade, era funcional**: a
+superfície `gcp/monitoring-time-series` declarava apenas o label `project_id` — o único comum aos
+dois tipos de recurso monitorado —, então **a série não era atribuível ao recurso**. Um leitor que
+resolvesse a métrica pelo label (`instance_id`, `database_id`) não achava o recurso por ali.
+
+O contrato publicado diz que os labels são *"the labels listed in the associated monitored resource
+descriptor"*, e o catálogo os publica **por tipo**: `gce_instance` tem `project_id`/`instance_id`/
+`zone`, e `cloudsql_database` tem `project_id`/`database_id`/`region`. **Os dois conjuntos não
+coexistem num registro** — e é por isso que a solução não foi declarar os cinco numa linha, o que
+tornaria o contrato impossível de satisfazer.
+
+**A condicionalidade é expressa pelo mecanismo de conjuntos nomeados do projeto**, que existia para
+exatamente este caso e até então só era usado para contratos disjuntos de uma mesma superfície:
+
+| Conjunto | Papel |
+|---|---|
+| `response` | o envelope (`timeSeries`, `nextPageToken`) |
+| `timeSeries` | os campos comuns a qualquer tipo monitorado |
+| `gce_instance_labels` | `instance_id`, `zone` |
+| `cloudsql_database_labels` | `database_id`, `region` |
+
+**Duas coisas que os testes ensinaram ao fazer isto, e que valem além do E4:**
+
+* **O projetor não abre mapas, então nenhum teste que leia a projeção prova o conteúdo de um mapa.**
+  A projeção mantém `labels` como UMA coluna (é o que impede `labels.app`, `labels.env`…), então a
+  guarda do E4 teve de ler o **artefato** — os bytes do corpo — para afirmar que cada série carrega
+  os labels do seu tipo. Um teste que olhasse só a projeção não veria a diferença entre emitir três
+  labels e emitir um.
+* **O auditor confere por CONJUNTO.** Com os labels em conjuntos próprios, conferir o item contra o
+  conjunto `timeSeries` acusa de **inventado** o que está declarado no conjunto do tipo. A
+  conferência de nomes ignora as colunas dos conjuntos condicionais, e a de valores é feita por
+  conjunto — onde cada declaração vive.
+
+Verificação: `--audit gcp`: a superfície entrega **3 arquivos, 50 registros, 16 caminhos, 0 colunas
+inventadas**; `--matrix` `gerado=34`; `--ready` 34 PRONTO; a suíte passa a **857 passed, 20 skipped**
+(os 10 skips novos são o teste de labels condicionais nos 10 endpoints que não declaram labels).
+
+## Aceitação (2026-10-14)
+
+`python -m tools.synthetic_clouds.fidelity --ready` → **exit 0** (na data da aceitação; a
+contagem de superfícies mudou depois, com a G1 acima):
+
+```
+superficies avaliadas: 20
+PRONTO: 20 superficies com registro, sem coluna inventada e com teste que
+confronta a spec; contrato das specs e da matriz sem problema.
+```
+
+Acompanhado de:
+
+| verificação | resultado |
+|---|---|
+| suíte completa | **637 passed, 10 skipped, 0 failed** |
+| `mypy` | limpo em **100 arquivos** |
+| `ruff` (de dentro do pacote) | All checks passed |
+| contrato das specs | 21 superfícies, **2204 colunas**, 1579 geráveis, 173 não comprovadas, **0 problemas** |
+| domínio da evidência | **0 especificações com problema**; nenhuma coluna sem URL |
+| coluna inventada | **0** em todas as 20 superfícies |
+| isolamento | **nada** escrito em `D:\synthetic-clouds` nem em `<arvore-de-origem>` (conferido por data de modificação, no worktree e no `.git`) |
+
+As `obrig.vazias` que restam estão **todas** declaradas com grupo e motivo, ou sob
+ressalva de representação: `ProductArn` (o ARN exige ids de produto, e o modelo tem
+nomes), `sku.description` do GCP (nenhuma fonte sustenta — o token é identificador,
+o nome do serviço colapsaria SKUs), o container `finding` do SCC (representado pelos
+68 filhos), as 7 do flow log do GCP, as 49 do FOCUS Azure (12 preenchidas, 7 não
+aplicáveis, 42 lacuna de modelo, 2 não verificadas), as 11 do documento de execução
+Azure, a do ARM (`dataDisks[].createOption`) e as do NSG/VNet, que são **posicionais**
+(o artefato entrega `flowTuples` como string; a spec modela 13 caminhos).
+
+## Auditoria independente das superfícies novas (2026-10-14)
+
+Método: renderizar cada superfície sobre o estate do perfil `small` e comparar a
+**união dos campos de todos os artefatos** com a especificação. Ler só o primeiro
+arquivo dá cobertura falsamente baixa, porque várias superfícies entregam vários
+(flow logs da AWS: 180 arquivos; ARM: 56; Config: 11).
+
+| Superfície | Conjuntos conferidos | Veredito |
+|---|---|---|
+| `aws/vpc-flow-logs-s3` | 54/54 | completo |
+| `aws/aws-config-snapshot-s3` | 21 + 6 + 6 de 3 conjuntos | **envelope do arquivo em 0/3** |
+| `aws/security-hub-asff` | 46 + 12 + 38 | completo |
+| `aws/ec2-describe-instances` | 3 + 5 + 61 + 6 | completo |
+| `aws/config-describe-compliance-by-config-rule` | 2 + 2 + 2 + 2 + 3 | completo: 6 dos 11 campos têm valor, e os 5 vazios são lacuna declarada (`CapExceeded` sem teto publicado, `NextToken` de resposta e os 3 parâmetros de requisição) |
+| `aws/ec2-describe-security-groups` | 3 + 9 + 7 + 2 + 2 + 2 + 7 + 2 + 6 | completo: 9 artefatos, 112 registros, 18 caminhos com valor, **0 colunas inventadas**. Os vazios são lacuna declarada (`securityGroupArn` sem partição no modelo, e os conjuntos que o estate não declara: IPv6, prefix list, referência a grupo) |
+| `gcp/vpc-flow-logs-bigquery` | 181/181 | completo |
+| `gcp/compute-instances-rest` | 48/48 | completo |
+| `gcp/cloud-asset-inventory-compute-instance` | 9 de 10 conjuntos completos | `asset_message` 13/14 (o ausente é o obsoleto) |
+| `gcp/security-command-center-findings-bigquery` | 68/74 | os 6 ausentes são as sem tipo publicado — correto |
+| `azure/defender-for-cloud-continuous-export` | 35 + 23 + 35 | `attackpaths` 1/21 (não pertencem ao formato) |
+| `azure/nsg-flow-logs-v2` | 13 de 26 no conjunto `record` | os 13 restantes são posições dentro da string |
+| `azure/vnet-flow-logs` | 5 de 127 | **lacuna do modelo**: não há tipo de fluxo |
+| `azure/azure-resource-graph-virtual-machines` | 32/33 das VMs | os conjuntos `securityresources` em 0 estão corretos |
+| `azure/arm-resource-representation` | 301/327 | **4 chaves inventadas** (intermediário de achatamento) |
+
+Duas descobertas que viraram regra ou trabalho nomeado:
+
+1. **Proveniência dentro do export é invenção aos olhos de quem consome.** Quatro
+   superfícies do GCP misturavam `surface`, `spec`, `model_gaps`, `rows` e afins
+   com os campos do registro. Boa parte das "colunas inventadas" era isso. A regra
+   está agora em `specs/README.md`: o export só tem campo documentado; o relatório
+   vai em arquivo irmão.
+2. **Teste golden que confere um conjunto só não protege os outros.** A lacuna do
+   envelope do Config sobreviveu porque o teste olhava o `ConfigurationItem`.
+
+## Cadência diária e agendamento (2026-10-14)
+
+O requisito "gerar todo dia, das três clouds, num horário configurável" tinha a
+**capacidade** desde a FR-22 e não tinha **ignição**. `daily/` gera qualquer dia, mas
+exige uma data explícita, e nada — nem no repositório, nem no Windows — o disparava. A
+prova estava no disco: `out/daily/` **não existia**, e a única coisa sob `out/` era sobra
+da suíte (`out/pytest-daily/pid-*`). Nenhuma das 191 tarefas agendadas do sistema
+mencionava o simulador.
+
+Resolvido em `tools/synthetic_clouds/schedule/`; o detalhe operacional está em
+[AGENDAMENTO.md](AGENDAMENTO.md). O que importa registrar aqui são as decisões:
+
+| Decisão | Por quê |
+|---|---|
+| O relógio de parede mora **só** no `runner` | `daily/` continua sem ler relógio — é o que torna um dia reproduzível. O `runner` converte "que horas são" numa data explícita antes de gerar. |
+| Alvo é `hoje - lag_days` (padrão **1**) | FR-B2: cobrança do dia `D` só é exportada em `D+1` às 00:00 UTC. Gerar hoje pediria um dia cuja exportação não existe. |
+| O **ledger** decide, não a sorte | Dois gatilhos (diário + logon) e `StartWhenAvailable`: disparar duas vezes não gera duas vezes, e disparar atrasado gera exatamente os dias que faltam. |
+| Primeira execução gera **um** dia | Ledger vazio é "nada foi gerado", não "falta um mês". Histórico é ato explícito (`daily --from/--to`). |
+| Backfill com teto (31 dias), mais recentes primeiro | Recuperação não pode virar outage; o que ficou de fora é **dito**, não omitido. |
+| Retenção **opt-in** (`retention_days`, padrão `null`) | Um dia `small` são 61,3 MB; sem poda o disco enche em silêncio (~1,8 GB/mês). A poda roda em todo tick, inclusive nos "em dia". Dia podado sai do ledger — `is_complete` não pode dizer "sim" para artefato apagado — e o backfill não o ressuscita, porque só preenche depois do dia mais recente. |
+| Perfil **`medium`** (2026-10-14, E3) | Decisão de volume: medido no mesmo dia (2026-10-13, seed 123, 19 superfícies), `medium` são **12.006 arquivos / 281,3 MB / 49,4 s** contra **2.736 / 61,3 MB / 9,7 s** do `small` — 4,6× o volume, 4,4× os arquivos. O perfil **não** muda a janela gerada (que é *month-to-date*, derivada do dia); muda a densidade de recursos (370 contra 79 por escopo). Ressalva medida e **assumida**: com retenção de 30 dias o teto sobe para **~17 GB**; `D:` tinha 12,10 GB livres na medição da manhã e 26,67 GB às 17:54, por isso a decisão de 2026-10-14 foi manter os 30 dias por ora com revisão marcada (quando a ocupação acumulada se aproximar do livre), em vez de reduzir a retenção. O dia já publicado foi regerado em `medium` por `tick --force` (11.997 artefatos) e o diretório da densidade antiga foi removido. Ver [DECISOES-PENDENTES.md](DECISOES-PENDENTES.md). |
+| Fuso configurado ≠ fuso da máquina | O Agendador só entende hora local. O `install` mostra as duas leituras e avisa quando os offsets divergem; quem garante o dia certo é a idempotência, não a coincidência. |
+| `<LogonTrigger>` **sempre** com `<UserId>` | Um gatilho de logon sem conta é de **abrangência total** e só administrador registra — o `schtasks` responde "Acesso negado", que parece falta de privilégio e não é. O parâmetro virou obrigatório para a variante de máquina inteira não poder ser construída por omissão. Descoberto comparando o XML com uma tarefa mínima criada sem elevação. |
+| O `status` lê o **XML**, não o relatório de texto | O relatório do Agendador é traduzido; filtrar por rótulos em inglês imprimia só "Status: Pronto" num Windows em português. Nomes de elemento do schema não se traduzem. |
+| `init` cai em **UTC com aviso** | A biblioteca padrão não converte o identificador de fuso do Windows para IANA, e o projeto recusa adivinhar: 06:30 UTC seriam 03:30 em São Paulo, e um padrão silencioso pareceria ter funcionado. |
+| Configuração que não se entende é **recusada** | Chave desconhecida não é ignorada: `"hour"` ao lado de `"time"` faria o job rodar na hora padrão enquanto o arquivo afirma outra. |
+
+Verificação: a suíte foi de 637 para **737 passed, 10 skipped, 0 failed** (92 testes do
+agendador e 8 de detecção de revisão), com `ruff` e `mypy` limpos em **109 arquivos**. Um dia
+completo do perfil `small` com todas as 19 superfícies renderiza em **12,3 s** e produz
+**2.736 arquivos / 61,3 MB**; o mesmo dia no perfil `medium` (adotado em 2026-10-14) produz
+**12.006 arquivos / 281,3 MB** em 49,4 s. Entre os testes está o que prova a propriedade que faz
+o backfill ser seguro: `--force` no mesmo dia reproduz os **mesmos bytes**.
+
+O agendamento está **no ar** nesta máquina: tarefa `simulador-nuvem-daily`, próxima
+execução `15/10/2026 06:30:00`, último resultado `0`. O gatilho diário foi verificado
+disparando sozinho (horário antecipado de propósito, e o `runs.log` registrou o instante
+exato) — não só por invocação manual.
+
+**O que isto não resolve**, e continua valendo: a entrega ao FinOps. Os artefatos
+nascem dentro de `tools/synthetic_clouds/out/daily/`; não há bucket, upload nem MinIO, e a
+ponte que escrevia no banco do produto (`seed/`) foi deliberadamente deixada de fora.
+Gerar todo dia não faz um artefato chegar a um lugar que ninguém lê — 10 das 21
+superfícies continuam sem ponto de ingestão identificado
+(<doc-de-ingestao>.md).
+
+## Incremento 4 — a identidade da conta AWS (2026-10-18)
+
+O `--matrix` estava em **40 geradas de 41 declaradas** e o `--ready` verde, e mesmo assim o
+painel de postura de Config mostrava `INSUFFICIENT_DATA` em **102 das 126** respostas. Nenhuma
+das duas medições via o problema: uma conta o número de artefatos que existem, e a outra o
+número de artefatos fiéis. **Fidelidade de coluna não é dado presente** — a lição do G1
+repetida numa escala onde ninguém a estava olhando.
+
+### A lacuna era de MODELO, e nomeada
+
+Três regras gerenciadas de identidade respondiam `INSUFFICIENT_DATA` pelo mesmo motivo, e pelo
+mesmo motivo dos incrementos 2 e 3: o recurso **existia e era inventariado e faturado**, mas
+nada no estate carregava o **conteúdo** que a regra leria.
+
+| Regra | O que ela lê | O que o estate não tinha |
+|---|---|---|
+| `root-account-mfa-enabled` | o MFA da conta **root** | nenhuma entidade de IAM |
+| `iam-password-policy` | a política de senha da **conta** | nenhuma entidade de IAM |
+| `access-keys-rotated` | idade das chaves dos **usuários** | nenhuma entidade de IAM |
+
+27 dos 102 `INSUFFICIENT_DATA` eram exatamente estes — 3 regras × 3 contas × 3 regiões.
+
+### O que mudou
+
+`CanonicalEstate.aws_identity_postures` (`model/iam.py`) carrega, por conta: MFA do root,
+política de senha, usuários IAM e chaves de acesso com idade e último uso.
+
+**A chave é a CONTA, não um recurso** — e essa é a diferença estrutURAL em relação aos
+incrementos 2 e 3. IAM é global: a senha, o MFA do root e as chaves não têm região. Por isso a
+regra responde **por conta** e **se repete** em cada escopo regional dela. Um veredito
+diferente por região seria um fato que a AWS não tem.
+
+Os três eixos da rotação são **independentes de propósito**, e cada um reprova numa conta
+**diferente**:
+
+```
+conta 0  ->  só a SENHA reprova          (política de 8 caracteres, sem requisito)
+conta 1  ->  só as CHAVES reprovam       (uma chave ATIVA de 410 dias)
+conta 2  ->  só o ROOT reprova           (conta root sem MFA)
+```
+
+Isso não é estética. Se duas regras reprovassem na mesma conta, um renderer que as trocasse de
+lugar receberia a mesma resposta e **passaria**. Com uma violação por conta, trocar duas
+regras de lugar muda a contagem — e é isso que o teste golden mede.
+
+### A medição
+
+```
+antes:  COMPLIANT 14   NON_COMPLIANT 10   INSUFFICIENT_DATA 102
+depois: COMPLIANT 32   NON_COMPLIANT 19   INSUFFICIENT_DATA  75
+```
+
+Cada uma das três regras: **6 COMPLIANT, 3 NON_COMPLIANT, 0 INSUFFICIENT_DATA**.
+
+### Um avaliador, não dois
+
+`render/_config_evaluators.py` é a **única** implementação da semântica de veredito. O renderer
+de Config chama para escrever o artefato; o diagnóstico retrospectivo chama para descrever o
+que a tela mostraria. Divergência entre os dois é **impossível por construção**, e não por
+disciplina — o que importa, porque o diagnóstico é o instrumento de confiança do incremento: um
+diagnóstico com segunda implementação poderia dizer `COMPLIANT` onde a tela diz
+`NON_COMPLIANT`, e aí seria a coisa menos confiável do projeto.
+
+`RuleVerdict` devolve o veredito **e os `contributors`**. Não é enfeite: o contrato de
+`ComplianceContributorCount` exige `CappedCount == 0` num `COMPLIANT` e `CappedCount > 0` num
+`NON_COMPLIANT`, e um avaliador que não sabe dizer **que** reprovou não satisfaz o contrato.
+
+### O diagnóstico retrospectivo (`--state IAM`)
+
+Um `INSUFFICIENT_DATA` na tela é um sintoma com **três** causas que pedem ações opostas, e um
+painel que só diz `INSUFFICIENT_DATA` obriga quem olha a escolher entre elas no escuro:
+
+1. **a regra é avaliável com o estado atual** → a correção é no renderer;
+2. **a regra tem carga mas falta o dado** → a correção é no **modelo**;
+3. **falha de configuração** (regra não habilitada na conta) → a correção é na **conta**, e
+   nenhuma correção de código resolve.
+
+`fidelity/review.py` nomeia as três e diz qual é o caso, **medindo** o `ComplianceType` atual
+nos **bytes gravados** em vez de recalculá-lo — é a medição que impede o diagnóstico de dizer
+"não mudou" sobre uma tela que mudou.
+
+### Três superfícies novas
+
+- **`aws/iam-get-credential-report`** -- a leitura que uma ferramenta de postura REAL usa para
+  achar "usuário de console sem MFA": o FinOps compara `password_enabled` e `mfa_active`
+  **linha a linha** do credential report. É o único contrato **CSV** do repositório, e as
+  diferenças não são cosméticas: booleanos em **`TRUE`/`FALSE` maiúsculo** (todos os outros
+  artefatos são JSON), cabeçalho obrigatório na ordem documentada, e `N/A` / `not_supported` /
+  `no_information` como **estados com significado próprio** — traduzi-los para `null` apagaria
+  "este usuário não tem senha". Traz no máximo **duas** chaves por usuário (não existe
+  `access_key_3_*`), e a **linha da conta root** vem primeiro e é a única que carrega
+  `not_supported` em `password_next_rotation`.
+
+  O **literal** do nome dessa linha não é publicado nem em `API_GetCredentialReport.html` nem
+  na página de colunas do IAM User Guide (ambas lidas em 2026-10-18). A linha é emitida mesmo
+  assim — sem ela `root-account-mfa-enabled` não tem linha nenhuma onde ler — e o literal vai
+  marcado como não comprovado, com o motivo no `_provenance`. Emitir o necessário **e dizer**
+  que não foi conferido é diferente de omitir, que quebraria a regra, e de afirmar sem prova,
+  que a quebraria pelo outro lado.
+
+- **`aws/iam-get-account-password-policy`** -- a ação que publica os nove requisitos que a
+  regra da senha **compara** com os parâmetros dela. Dez membros, e o décimo é
+  `ExpirePasswords`, que a página do tipo **define por meio de outro** ("Returns true if
+  MaxPasswordAge contains a value greater than 0"). Por isso é **propriedade no modelo** e não
+  campo: dois campos aceitariam `ExpirePasswords: true` ao lado de um `MaxPasswordAge`
+  ausente, que a AWS nunca devolve. A resposta **não nomeia a conta** (a ação não leva
+  parâmetro nenhum), então a atribuição fica no `_provenance`, por posição.
+
+  **Um achado que o teste encontrou:** a primeira versão da rotação **não tinha nenhum usuário
+  de console sem MFA** — `mfa_active` valia `TRUE` em todas as linhas de todas as contas. A
+  superfície existir para achar uma coisa, num estado onde a coisa não existe, não prova nada
+  sobre ela mesma. A correção foi no **modelo**: a conta cujo root está sem MFA é a mesma conta
+  em que ninguém ligou o MFA, então ela recebe um `contoso-operacoes` de console sem MFA. Isso
+  também dá ao estado uma conta em que root e usuário **discordam**, que é o que impede um
+  renderer de trocar um pelo outro.
+- **`gcp/observability-partial`** -- a mesma leitura de séries pedida num escopo de projeto
+  **inteiro** (`projects/-`) e respondida em **parte**: um projeto de três, com o inventário do
+  que sobrou de fora em `missing.json`. O pedido é **anônimo**: o escopo viaja em **dados**
+  (curinga de projeto, filtro, janela) e não em credencial — nenhum campo de
+  `accessToken`/`apiKey`/`Authorization` no conjunto `request-parameters`. É o contraste
+  direto com a API de diagnóstico do FinOps, cujo `request_parameters` **preenche** com um
+  token: copiar aquele `unverified` para cá viraria um fato inventado.
+
+### O bloco regional do S3: declarado, não contratual
+
+`RegionalAccessBlockConfiguration` tem **zero ocorrências** em `API_GetPublicAccessBlock.html`
+**e** em `API_PutPublicAccessBlock.html` (medido em 2026-10-18), e o
+`PublicAccessBlockConfiguration` que ambas documentam tem quatro membros, nenhum regional. O
+recurso existe na API e os SDKs o publicam — mas a referência pública consultada não o
+descreve.
+
+Ele **não** entrou como quinto membro da resposta: seria uma coluna que o auditor de conjunto
+acusaria de inventada, e esconderia o fato que importa — que ninguém conferiu a forma contra
+uma página. Virou um conjunto **irmão**, com as **oito** colunas marcadas `unverified` e uma
+entrada na lista `unverified` da spec.
+
+A contagem importa porque circulam três números para a mesma coisa, e o certo é o maior. Medido na
+spec em 2026-10-18: o conjunto `regional-access-block-configuration` tem **8 colunas, todas as 8
+`unverified`** — `Bucket`, o próprio `RegionalAccessBlockConfiguration`, e os **seis** membros com
+caminho (`Region`, `RegionPrefix`, `BlockPublicAcls`, `BlockPublicPolicy`, `IgnorePublicAcls`,
+`RestrictPublicBuckets`). O "seis" da descrição da própria spec conta **só os membros**; o "sete"
+que circularia por aqui não corresponde a nenhuma leitura. `Bucket` não é membro do bloco — pertence
+ao artefato irmão, e é o que nomeia o bloco, já que a resposta não nomeia o bucket.
+
+E para isso foi preciso um guarda **inverso**: `names_of` recusa qualquer conjunto com coluna
+fora do esquema, o que é certo para os quatro conjuntos contratuais e errado para um conjunto
+**admitido** como não contratual. `names_of_uncontracted` inverte a regra — e **os dois lados
+falham fechado**: um conjunto que se declara contratual tem de ser todo verificado; um que se
+declara não contratual tem de ser **todo** não verificado. A mistura é o que esconde, porque
+uma forma meio verificada se lê como inteiramente verificada.
+
+### As três superfícies que entraram fora do plano (categoria C)
+
+O commit `d38b325` H-04 é monolítico: além do IAM, ele entregou três superfícies que **não** fazem
+parte do plano de postura AWS. Elas estão declaradas aqui para que o próximo incremento não as
+conte como IAM. Medido, não inferido — `git log -S` traz as três de volta para `d38b325` H-04.
+
+| Superfície | O que é | Estado honesto | É um dos 4 checks de postura? |
+|---|---|---|---|
+| `gcp/observability-partial` | leitura de séries num escopo de projeto **inteiro** (`projects/-`) respondida **em parte**: um projeto de três, o resto em `missing.json`. Entrou junto do IAM e é de **outra nuvem**. | **parcial por construção** — não é dívida, é o contrato: a resposta parcial é o artefato, e o que sobrou de fora é inventário nomeado, não campo adivinhado. Gerada e com teste golden. | **não** — e não é AWS |
+| bloco regional do S3 (`regional-access-block-configuration`) | conjunto **irmão** de `s3-get-public-access-block`, com as 8 colunas `unverified` e o artefato emitido separado da resposta. | **funcional e testado**, com a forma **não comprovada**: `RegionalAccessBlockConfiguration` não aparece em nenhuma das duas páginas da ação (medido em 2026-10-18). Os 2 conjuntos contratuais desta spec (`get-public-access-block-response`, `request-parameters`) seguem com 0 colunas `unverified`. | **não** — é uma forma herdada do check de S3, não um check |
+| `fidelity/review.py` + `--state IAM` | diagnóstico **retrospectivo**: "o que a tela mostraria hoje, e de qual das três causas vem o `INSUFFICIENT_DATA`". | **funcional e testado**; roda com o mesmo avaliador do renderer, então divergência é impossível por construção. | **não** — é **instrumento** de leitura, não superfície |
+
+A dívida aceita é de **granularidade**, não de conteúdo: nada aqui está vermelho, e nada aqui
+pertence à fase IAM. O que o commit devia ter feito era separá-las.
+
+### O que este incremento não faz
+
+- **Não** torna respondível nenhuma regra nova. Das 14 do catálogo, **11** já são avaliadas do
+  estado e **3** continuam `INSUFFICIENT_DATA` em **todos** os 9 escopos: `cloudtrail-enabled`,
+  `securityhub-enabled` e `vpc-flow-logs-enabled` (medido em 2026-10-18, seed 123, perfil `small`).
+  `lambda-function-tagged` **não** está nesse grupo — ela responde onde existe função Lambda
+  (3 `NON_COMPLIANT`) e só dá `INSUFFICIENT_DATA` nos 6 escopos **sem** recurso do tipo, que é
+  outra causa. E `fidelity/review.py --state` só tem o estado `IAM` porque IAM é o único que
+  passou de `INSUFFICIENT_DATA` por lacuna de modelo **neste** incremento.
+- **Não** entrega ao FinOps. O repositório segue autônomo (regra nº 1).
+- **Não** modela o Block Public Access de **nível de conta**, que a página do `GetPublicAccessBlock`
+  descreve ("the most restrictive combination") e que é um fato separado do do bucket.
+
+## Incremento 4.3 — o resíduo de Config fecha: **0 regras sem fonte** (2026-10-18)
+
+O Incremento 4 deixou **3** regras respondendo `INSUFFICIENT_DATA` em **todos** os 9 escopos.
+Este incremento fecha as três e, com elas, **toda** a lacuna de modelo nomeada da superfície de
+conformidade do Config.
+
+### A medição, antes e depois
+
+Medido em `build_estate(seed=123, profile="small", currency="USD")`, contando os 126 itens
+emitidos (14 regras × 9 escopos de conta/região):
+
+```
+ANTES (HEAD 7974f46)   COMPLIANT 32   NON_COMPLIANT 19   INSUFFICIENT_DATA 75
+DEPOIS                 COMPLIANT 45   NON_COMPLIANT 27   INSUFFICIENT_DATA 54
+```
+
+E por regra, as três que mudaram:
+
+| Regra | Antes | Depois | Granularidade do veredito |
+|---|---|---|---|
+| `cloudtrail-enabled` | 0 C / 0 NC / **9 ID** | **6 C / 3 NC / 0 ID** | por **conta** |
+| `securityhub-enabled` | 0 C / 0 NC / **9 ID** | **6 C / 3 NC / 0 ID** | por **conta** |
+| `vpc-flow-logs-enabled` | 0 C / 0 NC / **9 ID** | **1 C / 2 NC / 6 ID** | por **VPC** |
+
+Os 11 pontos de `INSUFFICIENT_DATA` que sobraram na regra de VPC **não são lacuna**: o estate põe
+os 15 recursos `vpc` em uma região só por conta, então 6 dos 9 escopos não têm VPC nenhuma — é o
+colapso `NOT_APPLICABLE`, que a API reporta como `INSUFFICIENT_DATA`. É o mesmo mecanismo que
+produz os 48 das outras 8 regras por recurso. **54 = 48 + 6**, e a decomposição fecha sem resto.
+
+### A decisão de modelagem, e por que ela não é uniforme
+
+Esta é a primeira vez que um incremento de postura precisa de **duas** granularidades na mesma
+família, e a distinção não é uma escolha de implementação — é o que as páginas publicam:
+
+| Regra | O que a página publica | Consequência no modelo |
+|---|---|---|
+| `cloudtrail-enabled` | trigger `Periodic`, **nenhum** *Resource Types* | chave por `AwsAccount.account_id`; o veredito se repete nas 3 regiões da conta |
+| `securityhub-enabled` | trigger `Periodic`, **nenhum** *Resource Types*, "Parameters: None" | idem |
+| `vpc-flow-logs-enabled` | ***Resource Types:*** `AWS::EC2::VPC` | chave por `Resource.identity.uuid` do recurso `vpc` |
+
+`model/audit.py` guarda as duas formas, em coleções separadas, porque são fatos que não têm
+nada a ver entre si. `AwsAuditPosture` (conta) e `AwsVpcFlowLog` (VPC).
+
+**`vpc-flow-logs-enabled` não mora em `NetworkSegment`, e a razão é o filtro por provedor.**
+`NetworkSegment` é a estrutura de rede multi-provedor (`provider` em `aws|azure|gcp`); um campo
+só de AWS dentro dela obrigaria os outros três a conhecerem um campo que só um preenche, e os
+15 `NetworkSegment` de AWS não são sequer os 15 recursos `vpc` do inventário — moram em outra
+região. O join pelo recurso `vpc` é o mesmo dos Incrementos 2 e 3, então
+**`model/network.py` não foi tocado** e nenhum consumidor de rede muda.
+
+O mesmo vale para `NetworkFlow`, que já existia: `render/vpc_flow_logs.py` projeta
+`NetworkFlow` em **registros de entrega** de flow log, e o docstring dele diz que o recurso de
+log na AWS é a **ENI**, não a VPC. "Houve tráfego entregue numa ENI" e "esta VPC tem flow log
+habilitado" são fatos de granularidades diferentes — derivar um do outro seria responder a uma
+pergunta que ninguém fez.
+
+### Nenhuma superfície de API nova — decisão lida do consumidor
+
+O `docs/<doc-de-cobertura>.md` já tinha refutado a hipótese (G2): o check de segurança do
+FinOps **não** chama CloudTrail. Conferido de novo no consumidor, em
+`security.py (modulo do consumidor)` (leitura, sem escrita):
+`security.py` não tem `DescribeTrails`, `GetEnabledStandards` nem `DescribeVpcFlowLogs`. O que
+ele faz é `_config_rule_severity(rule_name)`, que classifica severidade por **substring** do
+`ConfigRuleName` do payload de Config.
+
+Ou seja: **o payload de conformidade do Config já é o canal pelo qual o produto lê estas três
+regras.** Modelar `cloudtrail:DescribeTrails` ou `securityhub:DescribeHub` aqui criaria uma
+superfície que ninguém consome — fidelidade de vitrine. Nenhuma superfície nova foi criada, e o
+`fidelity/matrix.py` não precisou de nova linha.
+
+### O achado que a medição expôs sobre o FinOps
+
+`_config_rule_severity` tem `cloud-trail-enabled` (com hífen) em `high_patterns`. O nome real da
+regra é `cloudtrail-enabled`, **sem** hífen — e a própria página avisa que *"the rule identifier
+(CLOUD_TRAIL_ENABLED) and rule name (cloudtrail-enabled) are different"*. O padrão casa com 0
+nomes do catálogo, então a regra real cai no `return "MEDIUM"` do fim da função.
+
+Isso já estava documentado no `<doc-de-cobertura>.md` (G2) **com base em 838 nomes**,
+quando nenhuma das três regras existia aqui. O Incremento 4.3 dá a primeira ocorrência real no
+catálogo, e o `vpc-flow-logs-enabled` — que o padrão casa corretamente — é agora avaliado de
+verdade. **Não corrigido aqui**: o repositório é autônomo (regra nº 1) e o FinOps é
+read-only nesta tarefa.
+
+### O que este incremento não faz
+
+- **Não** estende `fidelity/review.py --state`, que ainda só tem o estado `IAM`. O diagnóstico
+  retrospectivo não cobre auditoria nem flow log, embora os avaliadores compartilhados
+  (`ACCOUNT_AUDIT_RULE_EVALUATORS`, `VPC_FLOW_LOG_RULE_EVALUATORS`) já existam e sejam
+  chamáveis por ele do mesmo jeito.
+- **Não** modela o Block Public Access de **nível de conta**, que segue fora.
+- **Não** entrega ao FinOps.
+## Incremento 8 — a verificação de saúde do Defender para Cloud (2026-10-18)
+
+### Por que o estado precisou de um fato novo
+
+O consumidor filtra `assessments.list` por `properties.status.code` e **descarta** o que é
+`Healthy`. O estado tinha achados (`NativeFinding`), que são — por definição — problemas: eles
+não conseguem representar o ramo descartado. Um assessment `Healthy` não tem finding, e um
+`NotApplicable` não tem finding **por ser** o assessment que não se aplica ao tipo de recurso.
+
+A derivação a partir de `NativeFinding` **foi implementada e medida**, e caiu: no perfil
+`small`/seed 123 ela produziu `Counter({'Unhealthy': 6, 'NotApplicable': 6})` — nenhum
+`Healthy`, ou seja, um artefato sobre o qual o filtro do consumidor nunca descartaria nada.
+
+### As sete peças
+
+| # | Peça | Onde |
+|---|---|---|
+| 1 | Identidade da superfície | `azure/security-assessments-list` (nova) |
+| 2 | Contrato citado | `specs/azure/security-assessments-list.{md,schema.json}` — **36 colunas** em 2 conjuntos, todas geráveis, **10 itens** em `unverified` (todos *tema*) |
+| 3 | Modelo | `model/native.py`: `AzureDefenderAssessment` + `ASSESSMENT_HEALTH_CODES` + `ASSESSMENT_SEVERITIES` |
+| 4 | Coleção | `model/estate.py`: `azure_defender_assessments`, **opt-in, default vazio** |
+| 5 | Postura | `generate/constants.py`: `AZURE_DEFENDER_ASSESSMENT_POSTURES`, `SAUDE_ALTERNADA`/`SAUDE_NAO_APLICAVEL`, `ASSESSMENT_SEVERITY_BY_FINDING_SEVERITY` |
+| 6 | Geração | `generate/estate_builder.py`: `_azure_defender_assessments` — estado alternado pelo índice do segmento DENTRO DA ASSINATURA |
+| 7 | Renderer + teste | `render/azure_defender_assessments.py`, `tests/test_azure_defender_assessments_fidelity.py` (34 testes) |
+
+O gate de integridade ganhou a FK: um assessment cujo `segment_uuid` não existe é órfão e
+derruba `check_no_orphans` — sem segmento não haveria de onde sair o id que o assessment publica.
+
+### Três decisões que valem registro, porque não são óbvias
+
+**A âncora é o segmento, não o recurso.** `properties.resourceDetails.id` e o `id` do
+assessment são ids ARM. O único objeto Azure do estado que carrega um id ARM verdadeiro é o
+`NetworkSegment` (`segment_id`, o mesmo que a `azure_vnet_flow_logs` entrega). Ancorar num
+`Resource` exigiria compor um id ARM de recurso de computação — e o estado **não modela
+resource group**, como a própria `azure/arm-resource-representation` já registra ao usar o
+literal `{resourceGroupName}`. Preferi a lacuna visível ao id inventado.
+
+**A alternância é por assinatura, não por escopo.** A primeira tentativa alternou pelo índice do
+**escopo** e produziu `[0, 0, 2]` descartes — dois envelopes de três sem nenhum descarte,
+porque os segmentos se agrupam em assinaturas. A unidade que a resposta entrega é a assinatura.
+
+**Os instantes vêm de stream próprio indexado pelo segmento**, igual a
+`finding_provenance`: dado de segurança tem de ser exatamente repetível entre execuções, e
+`now()` não é um valor de estado. O teste golden reconstrói o estate duas vezes e compara.
+
+### O que este incremento não faz
+
+- **Não** modela o **catálogo de avaliações** do Defender (`displayName`, `description`,
+  `categories`, `threats`, `implementationEffort`, `userImpact`, `policyDefinitionId`,
+  `preview`). O estado não tem qual verificação o Defender aplicou a uma VNet, e inventar um
+  nome de avaliação seria afirmar sobre o provedor algo que nenhuma página consultada sustenta.
+  O consumidor usa `display_name` como **título** do achado, então o título sai vazio — lacuna
+  real e nomeada, não detalhe cosmético.
+- **Não** corrige o `AttributeError` do FinOps em `assessment.properties.severity`
+  (read-only, regra inviolável nº 1). Ver o **achado nº 3** da [seção canônica dos
+  achados](INGESTAO-D3-SEGURANCA.md#achados-para-o-time-do-consumidor).
+- **Não** entrega ao `azure-sim`.
+

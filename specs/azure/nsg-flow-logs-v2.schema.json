@@ -1,0 +1,550 @@
+{
+  "surface": "azure/nsg-flow-logs-v2",
+  "provider": "azure",
+  "reference": {
+    "title": "Flow logging for network security groups (NSG flow logs overview) - Azure Network Watcher, log format Version 2",
+    "url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "azure-blob-storage",
+    "container": "insights-logs-networksecuritygroupflowevent",
+    "path_template": "https://{storageAccountName}.blob.core.windows.net/insights-logs-networksecuritygroupflowevent/resourceId=/SUBSCRIPTIONS/{subscriptionID}/RESOURCEGROUPS/{resourceGroupName}/PROVIDERS/MICROSOFT.NETWORK/NETWORKSECURITYGROUPS/{nsgName}/y={year}/m={month}/d={day}/h={hour}/m=00/macAddress={macAddress}/PT1H.json",
+    "format": "json",
+    "compression": "",
+    "file_name": "PT1H.json",
+    "partitioning": "resourceId=/SUBSCRIPTIONS/{subscriptionID}/RESOURCEGROUPS/{resourceGroupName}/PROVIDERS/MICROSOFT.NETWORK/NETWORKSECURITYGROUPS/{nsgName}/ then y=/m=/d=/h= then literal m=00 (minute component is fixed) then macAddress={macAddress}",
+    "cadence": "PT1H (one blob per hour per MAC address); logs collected at 1-minute intervals",
+    "root": "records[]"
+  },
+  "notes": [
+    "NSG flow logs retire on 2027-09-30 and no longer support creation of new NSG flow logs; existing records in Storage keep following their retention policy.",
+    "The minute path component is literally m=00, not a minute value.",
+    "flowTuples is a comma-separated string; only the 13 position semantics are documented, not JSON sub-fields.",
+    "No manifest or metadata file is documented for this surface.",
+    "Compression and encoding are not documented.",
+    "Os 13 membros JSON do registo tem type derivado do exemplo oficial (sample Version 2) com type_source=format-observed e type_note citando o trecho; as 13 posicoes do CSV flowTuples (26 colunas com as duas grafias de conjunto) continuam sem tipo porque o payload as entrega dentro de uma string."
+  ],
+  "unverified": [
+    {
+      "name": "delivery.compression",
+      "reason": "No official page consulted states a compression algorithm (or its absence) for PT1H.json. Field intentionally left empty.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "delivery.encoding",
+      "reason": "No official page consulted states the character encoding.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "flowTuples counter values for flow state B",
+      "reason": "Docs state 'Statistics aren't provided' for B and the official examples show empty fields; no numeric value or literal placeholder is documented.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "records[].time fractional-second digit count",
+      "reason": "All official examples show exactly 7 fractional digits, but the documentation does not assert that the count is fixed.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "manifest / metadata blob",
+      "reason": "No manifest or metadata file is documented for NSG flow logs v2.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "records[].resourceid (all-lowercase spelling)",
+      "reason": "Appears in the property list of the official page while every official JSON example uses 'resourceId'. Both spellings exist in the same official document; no inference taken about which is authoritative.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "maximum PT1H.json size / maximum record count",
+      "reason": "Not documented.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "record",
+      "description": "Campos do registo de NSG flow log descritos normativamente pela lista de propriedades da seccao 'Log format' (e exemplificados na amostra Version 2).",
+      "columns": [
+        {
+          "name": "records[].time",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "ISO 8601 UTC, 7-digit fractional seconds, trailing Z",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"time\": \"2018-11-13T12:00:35.3899262Z\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].systemId",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"systemId\": \"66aa66aa-bb77-cc88-dd99-00ee00ee00ee\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].category",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "NetworkSecurityGroupFlowEvent"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"category\": \"NetworkSecurityGroupFlowEvent\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].resourceId",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"resourceId\": \"/SUBSCRIPTIONS/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/RESOURCEGROUPS/FABRIKAMRG/PROVIDERS/MICROSOFT.NETWORK/NETWORKSECURITYGROUPS/FABRIAKMVM1-NSG\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].operationName",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "NetworkSecurityGroupFlowEvents"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"operationName\": \"NetworkSecurityGroupFlowEvents\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].properties.Version",
+          "type": "integer",
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "1",
+            "2"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"Version\": 2 -- numeral nu fixa numero inteiro.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].properties.flows[].rule",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"rule\": \"DefaultRule_DenyAllInBound\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].properties.flows[].flows[].mac",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"mac\": \"000D3AF87856\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[0]",
+          "type": null,
+          "required": true,
+          "unit": "seconds (UNIX epoch)",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[1]",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[2]",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[3]",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[4]",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[5]",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "T",
+            "U"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[6]",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "I",
+            "O"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[7]",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "A",
+            "D"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[8]",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "B",
+            "C",
+            "E"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[9]",
+          "type": null,
+          "required": false,
+          "unit": "packets",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[10]",
+          "type": null,
+          "required": false,
+          "unit": "bytes",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[11]",
+          "type": null,
+          "required": false,
+          "unit": "packets",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples[12]",
+          "type": null,
+          "required": false,
+          "unit": "bytes",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "name": "records",
+          "type": "array",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"records\": [ ... ] -- a lista fixa array.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].properties",
+          "type": "object",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"properties\": { \"Version\": 2, \"flows\": [ ... ] } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].properties.flows",
+          "type": "array",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"flows\": [ { \"rule\": ..., \"flows\": [ ... ] } ] -- a lista fixa array.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].properties.flows[].flows",
+          "type": "array",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"flows\": [ { \"mac\": \"000D3AF87856\", \"flowTuples\": [ ... ] } ] -- a lista fixa array.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "records[].properties.flows[].flows[].flowTuples",
+          "type": "array",
+          "required": true,
+          "unit": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "exemplo oficial (sample Version 2): \"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ] -- a lista de strings fixa array.",
+          "type_source": "format-observed"
+        }
+      ]
+    },
+    {
+      "name": "flowTuples-position",
+      "description": "Posicoes do CSV flowTuples, na ordem que a seccao 'Log format' define normativamente ('String that contains multiple properties for the flow tuple in a comma-separated format').",
+      "columns": [
+        {
+          "index": 1,
+          "name": "Time stamp",
+          "type": null,
+          "required": true,
+          "unit": "seconds (UNIX epoch)",
+          "datetime_format": "UNIX epoch seconds",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 2,
+          "name": "Source IP",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 3,
+          "name": "Destination IP",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 4,
+          "name": "Source port",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 5,
+          "name": "Destination port",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 6,
+          "name": "Protocol",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "T",
+            "U"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 7,
+          "name": "Traffic flow",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "I",
+            "O"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 8,
+          "name": "Traffic decision",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "A",
+            "D"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 9,
+          "name": "Flow State - Version 2 Only",
+          "type": null,
+          "required": true,
+          "unit": "",
+          "allowed_values": [
+            "B",
+            "C",
+            "E"
+          ],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 10,
+          "name": "Packets sent - Version 2 Only",
+          "type": null,
+          "required": false,
+          "unit": "packets",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 11,
+          "name": "Bytes sent - Version 2 Only",
+          "type": null,
+          "required": false,
+          "unit": "bytes",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 12,
+          "name": "Packets received - Version 2 Only",
+          "type": null,
+          "required": false,
+          "unit": "packets",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        },
+        {
+          "index": 13,
+          "name": "Bytes received - Version 2 Only",
+          "type": null,
+          "required": false,
+          "unit": "bytes",
+          "allowed_values": [],
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Posicao do CSV flowTuples: a doc oficial define a ordem e o significado da posicao, mas entrega o campo como string (\"flowTuples\": [ \"1542110402,192.0.2.190,10.5.16.4,28746,443,U,I,D,B,,,,\" ]), logo o exemplo nao fixa um tipo JSON para a posicao; nos contadores 10-13 o proprio exemplo mostra campo vazio no estado B. type=null e a coluna nao e geravel."
+        }
+      ]
+    }
+  ]
+}

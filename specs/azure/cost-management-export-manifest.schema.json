@@ -1,0 +1,605 @@
+{
+  "surface": "azure/cost-management-export-manifest",
+  "provider": "azure",
+  "reference": {
+    "title": "Tutorial: Create and manage Cost Management exports (delivery layout and _manifest.json example)",
+    "url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+    "consulted_at": "2026-10-14",
+    "formal_manifest_schema_published": false,
+    "formal_schema_note": "Microsoft does NOT publish a formal JSON Schema, OpenAPI model, or field table for the export manifest file. The only official definition is the worked example of _manifest.json reproduced in the tutorial, plus the REST properties partitionData and manifestFile. Columns with status verified-example-only are documented by example only and must not be treated as a normative schema.",
+    "additional_sources": [
+      {
+        "title": "Exports - Create Or Update (REST API 2025-03-01) - partitionData property",
+        "url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/create-or-update?view=rest-cost-management-2025-03-01&tabs=HTTP"
+      },
+      {
+        "title": "Exports - Get Execution History (REST API 2025-03-01) - manifestFile property",
+        "url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01"
+      },
+      {
+        "title": "ExportRun class (Azure.ResourceManager.CostManagement.Models)",
+        "url": "https://learn.microsoft.com/en-us/dotnet/api/azure.resourcemanager.costmanagement.models.exportrun?view=azure-dotnet"
+      }
+    ]
+  },
+  "delivery": {
+    "kind": "azure-blob-storage",
+    "path_template": "StorageContainer/StorageDirectory/ExportName/[YYYYMMDD-YYYYMMDD]/[RunID]/",
+    "manifest_file_name_in_example": "_manifest.json",
+    "manifest_file_name_in_text": "manifest.json",
+    "manifest_path_reported_by_api": "ExportRun.manifestFile (example value ends in .../manifestfile)",
+    "format": "parquet-or-csv",
+    "compression": [
+      "none",
+      "gzip",
+      "snappy"
+    ],
+    "partition_granularity": "by size, not by row count; each uncompressed file under 1 GB",
+    "partition_data": "always enabled and cannot be disabled",
+    "overwrite_behavior": "OverwritePreviousReport (single RunID per month folder) or CreateNewReport (multiple RunIDs)",
+    "timezone": "UTC"
+  },
+  "column_count": 41,
+  "columns": [
+    {
+      "name": "manifestVersion",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "2024-04-01"
+      ],
+      "description": "Version of the manifest format. Official example value: \"2024-04-01\". No published list of manifest versions.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "byteCount",
+      "type": "integer",
+      "required": false,
+      "unit": "bytes",
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Total byte count of the dataset at the top level; byte count of a single partition inside blobs[]. Official example: 8032.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "blobCount",
+      "type": "integer",
+      "required": false,
+      "unit": "blob count",
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Number of partitions (blobs) in the dataset. Official example: 1.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "dataRowCount",
+      "type": "integer",
+      "required": false,
+      "unit": "data rows",
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Data row count of the dataset at the top level; row count of a single partition inside blobs[]. Official example: 36.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "exportConfig",
+      "type": "object",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Export configuration in effect for this run.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "exportConfig.exportName",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Export name. Official example: \"sample\". Correlates with ExportName in the blob path.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "exportConfig.resourceId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "ARM resource ID of the export object. Official example: /providers/Microsoft.Billing/billingAccounts/1234567/providers/Microsoft.CostManagement/exports/sample.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "exportConfig.dataVersion",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Dataset schema version. Official example: \"2023-05-01\". Maps to dataSet.configuration.dataVersion in the API.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "exportConfig.apiVersion",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Export API version used. Official example: \"2023-07-01-preview\".",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "exportConfig.type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "ReservationRecommendations",
+        "ActualCost",
+        "PriceSheet"
+      ],
+      "description": "ExportType of the dataset. Official example: \"ReservationRecommendations\". Maps to definition.type in the API.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "exportConfig.timeFrame",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "MonthToDate",
+        "TheCurrentMonth",
+        "TheLastMonth",
+        "Custom"
+      ],
+      "description": "TimeframeType of the export. Official example: \"MonthToDate\". Maps to definition.timeframe in the API. Note the API spells it lowercase timeframe.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "exportConfig.granularity",
+      "type": "string-or-null",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "Daily",
+        "null"
+      ],
+      "description": "GranularityType of the dataset. Official example: null. Maps to dataSet.granularity in the API.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "deliveryConfig",
+      "type": "object",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Delivery configuration in effect for this run.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "deliveryConfig.partitionData",
+      "type": "boolean",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "true",
+        "false"
+      ],
+      "description": "Same as the REST property of the same name: \"If set to true, exported data will be partitioned by size and placed in a blob directory together with a manifest file.\" Official example: true.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "deliveryConfig.dataOverwriteBehavior",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "OverwritePreviousReport",
+        "CreateNewReport"
+      ],
+      "description": "DataOverwriteBehaviorType: overwrite behavior for data of the same month in the customer storage account. Official example: \"OverwritePreviousReport\". API default: \"CreateNewReport\".",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "deliveryConfig.fileFormat",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "Csv",
+        "Parquet"
+      ],
+      "description": "Delivered file format. Official example: \"Csv\". Named format in the export API, not fileFormat.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "deliveryConfig.compressionMode",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "None",
+        "Gzip",
+        "Snappy"
+      ],
+      "description": "Compression scheme. Official example: \"None\". Portal offers None, Gzip (CSV) and Snappy (Parquet); the REST run history example uses lowercase \"gzip\".",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "deliveryConfig.containerUri",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Resource ID of the destination storage account. The official example contains a space after /subscriptions/ exactly as published; see the divergences section of the .md spec. API destination property is named resourceId.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "deliveryConfig.rootFolderPath",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "StorageDirectory (root folder) of the export. Official example: \"folder\". Maps to deliveryInfo.destination.rootFolderPath.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "runInfo",
+      "type": "object",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Run information for this export run.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "runInfo.executionType",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "OnDemand",
+        "Scheduled"
+      ],
+      "description": "Run execution type. Official example: \"OnDemand\"; the REST run history also uses \"Scheduled\".",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "runInfo.submittedTime",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "ISO 8601 UTC, e.g. 2025-03-21T21:04:06.5234447Z",
+      "allowed_values": null,
+      "description": "Time the run was submitted. Official example carries 7 fractional-second digits: 2025-03-21T21:04:06.5234447Z.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "runInfo.runId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Run identifier; this is the [RunID] segment of the blob path. Official example: bbac73f1-9a05-4de6-84ab-c72b568a03b4.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "runInfo.startDate",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "ISO 8601 without UTC designator in the official example",
+      "allowed_values": null,
+      "description": "Start date of the run period. Official example has NO timezone designator: \"2025-03-01T00:00:00\".",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "runInfo.endDate",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "ISO 8601 UTC with Z, e.g. 2025-03-21T00:00:00Z",
+      "allowed_values": null,
+      "description": "End date of the run period. Official example: \"2025-03-21T00:00:00Z\".",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "blobs",
+      "type": "array<object>",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "List of partitions. Each file partition has headers and contains only a subset of the full dataset.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "blobs[].blobName",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Authoritative name/path of the partition. Official example: \" folder/sample/ 00000000-0000-0000-0000-000000000000/part0.csv\". Documentation instructs to always use the manifest and never to infer partition names.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "blobs[].byteCount",
+      "type": "integer",
+      "required": false,
+      "unit": "bytes",
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Partition size in bytes. Official example: 8032.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "blobs[].dataRowCount",
+      "type": "integer",
+      "required": false,
+      "unit": "data rows",
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Partition data row count. Official example: 36.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-improved-exports",
+      "status": "verified",
+      "evidence": "example-only"
+    },
+    {
+      "name": "manifestFile",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "ExportRun.manifestFile: \"The manifest file location(URI location) for the exported files.\" Returned by the run history API, not contained in the manifest file. Official examples use the path segment \"manifestfile\".",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "properties.partitionData",
+      "type": "boolean",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Export request/response property that creates the manifest file alongside the partitioned data.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/create-or-update?view=rest-cost-management-2025-03-01&tabs=HTTP",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "fileName",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "ExportRun.fileName: name of the exported file. Example uses the pattern {ExportName}_{RunId}.csv, which differs from the manifest example pattern part<N>.csv.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "runSettings.partitionData",
+      "type": "boolean",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Partitioning setting in effect for the run. Example: true.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "runSettings.format",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "Csv",
+        "Parquet"
+      ],
+      "description": "Format in effect for the run. Example: \"Csv\".",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "runSettings.compressionMode",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Compression in effect for the run. Example: \"gzip\" (lowercase).",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "runSettings.dataOverwriteBehavior",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Overwrite behavior in effect for the run. Example: \"OverwritePreviousReport\".",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "executionType",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": [
+        "OnDemand",
+        "Scheduled"
+      ],
+      "description": "Run execution type: \"OnDemand\" or \"Scheduled\".",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "submittedBy",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Identifier of the entity that triggered the export. For on-demand runs it is the user email; for scheduled runs it is System.",
+      "source_url": "https://learn.microsoft.com/en-us/dotnet/api/azure.resourcemanager.costmanagement.models.exportrun?view=azure-dotnet",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": null,
+      "allowed_values": null,
+      "description": "Last known status of the export run. Example: \"Completed\".",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "processingStartTime",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "ISO 8601 UTC with fractional seconds and Z",
+      "allowed_values": null,
+      "description": "Time when the export was picked up to run. Example: 2018-08-03T07:52:16.9123797Z.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "name": "processingEndTime",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "ISO 8601 UTC with fractional seconds and Z",
+      "allowed_values": null,
+      "description": "Time when the export run finished. Example: 2018-08-03T07:52:28.0373318Z.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/cost-management/exports/get-execution-history?view=rest-cost-management-2025-03-01",
+      "status": "verified",
+      "evidence": null
+    }
+  ],
+  "unverified": [
+    {
+      "name": "exportConfig.beginDate",
+      "reason": "Not present in the only official _manifest.json example. Microsoft publishes no manifest field table or JSON Schema, so its existence and format cannot be proven. Not generated.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "exportConfig.endDate",
+      "reason": "Not present in the only official _manifest.json example. Same reasoning as exportConfig.beginDate. Not generated.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "aggregate semantics of top-level byteCount/dataRowCount when blobCount > 1",
+      "reason": "The official example has blobCount=1 so top-level and partition values coincide. Documentation never states whether top-level values are sums over partitions.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "complete value sets for exportConfig.type / exportConfig.timeFrame / exportConfig.granularity",
+      "reason": "No retrievable enumeration table was found on the consulted official pages; only values appearing in official examples are proven.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "manifest schema stability across manifestVersion values",
+      "reason": "No published manifest schema version list or changelog, so future field sets cannot be proven.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "manifest for non-partitioned exports",
+      "reason": "Documentation ties the manifest to partitioned data and states partitioning can no longer be disabled; no example or path is documented for a non-partitioned export.",
+      "status": "UNVERIFIED"
+    }
+  ]
+}

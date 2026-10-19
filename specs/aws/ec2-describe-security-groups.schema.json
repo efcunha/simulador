@@ -1,0 +1,459 @@
+{
+  "surface": "aws/ec2-describe-security-groups",
+  "provider": "aws",
+  "reference": {
+    "title": "DescribeSecurityGroups / SecurityGroup / IpPermission / IpRange / Ipv6Range / PrefixListId / UserIdGroupPair / Tag (Amazon EC2 API Reference)",
+    "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+    "consulted_at": "2026-10-16",
+    "version": "EC2 API version 2016-11-15; documented response encoding is XML",
+    "member_pages": [
+      "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+      "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html",
+      "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpRange.html",
+      "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Ipv6Range.html",
+      "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_PrefixListId.html",
+      "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_UserIdGroupPair.html",
+      "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Tag.html"
+    ],
+    "semantics_page": "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html"
+  },
+  "chosen_surface": {
+    "specified": "DescribeSecurityGroups API response, SecurityGroup object and the five member types its rules are made of",
+    "why": "Esta é a única superfície da AWS que publica o security group SUBCLASSO DE REGRA: cada regra de ingress e de egress, com protocolo, faixa de portas e origem. A página de SecurityGroup é exaustiva campo a campo, e é ela que dá a forma que o consumidor de postura lê.",
+    "config_alternative": "AWS::EC2::SecurityGroup é um tipo de recurso suportado pelo AWS Config, mas resource-config-reference.html documenta apenas seus relacionamentos e remete ao CloudFormation. As três regras gerenciadas de rede (restricted-ssh, restricted-common-ports, vpc-default-security-group-closed) leem exatamente o que esta superfície entrega, e elas não têm schema de configuração item publicado.",
+    "config_evidence_url": "https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html"
+  },
+  "delivery": {
+    "kind": "read_api",
+    "export_mechanism_exists": false,
+    "export_mechanism_note": "DescribeSecurityGroups é uma API de leitura paginada. A AWS não documenta exportação dela para S3 nem qualquer artefato durável. Existe uma superfície irmã e distinta, DescribeSecurityGroupRules, que o estado NÃO modela.",
+    "path_template": null,
+    "format": "xml",
+    "format_note": "O EC2 API Reference documenta a resposta apenas em XML; nenhuma lista de propriedades JSON nem exemplo JSON é publicado para esta ação. O artefato entregue aqui é JSON, com os nomes de propriedade do mapeamento Query/SDK -- a mesma divergência declarada em aws/ec2-describe-instances, e pelo mesmo motivo: quando a AWS publica um domínio fechado de nomes, publica em XML, e o JSON é derivado do mesmo contrato, não de outra fonte.",
+    "response_wrapper": "DescribeSecurityGroupsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\"",
+    "item_element": "item",
+    "compression": null,
+    "manifest": null,
+    "pagination": "MaxResults, NextToken (in), nextToken (out)",
+    "element_order_guaranteed": false,
+    "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Welcome.html",
+    "encoding_source_url": "https://docs.aws.amazon.com/ec2/latest/devguide/Query-Requests.html"
+  },
+  "structure": {
+    "response": "3.1",
+    "security_group": "3.2",
+    "ip_permission": "3.3",
+    "ip_range": "3.4",
+    "ipv6_range": "3.5",
+    "prefix_list_id": "3.6",
+    "user_id_group_pair": "3.7",
+    "tag": "3.8",
+    "request_parameters": "3.9"
+  },
+  "armadilhas": {
+    "regra_e_allow_only": "A AWS publica apenas regras de PERMISSÃO: 'You can specify allow rules, but not deny rules' (security-group-rules.html). O bloqueio é a AUSÊNCIA de regra, e é por isso que o modelo não tem um campo de decisão nesta superfície — ao contrário do fluxo e do NSG da Azure, onde a negação é um evento observado.",
+    "nao_existe_prioridade": "SecurityGroup não tem membro de prioridade nem de ordem. Todas as regras do grupo são igualmente aplicadas; IpPermission não publica nada que ordene ou precedencie. Um campo de prioridade aqui seria membro que a fonte não publica.",
+    "protocolo_e_nome_ou_numero": "ipProtocol é String e a documentação aceita um nome ('tcp', 'udp', 'icmp', 'icmpv6'), um número de protocolo, ou '-1' para todos. Não é uma lista fechada de quatro: é nome-ou-número.",
+    "portas_sao_condicionais": "fromPort e toPort são Required: No. Para '-1' as portas não se aplicam e a amostra oficial traz a regra de egress padrão SEM nenhum dos dois; para icmp/icmpv6 os mesmos campos são tipo e código ICMP, não portas.",
+    "origem_e_lista_nao_par": "IpPermission tem UM conjunto de origens possíveis (IpRanges OU Ipv6Ranges OU Groups OU PrefixListIds — a página de IpRange diz que CIDR e security group são mutuamente exclusivos) e UM par fromPort/toPort, ao contrário do NSG da Azure, que tem prefixo e faixa de porta de origem E de destino.",
+    "direcao_e_o_nome_da_lista": "Não existe membro 'direction' na regra da AWS: a direção é o nome da propriedade que a contém (IpPermissions / IpPermissionsEgress). Guardar a direção dentro da regra seria duplicar o que o nome já afirma.",
+    "cidr_e_canonizado": "A AWS canoniza CIDRs IPv4 e IPv6 ('100.68.0.18/18' é devolvido como '100.68.0.0/18') e um segundo cadastro da forma não canônica é erro de duplicata. Todo CIDR aqui já nasce canônico.",
+    "amostra_tem_membro_nao_documentado": "A Sample Response oficial traz <securityGroupRuleId> dentro de <groups>, mas a página de UserIdGroupPair NÃO documenta esse membro. Fica registrado em 'unverified' como campo: emitir nome que a página de tipo não documenta seria inventar contrato."
+  },
+  "sets": [
+    {
+      "name": "describe-security-groups-response",
+      "description": "Elementos de topo da resposta de DescribeSecurityGroups (nextToken, requestId, securityGroupInfo). Encoding documentado: XML. Fonte: API_DescribeSecurityGroups.html",
+      "columns": [
+        {
+          "name": "nextToken",
+          "type": "string",
+          "description": "O token a incluir numa outra requisição para obter a próxima página de itens. *\"This value is `null` when there are no more items to return.\"*",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "describe-security-groups-response"
+        },
+        {
+          "name": "requestId",
+          "type": "string",
+          "required": true,
+          "description": "O ID da requisição",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "describe-security-groups-response"
+        },
+        {
+          "name": "securityGroupInfo",
+          "type": "array",
+          "description": "Os security groups",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "describe-security-groups-response"
+        }
+      ]
+    },
+    {
+      "name": "security-group",
+      "description": "O objeto SecurityGroup: a identidade, a VPC dona, a descrição e as DUAS listas de regras. Todos os nove membros são Required: No. Fonte: API_SecurityGroup.html",
+      "columns": [
+        {
+          "name": "groupDescription",
+          "type": "string",
+          "description": "Uma descrição do security group",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        },
+        {
+          "name": "groupId",
+          "type": "string",
+          "description": "O ID do security group",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        },
+        {
+          "name": "groupName",
+          "type": "string",
+          "description": "O nome do security group. A amostra oficial mostra o grupo padrão de uma VPC com o valor 'default'.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        },
+        {
+          "name": "IpPermissions.N",
+          "type": "array",
+          "description": "As regras de ENTRADA associadas ao security group (Array of IpPermission)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        },
+        {
+          "name": "IpPermissionsEgress.N",
+          "type": "array",
+          "description": "As regras de SAÍDA associadas ao security group (Array of IpPermission)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        },
+        {
+          "name": "ownerId",
+          "type": "string",
+          "description": "O ID da conta AWS que é dona do security group",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        },
+        {
+          "name": "securityGroupArn",
+          "type": "string",
+          "description": "O ARN do security group",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        },
+        {
+          "name": "TagSet.N",
+          "type": "array",
+          "description": "As tags atribuídas ao security group (Array of Tag)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        },
+        {
+          "name": "vpcId",
+          "type": "string",
+          "description": "O ID da VPC do security group",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SecurityGroup.html",
+          "status": "verified",
+          "scope": "security-group"
+        }
+      ]
+    },
+    {
+      "name": "ip-permission",
+      "description": "Uma regra de ingress ou egress, na forma de IpPermission. Os sete membros são Required: No, e TODOS os quatro membros de origem são opcionais e mutuamente exclusivos na prática: a página de IpRange diz que se pode especificar um bloco CIDR OU um security group de origem, nunca os dois. Fonte: API_IpPermission.html",
+      "columns": [
+        {
+          "name": "fromPort",
+          "type": "integer",
+          "description": "Para TCP/UDP: o início da faixa de portas. Para ICMP/ICMPv6: o TIPO ICMP, ou -1 para todos os tipos. Required: No — quando não se aplica, o membro não é publicado.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html",
+          "status": "verified",
+          "scope": "ip-permission"
+        },
+        {
+          "name": "Groups.N",
+          "type": "array",
+          "description": "Os pares security group e ID de conta AWS (Array of UserIdGroupPair)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html",
+          "status": "verified",
+          "scope": "ip-permission"
+        },
+        {
+          "name": "ipProtocol",
+          "type": "string",
+          "description": "O NOME do protocolo IP ('tcp', 'udp', 'icmp', 'icmpv6') ou o NÚMERO dele (ver Protocol Numbers). Use '-1' para especificar todos os protocolos. Tipo published: String — o domínio é nome-ou-número, e a documentação NÃO publica uma lista fechada.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html",
+          "status": "verified",
+          "scope": "ip-permission",
+          "type_note": "documented"
+        },
+        {
+          "name": "IpRanges.N",
+          "type": "array",
+          "description": "As faixas de endereço IPv4 (Array of IpRange)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html",
+          "status": "verified",
+          "scope": "ip-permission"
+        },
+        {
+          "name": "Ipv6Ranges.N",
+          "type": "array",
+          "description": "As faixas de endereço IPv6 (Array of Ipv6Range)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html",
+          "status": "verified",
+          "scope": "ip-permission"
+        },
+        {
+          "name": "PrefixListIds.N",
+          "type": "array",
+          "description": "Os IDs de prefix list (Array of PrefixListId)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html",
+          "status": "verified",
+          "scope": "ip-permission"
+        },
+        {
+          "name": "toPort",
+          "type": "integer",
+          "description": "Para TCP/UDP: o fim da faixa de portas. Para ICMP/ICMPv6: o CÓDIGO ICMP, ou -1 para todos os códigos. Se o início for -1 (todos os tipos ICMP), o fim tem de ser -1. Required: No.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html",
+          "status": "verified",
+          "scope": "ip-permission"
+        }
+      ]
+    },
+    {
+      "name": "ip-range",
+      "description": "Uma faixa IPv4 de origem (IpRange). Os dois membros são Required: No. A AWS canoniza o CIDR na resposta: 'Any subsequent DescribeSecurityGroups and DescribeSecurityGroupRules calls will return the canonicalized form of the CIDR block'. Fonte: API_IpRange.html",
+      "columns": [
+        {
+          "name": "cidrIp",
+          "type": "string",
+          "description": "A faixa de endereços IPv4. Para especificar um único endereço IPv4, use o prefixo /32. Canonicalizado pela AWS na resposta.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpRange.html",
+          "status": "verified",
+          "scope": "ip-range"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "description": "Uma descrição da regra de security group que referencia esta faixa IPv4. Até 255 caracteres.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpRange.html",
+          "status": "verified",
+          "scope": "ip-range"
+        }
+      ]
+    },
+    {
+      "name": "ipv6-range",
+      "description": "Uma faixa IPv6 de origem (Ipv6Range). Os dois membros são Required: No. Para especificar um único endereço IPv6, use o prefixo /128. Fonte: API_Ipv6Range.html",
+      "columns": [
+        {
+          "name": "cidrIpv6",
+          "type": "string",
+          "description": "A faixa de endereços IPv6. Canonicalizada pela AWS na resposta.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Ipv6Range.html",
+          "status": "verified",
+          "scope": "ipv6-range"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "description": "Uma descrição da regra de security group que referencia esta faixa IPv6. Até 255 caracteres.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Ipv6Range.html",
+          "status": "verified",
+          "scope": "ipv6-range"
+        }
+      ]
+    },
+    {
+      "name": "prefix-list-id",
+      "description": "Uma referência a uma prefix list (PrefixListId). Os dois membros são Required: No. Fonte: API_PrefixListId.html",
+      "columns": [
+        {
+          "name": "description",
+          "type": "string",
+          "description": "Uma descrição da regra de security group que referencia este prefix list ID. Até 255 caracteres.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_PrefixListId.html",
+          "status": "verified",
+          "scope": "prefix-list-id"
+        },
+        {
+          "name": "prefixListId",
+          "type": "string",
+          "description": "O ID do prefixo",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_PrefixListId.html",
+          "status": "verified",
+          "scope": "prefix-list-id"
+        }
+      ]
+    },
+    {
+      "name": "user-id-group-pair",
+      "description": "Uma referência a outro security group como origem ou destino (UserIdGroupPair). Os sete membros são Required: No, e todos ficam ausentes quando a regra resolve por CIDR em vez de por grupo. A página NÃO documenta 'securityGroupRuleId', que a amostra oficial mostra dentro de <groups>: o nome está registrado em 'unverified' e por isso é proibido no artefato. Fonte: API_UserIdGroupPair.html",
+      "columns": [
+        {
+          "name": "description",
+          "type": "string",
+          "description": "Uma descrição do security group de origem ou de destino",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_UserIdGroupPair.html",
+          "status": "verified",
+          "scope": "user-id-group-pair"
+        },
+        {
+          "name": "groupId",
+          "type": "string",
+          "description": "O ID do security group",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_UserIdGroupPair.html",
+          "status": "verified",
+          "scope": "user-id-group-pair"
+        },
+        {
+          "name": "groupName",
+          "type": "string",
+          "description": "O nome do security group de destino",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_UserIdGroupPair.html",
+          "status": "verified",
+          "scope": "user-id-group-pair"
+        },
+        {
+          "name": "peeringStatus",
+          "type": "string",
+          "description": "O status do peering de VPC. 'pending' significa que o peering está pendente de aprovação; 'active' significa que a conexão está ativa.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_UserIdGroupPair.html",
+          "status": "verified",
+          "scope": "user-id-group-pair"
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "O ID da conta AWS do destino do security group de origem",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_UserIdGroupPair.html",
+          "status": "verified",
+          "scope": "user-id-group-pair"
+        },
+        {
+          "name": "vpcId",
+          "type": "string",
+          "description": "O ID da VPC de destino",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_UserIdGroupPair.html",
+          "status": "verified",
+          "scope": "user-id-group-pair"
+        },
+        {
+          "name": "vpcPeeringConnectionId",
+          "type": "string",
+          "description": "O ID da conexão de peering de VPC",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_UserIdGroupPair.html",
+          "status": "verified",
+          "scope": "user-id-group-pair"
+        }
+      ]
+    },
+    {
+      "name": "tag",
+      "description": "Uma tag do security group (Tag). Os dois membros são Required: No, e ambos publicam restrição de tamanho: chave até 127 caracteres Unicode que não pode começar com 'aws:', valor até 256. Fonte: API_Tag.html",
+      "columns": [
+        {
+          "name": "key",
+          "type": "string",
+          "description": "A chave da tag. Até 127 caracteres Unicode. Não pode começar com 'aws:'.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Tag.html",
+          "status": "verified",
+          "scope": "tag"
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "description": "O valor da tag. Até 256 caracteres Unicode.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Tag.html",
+          "status": "verified",
+          "scope": "tag"
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "Os seis parâmetros documentados da requisição. O estado não modela nenhuma requisição capturada, então estes nomes existem com valor nulo: é a forma do documento, não um fato sobre uma chamada que alguém fez. Fonte: API_DescribeSecurityGroups.html",
+      "columns": [
+        {
+          "name": "DryRun",
+          "type": "boolean",
+          "description": "Verifica se você tem as permissões necessárias para executar a ação, sem realmente fazer a alteração.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "Filter.N",
+          "type": "array",
+          "description": "Os filtros (Array of Filter). O tipo Filter tem membros publicados próprios e NÃO são modelados aqui: nenhum filtro foi capturado.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "GroupId.N",
+          "type": "array",
+          "description": "Os IDs dos security groups (String). Valor null: o artefato não é a resposta a um filtro específico.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "GroupName.N",
+          "type": "array",
+          "description": "Os nomes dos security groups (String). Valor null pelo mesmo motivo de GroupId.N.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "MaxResults",
+          "type": "integer",
+          "description": "O número máximo de resultados a retornar em uma única chamada. Valor null: cada escopo cabe em uma página.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "NextToken",
+          "type": "string",
+          "description": "O identificador da requisição anterior. Valor null: a resposta traz o token de continuação.",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "field": "securityGroupRuleId",
+      "reason": "A Sample Response oficial de DescribeSecurityGroups traz <securityGroupRuleId>sgr-abcdefghi01234560</securityGroupRuleId> dentro de <groups>, mas a página de UserIdGroupPair publica sete membros e esse NÃO é um deles. O exemplo mostra um membro que a página de tipo não documenta, então ele fica proibido no artefato: emitir nome que a fonte não documenta é inventar contrato. Se a AWS passar a documentá-lo, ele entra como coluna própria."
+    },
+    {
+      "item": "JSON property names/schema for DescribeSecurityGroups",
+      "reason": "só o XML é documentado; nenhuma lista de propriedades JSON nem exemplo JSON é publicado para esta ação. O mesmo limite registrado em aws/ec2-describe-instances, e pelo mesmo motivo: o Reference do EC2 publica o nome do membro na forma XML/Query e o artefato JSON usa o mapeamento do mesmo contrato."
+    },
+    {
+      "item": "enumeração fechada dos valores de ipProtocol",
+      "reason": "A página de IpPermission exemplifica os nomes 'tcp', 'udp', 'icmp' e 'icmpv6', diz que um NÚMERO de protocolo também é aceito e que '-1' significa todos os protocolos, mas não publica lista fechada. O valor aceito é nome-ou-número-ou-'-1'; um conjunto fechado seria uma afirmação que a documentação não faz."
+    },
+    {
+      "item": "vínculo VPC <-> security group do estate",
+      "reason": "A API publica vpcId em SecurityGroup, mas o modelo canônico não carrega a relação: os recursos 'vpc' e os recursos 'security_group' do estate vivem em regiões diferentes e nenhum par (conta, região) tem os dois. O vpcId escrito aqui vem do SEGMENTO de rede do mesmo (conta, região), que é a VPC do modelo naquele escopo — uma derivação declarada, não um fato lido da AWS. A verificação pendente é a relação VPC<->SG de uma conta real."
+    }
+  ]
+}

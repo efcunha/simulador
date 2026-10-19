@@ -1,0 +1,1054 @@
+{
+  "surface": "azure/defender-for-cloud-continuous-export",
+  "provider": "azure",
+  "reference": {
+    "title": "Export alerts and recommendations with continuous export (Microsoft Defender for Cloud) + Automations - Get (REST, 2023-12-01-preview) + Azure Monitor Logs reference: SecurityAlert / SecurityRecommendation",
+    "url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/benefits-of-continuous-export",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "log-analytics+event-hub",
+    "path_template": "",
+    "format": "json",
+    "compression": ""
+  },
+  "notes": [
+    "Documented destinations are Log Analytics workspace, Azure Event Hubs and Azure Logic Apps. Azure Storage is NOT a documented destination for continuous export.",
+    "Log Analytics destination tables are SecurityAlert (alerts) and SecurityRecommendation (assessments).",
+    "No blob path, partitioning convention, compression or message envelope is documented for this surface; path_template and compression are therefore empty strings.",
+    "Record types are fixed by the EventSource enum (14 values, including the Snapshot variants)."
+  ],
+  "record_types": [
+    {
+      "name": "Assessments",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "AssessmentsSnapshot",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "SubAssessments",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "SubAssessmentsSnapshot",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "Alerts",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "SecureScores",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "SecureScoresSnapshot",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "SecureScoreControls",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "SecureScoreControlsSnapshot",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "RegulatoryComplianceAssessment",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "RegulatoryComplianceAssessmentSnapshot",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "AttackPaths",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    },
+    {
+      "name": "AttackPathsSnapshot",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+    }
+  ],
+  "unverified": [
+    {
+      "name": "Severity",
+      "reason": "Present in the Defender for Cloud alert data model (alerts-schemas) but absent from the documented SecurityAlert table column list, which uses AlertSeverity. Conflicting official sources; type not asserted.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "SourceSystem",
+      "reason": "Listed as 'unused' in the alert data model with no type; absent from the SecurityAlert table column list.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "TenantId",
+      "reason": "Listed in the alert data model with no type; absent from the SecurityAlert table column list.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "DiscoveredTimeUTC (SecurityAlert)",
+      "reason": "Referenced by the alert data model as identical to TimeGenerated but absent from the documented SecurityAlert column list.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "SecureScores / SecureScoresSnapshot record schema",
+      "reason": "EventSource value is documented, but no official page consulted publishes the exported record schema for secure score.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "SecureScoreControls / SecureScoreControlsSnapshot record schema",
+      "reason": "EventSource value is documented, but no official page consulted publishes the exported record schema for secure score controls.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "RegulatoryComplianceAssessment / RegulatoryComplianceAssessmentSnapshot record schema",
+      "reason": "EventSource value is documented, but no official page consulted publishes the exported record schema.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "SubAssessments / SubAssessmentsSnapshot record schema and destination table",
+      "reason": "EventSource value is documented, but no official page consulted publishes the record schema nor names a destination table for sub-assessments.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "AttackPaths continuous-export payload schema",
+      "reason": "The published attack path schema belongs to the Azure Resource Graph API (securityresources), not to the continuous export event payload. No official page consulted documents the export payload.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "Event Hub message envelope / headers / partition key",
+      "reason": "Official docs only state the format is JSON. No envelope, headers or partitioning scheme is published.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "aka.ms/ASCAutomationSchemas content",
+      "reason": "Referenced by the official continuous export page as the schema reference, but the link redirects cross-origin to github.com and could not be retrieved; the corresponding GitHub folder returned HTTP 404. Not read, therefore not used as a source.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "CSV report column header (Download CSV report)",
+      "reason": "The manual CSV export is documented as a feature, but no official page consulted publishes its column set.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "delivery.path_template",
+      "reason": "Azure Storage is not a documented destination of continuous export, so no blob path template exists in the official documentation. Field left empty by design.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "delivery.compression",
+      "reason": "No compression is documented for continuous export delivery. Field left empty by design.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "SecurityAlert",
+      "description": "Tabela do Log Analytics que recebe os alertas exportados (destino 'Alerts' da exportacao continua).",
+      "columns": [
+        {
+          "name": "AlertLink",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "AlertName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "AlertSeverity",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "AlertType",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "_BilledSize",
+          "type": "real",
+          "required": false,
+          "unit": "bytes",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "CompromisedEntity",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "ConfidenceLevel",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "ConfidenceScore",
+          "type": "real",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "DisplayName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "EndTime",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "Entities",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "ExtendedLinks",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "ExtendedProperties",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "_IsBillable",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "IsIncident",
+          "type": "bool",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "ProcessingEndTime",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "ProductComponentName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "ProductName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "ProviderName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "RemediationSteps",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "ResourceId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "SourceComputerId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "StartTime",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "SubTechniques",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "SystemAlertId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "Tactics",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "Techniques",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityalert"
+        },
+        {
+          "name": "TimeGenerated",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "Type",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "VendorName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "VendorOriginalId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "WorkspaceResourceGroup",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        },
+        {
+          "name": "WorkspaceSubscriptionId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/alerts-schemas"
+        }
+      ]
+    },
+    {
+      "name": "SecurityRecommendation",
+      "description": "Tabela do Log Analytics que recebe as avaliacoes/recomendacoes exportadas (destino 'Assessments').",
+      "columns": [
+        {
+          "name": "AssessedResourceId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "_BilledSize",
+          "type": "real",
+          "required": false,
+          "unit": "bytes",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "DeviceId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "DiscoveredTimeUTC",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "Environment",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "FirstEvaluationDate",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "_IsBillable",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "IsSnapshot",
+          "type": "bool",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/continuous-export"
+        },
+        {
+          "name": "PolicyDefinitionId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "Properties",
+          "type": "dynamic",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "ProviderName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "RecommendationAdditionalData",
+          "type": "dynamic",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "RecommendationDisplayName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "RecommendationId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "RecommendationName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "RecommendationSeverity",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "RecommendationState",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "ResolvedTimeUTC",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "ResourceRegion",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "StatusChangeDate",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "TimeGenerated",
+          "type": "datetime",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        },
+        {
+          "name": "Type",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityrecommendation"
+        }
+      ]
+    },
+    {
+      "name": "Microsoft.Security/automations",
+      "description": "Recurso de configuracao de exportacao (Microsoft.Security/automations). Nao e um registo exportado.",
+      "columns": [
+        {
+          "name": "etag",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "location",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions",
+          "type": "array",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions[].actionType",
+          "type": "string",
+          "required": false,
+          "allowed_values": [
+            "EventHub",
+            "LogicApp",
+            "Workspace"
+          ],
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions[].connectionString",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions[].eventHubResourceId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions[].isTrustedServiceEnabled",
+          "type": "boolean",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions[].sasPolicyName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions[].logicAppResourceId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions[].uri",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.actions[].workspaceResourceId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.description",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.isEnabled",
+          "type": "boolean",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.scopes",
+          "type": "array",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.scopes[].description",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.scopes[].scopePath",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.sources",
+          "type": "array",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.sources[].eventSource",
+          "type": "string",
+          "required": false,
+          "allowed_values": [
+            "Assessments",
+            "AssessmentsSnapshot",
+            "SubAssessments",
+            "SubAssessmentsSnapshot",
+            "Alerts",
+            "SecureScores",
+            "SecureScoresSnapshot",
+            "SecureScoreControls",
+            "SecureScoreControlsSnapshot",
+            "RegulatoryComplianceAssessment",
+            "RegulatoryComplianceAssessmentSnapshot",
+            "AttackPaths",
+            "AttackPathsSnapshot"
+          ],
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.sources[].ruleSets",
+          "type": "array",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.sources[].ruleSets[].rules",
+          "type": "array",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.sources[].ruleSets[].rules[].expectedValue",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.sources[].ruleSets[].rules[].operator",
+          "type": "string",
+          "required": false,
+          "allowed_values": [
+            "Equals",
+            "GreaterThan",
+            "GreaterThanOrEqualTo",
+            "LesserThan",
+            "LesserThanOrEqualTo",
+            "NotEquals",
+            "Contains",
+            "StartsWith",
+            "EndsWith"
+          ],
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.sources[].ruleSets[].rules[].propertyJPath",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "properties.sources[].ruleSets[].rules[].propertyType",
+          "type": "string",
+          "required": false,
+          "allowed_values": [
+            "String",
+            "Integer",
+            "Number",
+            "Boolean"
+          ],
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "systemData.createdAt",
+          "type": "date-time",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "systemData.createdBy",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "systemData.createdByType",
+          "type": "string",
+          "required": false,
+          "allowed_values": [
+            "User",
+            "Application",
+            "ManagedIdentity",
+            "Key"
+          ],
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "systemData.lastModifiedAt",
+          "type": "date-time",
+          "required": false,
+          "datetime_format": "ISO 8601 UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "systemData.lastModifiedBy",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "systemData.lastModifiedByType",
+          "type": "string",
+          "required": false,
+          "allowed_values": [
+            "User",
+            "Application",
+            "ManagedIdentity",
+            "Key"
+          ],
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "tags",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/automations/get?view=rest-defenderforcloud-composite-latest&tabs=HTTP"
+        }
+      ]
+    },
+    {
+      "name": "securityresources/microsoft.security/attackpaths",
+      "description": "Registos de attack path devolvidos pela API do Azure Resource Graph (securityresources), nao pelo payload de exportacao continua.",
+      "columns": [
+        {
+          "name": "ID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Name",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Type",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Tenant ID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Location",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Subscription ID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.description",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.displayName",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.attackPathType",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.manualRemediationSteps",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.refreshInterval",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.potentialImpact",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.riskCategories",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.entryPointEntityInternalID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.targetEntityInternalID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.assessments",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.graphComponent",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.graphComponent.insights",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.graphComponent.entities",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.graphComponent.connections",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        },
+        {
+          "name": "Properties.AttackPathID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "author-classification",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "surface": "gcp/cloud-asset-inventory-compute-instance",
+  "provider": "gcp",
+  "reference": {
+    "title": "Export asset metadata to BigQuery (official BigQuery schemas) + Method: exportAssets (REST v1)",
+    "url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "bigquery",
+    "path_template": "projects/{projectId}/datasets/{datasetId}/{table} (per-asset-type: {table}_{assetType with non-alphanumerics replaced by _})",
+    "format": "bigquery-native-table",
+    "compression": "not-applicable"
+  },
+  "reference_urls": {
+    "export_assets_rest": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets",
+    "asset_message": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset",
+    "gcs_export": "https://cloud.google.com/asset-inventory/docs/exporting-to-cloud-storage",
+    "supported_asset_types": "https://cloud.google.com/asset-inventory/docs/supported-asset-types"
+  },
+  "notes": [
+    "The export mechanism genuinely exists and is officially documented: Cloud Asset Inventory ExportAssets, destinations Cloud Storage (newline-delimited JSON, one google.cloud.asset.v1.Asset per line) and BigQuery (fields stored as columns).",
+    "Three BigQuery schemas are published verbatim by Google: Resource schema, IAM policy schema, Organization policy schema. They are transcribed below.",
+    "RESOURCE single-table schema stores resource.data as a STRING holding JSON. With separateTablesPerAssetType=true the schema instead maps nested Resource.data fields to RECORD columns (up to 15 nested levels) - but Google publishes NO per-asset-type schema for compute.googleapis.com/Instance.",
+    "Therefore the concrete shape of resource.data for compute.googleapis.com/Instance is UNVERIFIED and listed in 'unverified'.",
+    "Casing rule (documented): RESOURCE + per-asset-type tables use camelCase (e.g. assetType); all other content types use snake_case (e.g. asset_type).",
+    "BigQuery types below are transcribed exactly as published (STRING, RECORD, TIMESTAMP, INTEGER, BOOLEAN, REPEATED/NULLABLE modes).",
+    "Sets: Cloud Asset Inventory publishes SEVERAL distinct schemas selected by contentType (RESOURCE / IAM_POLICY / ORG_POLICY) plus the REST message envelopes. The same column name (name, asset_type, ancestors, update_time, resource, readTime) legitimately recurs across different schemas, so each schema is its own set and the name collisions are intentional."
+  ],
+  "sets": [
+    {
+      "name": "resource_schema",
+      "description": "contentType=RESOURCE (or unspecified) with separateTablesPerAssetType=false. Published verbatim at exporting-to-bigquery#resource_schema.",
+      "columns": [
+        { "name": "name", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "asset_type", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "resource", "type": "RECORD", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "resource.version", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "resource.discovery_document_uri", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "resource.discovery_name", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "resource.resource_url", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "resource.parent", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "resource.data", "type": "STRING (JSON string)", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "resource.location", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "ancestors", "type": "STRING", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" },
+        { "name": "update_time", "type": "TIMESTAMP", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#resource_schema", "status": "verified" }
+      ]
+    },
+    {
+      "name": "iam_policy_schema",
+      "description": "contentType=IAM_POLICY (gcloud iam-policy). Published verbatim at exporting-to-bigquery#iam_policy_schema.",
+      "columns": [
+        { "name": "name", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "asset_type", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy", "type": "RECORD", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.version", "type": "INTEGER", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.bindings", "type": "RECORD", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.bindings.role", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.bindings.members", "type": "STRING", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.bindings.condition", "type": "RECORD", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.bindings.condition.expression", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.bindings.condition.title", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.bindings.condition.description", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.bindings.condition.location", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.audit_configs", "type": "RECORD", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.audit_configs.service", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.audit_configs.audit_log_configs", "type": "RECORD", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.audit_configs.audit_log_configs.log_type", "type": "INTEGER", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.audit_configs.audit_log_configs.exempted_members", "type": "STRING", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "iam_policy.etag", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "ancestors", "type": "STRING", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" },
+        { "name": "update_time", "type": "TIMESTAMP", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#iam_policy_schema", "status": "verified" }
+      ]
+    },
+    {
+      "name": "org_policy_schema",
+      "description": "contentType=ORG_POLICY (gcloud org-policy). Published verbatim at exporting-to-bigquery#organization_policy_schema.",
+      "columns": [
+        { "name": "name", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "asset_type", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy", "type": "RECORD", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.version", "type": "INTEGER", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.constraint", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.etag", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.update_time", "type": "TIMESTAMP", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.list_policy", "type": "RECORD", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.list_policy.allowed_values", "type": "STRING", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.list_policy.denied_values", "type": "STRING", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.list_policy.all_values", "type": "INTEGER", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.list_policy.suggested_value", "type": "STRING", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.list_policy.inherit_from_parent", "type": "BOOLEAN", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.boolean_policy", "type": "RECORD", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.boolean_policy.enforced", "type": "BOOLEAN", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.restore_default", "type": "RECORD", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "org_policy.restore_default._present", "type": "BOOLEAN", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "ancestors", "type": "STRING", "mode": "REPEATED", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" },
+        { "name": "update_time", "type": "TIMESTAMP", "mode": "NULLABLE", "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/exporting-to-bigquery#organization_policy_schema", "status": "verified" }
+      ]
+    },
+    {
+      "name": "asset_message",
+      "description": "REST message google.cloud.asset.v1.Asset - the envelope carried by BOTH destinations (each NDJSON line in Cloud Storage is one Asset). Not a BigQuery table schema.",
+      "columns": [
+        { "name": "updateTime", "type": "string (Timestamp)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "name", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "assetType", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "resource", "type": "object (Resource)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "iamPolicy", "type": "object (Policy)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "orgPolicy[]", "type": "object (Policy)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "osInventory", "type": "object (Inventory)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "relatedAssets", "type": "object (RelatedAssets)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "unverified", "evidence": "deprecated" },
+        { "name": "relatedAsset", "type": "object (RelatedAsset)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "ancestors[]", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "assetExceptions[]", "type": "object (AssetException)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "accessPolicy", "type": "object (AccessPolicy)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "accessLevel", "type": "object (AccessLevel)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" },
+        { "name": "servicePerimeter", "type": "object (ServicePerimeter)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Asset", "status": "verified" }
+      ]
+    },
+    {
+      "name": "resource_message",
+      "description": "REST message google.cloud.asset.v1.Asset.Resource. Resource.data is documented only as 'object (Struct format)' - no per-asset-type schema is published.",
+      "columns": [
+        { "name": "version", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Resource", "status": "verified" },
+        { "name": "discoveryDocumentUri", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Resource", "status": "verified" },
+        { "name": "discoveryName", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Resource", "status": "verified" },
+        { "name": "resourceUrl", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Resource", "status": "verified" },
+        { "name": "parent", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Resource", "status": "verified" },
+        { "name": "data", "type": "object (Struct format)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Resource", "status": "verified" },
+        { "name": "location", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/Asset#Resource", "status": "verified" }
+      ]
+    },
+    {
+      "name": "export_request",
+      "description": "ExportAssetsRequest body fields.",
+      "columns": [
+        { "name": "readTime", "type": "string (Timestamp)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#body.request_body.FIELDS.read_time", "status": "verified" },
+        { "name": "assetTypes[]", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#body.request_body.FIELDS.asset_types", "status": "verified" },
+        { "name": "contentType", "type": "enum (ContentType)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#body.request_body.FIELDS.content_type", "status": "verified" },
+        { "name": "outputConfig", "type": "object (OutputConfig)", "mode": null, "required": true, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#body.request_body.FIELDS.output_config", "status": "verified" },
+        { "name": "relationshipTypes[]", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#body.request_body.FIELDS.relationship_types", "status": "verified" }
+      ]
+    },
+    {
+      "name": "gcs_destination",
+      "description": "GcsDestination: union field object_uri. Output format is newline-delimited JSON, one Asset per line.",
+      "columns": [
+        { "name": "uri", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#GcsDestination", "status": "verified" },
+        { "name": "uriPrefix", "type": "string", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#GcsDestination", "status": "verified" }
+      ]
+    },
+    {
+      "name": "bigquery_destination",
+      "description": "BigQueryDestination and its PartitionSpec.",
+      "columns": [
+        { "name": "dataset", "type": "string", "mode": null, "required": true, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#BigQueryDestination", "status": "verified" },
+        { "name": "table", "type": "string", "mode": null, "required": true, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#BigQueryDestination", "status": "verified" },
+        { "name": "force", "type": "boolean", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#BigQueryDestination", "status": "verified" },
+        { "name": "partitionSpec", "type": "object (PartitionSpec)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#BigQueryDestination", "status": "verified" },
+        { "name": "separateTablesPerAssetType", "type": "boolean", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#BigQueryDestination", "status": "verified" },
+        { "name": "partitionSpec.partitionKey", "type": "enum (PartitionKey)", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#PartitionSpec", "status": "verified" }
+      ]
+    },
+    {
+      "name": "partition_key_enum",
+      "description": "PartitionKey enum values.",
+      "columns": [
+        { "name": "PARTITION_KEY_UNSPECIFIED", "type": "enum value", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#PartitionKey", "status": "verified" },
+        { "name": "READ_TIME", "type": "enum value", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#PartitionKey", "status": "verified" },
+        { "name": "REQUEST_TIME", "type": "enum value", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#PartitionKey", "status": "verified" }
+      ]
+    },
+    {
+      "name": "partition_extra_column",
+      "description": "Extra timestamp columns added to the destination table(s) when a partitionSpec is used.",
+      "columns": [
+        { "name": "readTime", "type": "TIMESTAMP", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#BigQueryDestination", "status": "verified" },
+        { "name": "requestTime", "type": "TIMESTAMP", "mode": null, "required": false, "unit": null, "source_url": "https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/exportAssets#BigQueryDestination", "status": "verified" }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "name": "concrete shape of resource.data for compute.googleapis.com/Instance",
+      "reason": "No Cloud Asset Inventory page publishes the schema of resource.data for this or any asset type. The Resource.data field is documented only as 'object (Struct format)': 'The content of the resource, in which some sensitive fields are removed and may not be present.' The mapping to the Compute Engine Instances REST representation is NOT asserted anywhere in the CAI documentation.",
+      "status": "unverified"
+    },
+    {
+      "name": "per-asset-type schema produced by separateTablesPerAssetType=true for compute.googleapis.com/Instance",
+      "reason": "The page states the schema maps nested Resource.data fields to RECORD columns (up to 15 nested levels) but publishes no resulting schema; the referenced examples live in the Cloud console.",
+      "status": "unverified"
+    },
+    {
+      "name": "field-name casing inside resource.data (camelCase vs snake_case)",
+      "reason": "Not asserted in the Cloud Asset Inventory documentation.",
+      "status": "unverified"
+    },
+    {
+      "name": "compression and encoding of Cloud Storage NDJSON objects",
+      "reason": "Only 'newline-delimited JSON' is documented; compression/encoding are not stated.",
+      "status": "unverified"
+    },
+    {
+      "name": "export manifest",
+      "reason": "No manifest is documented. Only the long-running Operation object with path projects/PROJECT_NUMBER/operations/ExportAssets/CONTENT_TYPE/OPERATION_ID.",
+      "status": "unverified"
+    },
+    {
+      "name": "ACCESS_POLICY (VPCSC) schema columns",
+      "reason": "RECLASSIFICADO em 2026-10-15: nao era leitura pendente, era ESCOPO. A pagina de exporting-to-bigquery publica mesmo um 'VPCSC policy schema', mas ele descreve o contentType ACCESS_POLICY (Virtual Private Cloud Security Command Center), e o escopo desta superficie e a tabela de compute.googleapis.com/Instance. Transcrever as colunas dele aqui colocaria colunas de OUTRO content type na tabela de uma instancia de computacao. A lacuna e definitiva nesta superficie; virar coluna exigiria uma superficie nova para o contentType ACCESS_POLICY.",
+      "status": "unverified"
+    },
+    {
+      "name": "OS_INVENTORY schema columns",
+      "reason": "RECLASSIFICADO em 2026-10-15: nao era leitura pendente, era ESCOPO. O 'OS inventory schema' publicado pela pagina pertence ao contentType OS_INVENTORY, e o escopo desta superficie e a tabela de compute.googleapis.com/Instance. O inventario de sistema operacional e um produto diferente do inventario de recursos de nuvem: traze o mesmo dado (o recurso) por outra porta. Nao gerar aqui.",
+      "status": "unverified"
+    },
+    {
+      "name": "RELATIONSHIP schema columns",
+      "reason": "RECLASSIFICADO em 2026-10-15: nao era leitura pendente, era ESCOPO. O 'Relationship schema' publicado pertence ao contentType RELATIONSHIP (os vinculos entre recursos, expostos pelo Servicer Relationship API), e o escopo desta superficie e a tabela de compute.googleapis.com/Instance. Um relacionamento e uma entidade com o proprio ciclo de vida e o proprio conjunto de colunas; mistura-lo na tabela do recurso colocaria duas entidades numa so.",
+      "status": "unverified"
+    },
+    {
+      "name": "relatedAssets status nuance",
+      "reason": "Documented as DEPRECATED: 'The server will never generate responses with this field.' Present in the Asset message but must not be generated.",
+      "status": "unverified"
+    }
+  ]
+}

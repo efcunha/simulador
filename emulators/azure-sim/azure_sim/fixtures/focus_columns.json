@@ -1,0 +1,32 @@
+{
+  "_fixture": "focus-columns",
+  "_description": "Azure Cost Management 'FOCUS cost and usage details' schema, id 1.2-preview. Verified 2026-10-10 against learn.microsoft.com/en-us/azure/cost-management-billing/dataset-schema/cost-usage-details-focus. The azure-sim FOCUS export emits the renderer bytes UNCHANGED; this fixture documents the expected header set, it is not a template the exporter fills.",
+  "version": "1.2-preview",
+  "_verification": "Cross-checked by tools/synthetic_clouds/audit_export_fidelity.py, which compares this fixture against the renderer's emitted column set and fails on any drift in either direction.",
+  "_focus_version_note": "The 57 FOCUS columns are version 1.2. ServiceProviderName/HostProviderName arrived in FOCUS 1.3 and are NOT emitted here, because no Azure 1.2 export carries them. The FinOps app implements FOCUS 1.4 and derives those itself.",
+  "columns": [
+    "AvailabilityZone", "BilledCost", "BillingAccountId", "BillingAccountName",
+    "BillingAccountType", "BillingCurrency", "BillingPeriodEnd", "BillingPeriodStart",
+    "CapacityReservationId", "CapacityReservationStatus", "ChargeCategory", "ChargeClass",
+    "ChargeDescription", "ChargeFrequency", "ChargePeriodEnd", "ChargePeriodStart",
+    "CommitmentDiscountCategory", "CommitmentDiscountId", "CommitmentDiscountName",
+    "CommitmentDiscountQuantity", "CommitmentDiscountType", "CommitmentDiscountStatus",
+    "CommitmentDiscountUnit", "ConsumedQuantity", "ConsumedUnit", "ContractedCost",
+    "ContractedUnitPrice", "EffectiveCost", "InvoiceId", "InvoiceIssuerName", "ListCost",
+    "ListUnitPrice", "PricingCategory", "PricingCurrency", "PricingCurrencyContractedUnitPrice",
+    "PricingCurrencyEffectiveCost", "PricingCurrencyListUnitPrice", "PricingQuantity",
+    "PricingUnit", "ProviderName", "PublisherName", "RegionId", "RegionName", "ResourceId",
+    "ResourceName", "ResourceType", "ServiceCategory", "ServiceName", "ServiceSubcategory",
+    "SkuId", "SkuPriceDetails", "SkuPriceId", "SkuMeter", "SubAccountId", "SubAccountName",
+    "SubAccountType", "Tags",
+    "x_AccountName", "x_BilledCostInUsd", "x_BillingExchangeRate", "x_BillingProfileId",
+    "x_BillingProfileName", "x_ChargeId", "x_CostCenter", "x_CustomerId", "x_EffectiveCostInUsd",
+    "x_InvoiceSectionId", "x_InvoiceSectionName", "x_ListCostInUsd", "x_MeterId", "x_MeterName",
+    "x_OnDemandCost", "x_PartnerCreditApplied", "x_PricingBlockSize", "x_PricingCurrency",
+    "x_PricingUnitDescription", "x_ResourceGroup", "x_ResourceType", "x_ServicePeriodEnd",
+    "x_ServicePeriodStart", "x_SkuDescription", "x_SkuIsCreditEligible", "x_SkuRegion",
+    "x_SubscriptionId", "x_UsageQuantity", "x_UsageUnit"
+  ],
+  "dialectDetectionColumns": ["BilledCost", "BillingPeriodStart"],
+  "synthetic": true
+}

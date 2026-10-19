@@ -1,0 +1,404 @@
+{
+  "surface": "azure/arm-network-security-group-rules",
+  "provider": "azure",
+  "reference": {
+    "title": "Microsoft.Network networkSecurityGroups - Bicep, ARM template & Terraform AzAPI reference (NetworkSecurityGroupPropertiesFormat.securityRules[] / SecurityRule / SecurityRulePropertiesFormat)",
+    "url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+    "consulted_at": "2026-10-18",
+    "secondary_references": [
+      {
+        "title": "Network Security Groups - Get / List All - REST API (Azure Virtual Networks), que publica os objetos NetworkSecurityGroup e Security Rule com o membro 'id' e o envelope NetworkSecurityGroupListResult",
+        "url": "https://learn.microsoft.com/en-us/rest/api/virtualnetwork/network-security-groups/get?view=rest-virtualnetwork-2026-01-01",
+        "consulted_at": "2026-10-18",
+        "why": "A pagina de template publica o SecurityRule e o SecurityRulePropertiesFormat, mas o membro 'id' do RECURSO (o id do proprio NSG e o id da regra) so e publicado pela pagina REST: a tabela de campos do objeto 'Network Security Group' traz 'id | string | Resource ID.' e a do objeto 'Security Rule' traz a mesma linha, com o exemplo de resposta do GET fixando a forma do caminho."
+      }
+    ]
+  },
+  "delivery": {
+    "kind": "azure-arm-resource",
+    "format": "json",
+    "compression": "",
+    "file_name": "<nsgName>.json",
+    "root": "properties.securityRules[]",
+    "cadence": "",
+    "partitioning": "subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkSecurityGroups/{nsgName}/",
+    "path_template": "subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkSecurityGroups/{nsgName}/{nsgName}.json"
+  },
+  "notes": [
+    "Esta superficie existe porque o consumidor do lado do FinOps percorre as REGRAS de cada NSG e filtra por direction/access (security.py (modulo do consumidor):107,109), e o estado canonico nao tinha nenhuma regra: o azure-sim respondia lista vazia 'por desenho' para networkSecurityGroups.",
+    "O envelope escolhido e o do RECURSO PAI (networkSecurityGroups), com a colecao em properties.securityRules[]. A pagina do recurso filho (networkSecurityGroups/securityRules) publica o MESMO SecurityRulePropertiesFormat; o pai foi escolhido porque e o GET que um scanner de postura chama (list) e porque a colecao e o que o consumidor itera.",
+    "O caminho da coluna segue a convencao das outras superficies ARM deste repositorio (arm-resource-representation, azure-resource-graph-virtual-machines): o membro e nomeado pelo CAMINHO em que a pagina oficial o publica, nao por um achatamento escolhido aqui.",
+    "A assinatura no caminho e o GUID, e o id do recurso sai do MESMO metodo que compoe o caminho: o artefato nao carrega duas grafias do mesmo id.",
+    "O membro 'id' do RECURSO (o id do proprio NSG, e nao o da regra) entrou no incremento 7. Ele nao aparece na pagina de template, mas a pagina REST publica o objeto 'Network Security Group' com a linha 'id | string | Resource ID.', e o consumidor do FinOps le nsg.id (security.py (modulo do consumidor):121 usa-o como resource_id do achado e :125 faz nsg.id.split('/')[4] para o --resource-group do remediation_command). Sem ele, o consumidor cairia no nome do NSG e montaria um comando de remediacao com resource-group VAZIO. A forma do caminho vem do exemplo oficial do proprio GET, e e a mesma que NetworkSecurityGroup.arm_id() ja compunha para o caminho do arquivo e para o flow log.",
+    "O id da REGRA tambem saiu de 'unverified' no incremento 7: a pagina REST publica o objeto 'Security Rule' com a mesma linha 'id | string | Resource ID.', e o exemplo de resposta do GET fixa a forma como '<id-do-NSG>/securityRules/<nome-da-regra>'. A leitura anterior (a pagina de template publica o TIPO mas nao a FORMA) era verdadeira para aquela pagina e falsa para a fonte que o consumidor realmente chama.",
+    "O envelope entregue continua sendo um corpo POR NSG, e nao o envelope de lista. A pagina REST publica NetworkSecurityGroupListResult = {nextLink, value[]} como o transporte de list_all, mas essa e a forma de PAGINACAO da colecao, nao um campo do recurso: o SDK desembrulha 'value' e entrega um NSG por iteracao, e por isso o consumidor consegue ler name/id/location/securityRules de cada objeto. Um 'value' dentro de cada NSG seria inventar um campo que o recurso nao tem.",
+    "Tres campos publicados na mesma pagina ficam de fora do contrato, por evidencia insuficiente, e estao registrados em 'unverified': properties.flushConnection (a pagina declara o tipo bool e descreve o efeito, mas nenhuma das regras deste estado o usa e o valor booleano nao tem exemplo oficial), o par ApplicationSecurityGroup.properties/tags dos dois conjuntos de ASG (a pagina publica a tabela ApplicationSecurityGroupPropertiesFormat VAZIA, ou seja nao declara o conteudo) e a apiVersion do template (a pagina lista as versoes na navegacao e nao afirma qual delas e a 'latest' do payload).",
+    "Os dois conjuntos sourceApplicationSecurityGroups/destinationApplicationSecurityGroups SAO emitidos, com os membros [] vazios: o campo pertence ao formato (a pagina o publica e o exemplifica com id/location/properties/tags) e nenhuma regra deste estado aponta para uma ASG, entao preencher seria inventar e omitir seria infiel ao formato.",
+    "Um NSG de estado NAO e uma linha de catalogo (nao tem preco, consumo, metrica nem achado): por isso ele nao entra em AZURE_SERVICES. O tipo esta declarado em NETWORK_FABRIC_RESOURCE_TYPES (generate/constants.py).",
+    "Nao existe artefato de export para esta superficie: e a resposta de uma API (GET .../networkSecurityGroups), como arm-resource-representation. O arquivo entregue e um corpo de resposta por NSG, nao um lote."
+  ],
+  "unverified": [
+    {
+      "name": "properties.flushConnection",
+      "reason": "A pagina publica o tipo (bool) e a descricao do efeito, mas nao exemplifica o payload nem fixa valor: o campo entra no formato e nao no contrato de valor. Nenhuma regra deste estado o define, entao ele nao e emitido."
+    },
+    {
+      "name": "ApplicationSecurityGroup.properties",
+      "reason": "A pagina publica a tabela ApplicationSecurityGroupPropertiesFormat VAZIA -- o provedor nao declara o conteudo. E o caso name-only: o nome entra no contrato, o valor sai vazio em vez de inventado.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "ApplicationSecurityGroup.tags",
+      "reason": "A pagina referencia ResourceTags e publica a tabela VAZIA (o tipo e 'Dictionary of tag names and values' na prosa do pai). Sem nomes de tag publicados, nao ha o que emitir.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "apiVersion",
+      "reason": "A pagina lista 60 versoes na navegacao e a secao 'Resource format' usa 2025-09-01 no exemplo, mas nenhuma pagina consultada afirma qual versao e a corrente para o payload. A versao nao e um campo do CORPO da resposta, entao ela nao e emitida.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "limite de regras por NSG / numero maximo de regras",
+      "reason": "Nao publicado nas paginas consultadas. Este estado emite tres regras e o teto nao e afirmado.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "rule",
+      "description": "Campos do recurso networkSecurityGroups/securityRules e de SecurityRulePropertiesFormat, publicados nas tabelas 'Property Values' da pagina de template. O caminho e o do corpo do recurso PAI (properties.securityRules[]), que e onde a pagina do networkSecurityGroups publica a colecao.",
+      "columns": [
+        {
+          "name": "properties.securityRules[].name",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "tabela SecurityRule: 'name | Name of the resource. | string'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].id",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/virtualnetwork/network-security-groups/get?view=rest-virtualnetwork-2026-01-01",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Objeto 'Security Rule' da pagina REST: 'id | string | Resource ID.'; o exemplo de resposta do GET fixa a forma como '<id-do-NSG>/securityRules/<nome-da-regra>' (ex.: '.../networkSecurityGroups/testnsg/securityRules/rule1'). A pagina de template publica o tipo mas nao a forma; a pagina REST publica as duas.",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Tabela SecurityRule: \"properties | Properties of the security rule. | SecurityRulePropertiesFormat\". Continente documentado, com o mesmo tratamento de properties no envelope do NSG.",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.access",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"access | The network traffic is allowed or denied. | 'Allow' 'Deny' (required)\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.direction",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"direction | The direction of the rule. The direction specifies if rule will be evaluated on incoming or outgoing traffic. | 'Inbound' 'Outbound' (required)\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.priority",
+          "type": "int",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"priority | The priority of the rule. The value can be between 100 and 4096. The priority number must be unique for each rule in the collection. The lower the priority number, the higher the priority of the rule. | int (required)\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.protocol",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"protocol | Network protocol this rule applies to. | '*' 'Ah' 'Esp' 'Icmp' 'Tcp' 'Udp' (required)\" -- dominio FECHADO de strings; a pagina nao publica numero IANA.",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.sourceAddressPrefix",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"sourceAddressPrefix | The CIDR or source IP range. Asterisk '*' can also be used to match all source IPs. Default tags such as 'VirtualNetwork', 'AzureLoadBalancer' and 'Internet' can also be used.\"",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.sourceAddressPrefixes",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"sourceAddressPrefixes | The CIDR or source IP ranges. | string[]\"; o exemplo ARM publica \"sourceAddressPrefixes\": [ \"string\" ].",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.destinationAddressPrefix",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"destinationAddressPrefix | The destination address prefix. CIDR or destination IP range. Asterisk '*' can also be used to match all source IPs. Default tags such as 'VirtualNetwork', 'AzureLoadBalancer' and 'Internet' can also be used.\"",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.destinationAddressPrefixes",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"destinationAddressPrefixes | The destination address prefixes. CIDR or destination IP ranges. | string[]\"; o exemplo ARM publica \"destinationAddressPrefixes\": [ \"string\" ].",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.sourcePortRange",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"sourcePortRange | The source port or range. Integer or range between 0 and 65535. Asterisk '*' can also be used to match all ports. | string\" -- o TIPO publicado e string, ainda que a descricao fale de inteiro e faixa.",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.sourcePortRanges",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"sourcePortRanges | The source port ranges. | string[]\"; o exemplo ARM publica \"sourcePortRanges\": [ \"string\" ].",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.destinationPortRange",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"destinationPortRange | The destination port or range. Integer or range between 0 and 65535. Asterisk '*' can also be used to match all ports. | string\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.destinationPortRanges",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"destinationPortRanges | The destination port ranges. | string[]\"; o exemplo Bicep oficial publica destinationPortRanges: [ '9000' '1438' ... ].",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.description",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"description | A description for this rule. Restricted to 140 chars. | string\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.sourceApplicationSecurityGroups",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"sourceApplicationSecurityGroups | The application security group specified as source. | ApplicationSecurityGroup[]\"; o exemplo ARM publica a lista com id/location/properties/tags.",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.destinationApplicationSecurityGroups",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityRulePropertiesFormat: \"destinationApplicationSecurityGroups | The application security group specified as destination. | ApplicationSecurityGroup[]\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.sourceApplicationSecurityGroups[].id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Tabela ApplicationSecurityGroup: \"id | Resource ID. | string\". Estrutura aninhada publicada pelo exemplo ARM do campo pai.",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.sourceApplicationSecurityGroups[].location",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Tabela ApplicationSecurityGroup: \"location | Resource location. | string\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.destinationApplicationSecurityGroups[].id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Tabela ApplicationSecurityGroup: \"id | Resource ID. | string\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules[].properties.destinationApplicationSecurityGroups[].location",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Tabela ApplicationSecurityGroup: \"location | Resource location. | string\".",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "networkSecurityGroup",
+      "description": "Campos do recurso PAI (Microsoft.Network/networkSecurityGroups) que localizam a colecao. O consumidor que varre regras chama o GET do NSG, entao o corpo entregue e o do NSG -- e o nome do recurso e o location sao os dois membros do pai que a pagina publica com tipo.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/virtualnetwork/network-security-groups/get?view=rest-virtualnetwork-2026-01-01",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Objeto 'Network Security Group' da pagina REST: 'id | string | Resource ID.'; o exemplo de resposta do GET/list fixam a forma '/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Network/networkSecurityGroups/{nsg}'. E o MESMO id que o caminho do arquivo carrega.",
+          "type_source": "documented"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Tabela Microsoft.Network/networkSecurityGroups: \"name | The resource name | string (required)\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "location",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Tabela Microsoft.Network/networkSecurityGroups: \"location | Resource location. | string\".",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Tabela Microsoft.Network/networkSecurityGroups: \"properties | Properties of the network security group. | NetworkSecurityGroupPropertiesFormat\". E o mesmo tratamento que a spec do arm-resource-representation da a properties: um continente documentado, com valor de tipo objeto.",
+          "type_source": "documented"
+        },
+        {
+          "name": "properties.securityRules",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networksecuritygroups",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "NetworkSecurityGroupPropertiesFormat: \"securityRules | A collection of security rules of the network security group. | SecurityRule[]\".",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

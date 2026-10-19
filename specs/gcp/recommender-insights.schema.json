@@ -1,0 +1,137 @@
+{
+  "surface": "gcp/recommender-insights",
+  "provider": "gcp",
+  "reference": {
+    "title": "Recommender API v1 - message GoogleCloudRecommenderV1Insight (method projects.locations.insightTypes.insights.list)",
+    "url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "insights.json",
+    "root": "insights[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "Mesma correcao de nome da superficie irma: 'projects/-' e curinga de REQUISICAO (AIP-159) e nao pode aparecer no corpo da resposta."
+  ],
+  "unverified": [
+    {
+      "name": "insights[].resourceUuid",
+      "reason": "Chave de juncao entre planos emitida pelo artefato antigo; o contrato de Insight NAO a declara.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "insights[].name value shape",
+      "reason": "Idem ao da recomendacao: o valor usa o projeto alvo com 'locations/global', e a localizacao real varia.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "insights[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'insights' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "insights",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListInsightsResponse declara o array 'insights' (itens GoogleCloudRecommenderV1Insight) e 'nextPageToken'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListInsightsResponse.nextPageToken: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "insight",
+      "description": "Campos de um item de 'insights', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "insights[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1Insight.name: 'Identifier. Name of the insight.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "insights[].insightSubtype",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1Insight.insightSubtype: 'Insight subtype. Insight content schema will be stable for a given subtype.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "insights[].stateInfo",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1Insight.stateInfo: 'Information state and metadata.' -- objeto.",
+          "type_source": "documented"
+        },
+        {
+          "name": "insights[].stateInfo.state",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1InsightStateInfo.state: 'Insight state.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "insights[].content",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.insightTypes.insights/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1Insight.content: 'A struct of custom fields to explain the insight.' -- objeto.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

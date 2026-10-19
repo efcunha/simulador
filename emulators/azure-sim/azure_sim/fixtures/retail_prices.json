@@ -1,0 +1,21 @@
+{
+  "_fixture": "retail-prices-page",
+  "_description": "Skeleton of a Retail Prices OData page. Mirrors projections/prices.project_retail_prices items.",
+  "api-version": "2023-01-01-preview",
+  "_todo_verificar": "§11.11 — exact Retail Prices OData item keys/casing, the Items vs value envelope, NextPageLink field, and $filter grammar are not offline-verifiable.",
+  "BillingCurrency": "USD",
+  "CustomerEntityId": "Default",
+  "Items": [
+    {
+      "currencyCode": "USD",
+      "retailPrice": 0.0,
+      "unitOfMeasure": "1 Hour",
+      "skuId": "DZH318Z0BQ35/000X",
+      "productName": "Example Product",
+      "serviceName": "Virtual Machines"
+    }
+  ],
+  "NextPageLink": null,
+  "Count": 1,
+  "synthetic": true
+}

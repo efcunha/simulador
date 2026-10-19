@@ -1,0 +1,87 @@
+# Config of record for the emulators/aws-sim package (Phase 6, Component C).
+#
+# Mirrors emulators/azure-sim/pyproject.toml and the Phase 1 package: ruff and mypy
+# discover configuration by walking UP from the target file, and
+# pyproject.toml do consumidor is a SIBLING subtree, never an ancestor of
+# emulators/aws-sim/. Writing this file INSIDE the permitted package path is allowed;
+# a root config would not be.
+#
+# Import mechanism (design sec. 6.1): aws-sim imports the Phase 1 generator as the
+# namespace path ``tools.synthetic_clouds.*`` resolved via PYTHONPATH, NOT a wheel
+# install. This file therefore lists ONLY third-party deps and MUST NOT declare
+# ``FinOps-synthetic-clouds`` as a dependency.
+#
+# ``botocore`` IS a declared dependency, and that is a design decision rather than an
+# accident: the Query-protocol XML this service emits is generated from botocore's own
+# CloudFormation service model (design sec. 22.3), so the envelope is a function of the
+# same model the client parses with. It ships the service models, not credentials.
+#
+# ``cbor2`` is here for the RPC-v2 CBOR framing of CloudWatch (``aws_sim.smithy_rpc``), the
+# one protocol in the estate that is binary. It is a runtime dependency and not a test-only
+# one because the *server* has to encode: botocore can parse CBOR, but it ships no CBOR
+# encoder a service could write a response with. The import is deferred inside the wire (see
+# ``smithy_rpc._cbor2``), because the framing the installed client actually uses for
+# CloudWatch is JSON-1.0 — measured, not assumed — so a deployment that only ever serves
+# that framing does not need the package to be importable.
+[project]
+name = "FinOps-aws-sim"
+version = "0.1.0"
+description = "FinOps AWS synthetic-cloud simulator (Phase 6): the CloudFormation control-plane shim."
+requires-python = ">=3.12"
+dependencies = [
+  "botocore",
+  "cbor2",
+  "fastapi",
+  "uvicorn",
+]
+
+[project.optional-dependencies]
+test = [
+  "boto3",
+  "httpx",
+  "pytest",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "S", "B", "ANN", "ASYNC"]
+ignore = [
+  "ANN401",  # Allow Any type when needed (complex generics)
+  "S101",
+  "S105",    # Hardcoded "password": here only AWS error-code and header names
+  "S106",
+  "E501",    # Line-too-long enforced by formatter, not linter
+  "B008",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The guard tests deliberately pass credential-shaped values to prove refusal.
+"**/tests/*" = ["S", "ANN", "B017", "N805", "F841", "F821", "E402", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+disable_error_code = ["type-arg", "unused-ignore"]
+# aws-sim is imported as the top-level ``aws_sim`` package AND imports the Phase 1
+# generator as ``tools.synthetic_clouds``. A three-entry mypy_path pins all three
+# namespaces; relative entries resolve against the invocation CWD (the worktree root).
+# The official gate invocation, run from the worktree root:
+#   mypy --config-file emulators/aws-sim/pyproject.toml -p aws_sim
+explicit_package_bases = true
+mypy_path = ["emulators/aws-sim", "."]
+namespace_packages = true
+
+[[tool.mypy.overrides]]
+# Tests are intentionally loose, matching the ruff ``ANN`` per-file-ignore above and
+# the same override in emulators/azure-sim/pyproject.toml.
+module = ["aws_sim.tests.*"]
+disable_error_code = ["untyped-decorator", "no-untyped-def", "no-untyped-call"]
+
+[[tool.mypy.overrides]]
+# botocore ships no type stubs; the shape objects are walked dynamically.
+module = ["botocore.*"]
+ignore_missing_imports = true

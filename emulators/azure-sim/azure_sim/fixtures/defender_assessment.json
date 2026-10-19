@@ -1,0 +1,20 @@
+{
+  "_fixture": "defender-assessment",
+  "_description": "Skeleton of a Defender for Cloud assessment value[] item. Mirrors projections/findings.project_assessments (UPPERCASE severity preserved).",
+  "api-version": "2021-06-01",
+  "_todo_verificar": "§11.9 — exact Defender assessment/secureScore/alert envelope keys, status.code vocabulary, and api-version are not offline-verifiable.",
+  "value": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Security/assessments/example",
+      "name": "example-assessment",
+      "type": "Microsoft.Security/assessments",
+      "properties": {
+        "displayName": "Example security assessment",
+        "status": { "code": "Unhealthy", "severity": "HIGH" },
+        "category": "NETWORK"
+      }
+    }
+  ],
+  "nextLink": null,
+  "synthetic": true
+}

@@ -1,0 +1,21 @@
+{
+  "_fixture": "monitor-metrics",
+  "_description": "Skeleton of an Azure Monitor metrics response. Mirrors projections/metrics.project_metrics series.",
+  "api-version": "2024-02-01",
+  "_todo_verificar": "§11.11 — exact Monitor metrics envelope nesting/casing and api-version are not offline-verifiable.",
+  "cost": 0,
+  "timespan": "2025-01-01T00:00:00Z/2025-01-02T00:00:00Z",
+  "interval": "PT1H",
+  "value": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Insights/metrics/Percentage CPU",
+      "type": "Microsoft.Insights/metrics",
+      "name": { "value": "Percentage CPU", "localizedValue": "Percentage CPU" },
+      "unit": "Percent",
+      "timeseries": [
+        { "data": [ { "timeStamp": "2025-01-01T00:00:00Z", "average": 0.0 } ] }
+      ]
+    }
+  ],
+  "synthetic": true
+}

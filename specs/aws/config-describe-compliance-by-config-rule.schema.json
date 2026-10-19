@@ -1,0 +1,183 @@
+{
+  "surface": "aws/config-describe-compliance-by-config-rule",
+  "provider": "aws",
+  "reference": {
+    "title": "AWS Config -- DescribeComplianceByConfigRule (API Reference) e as formas ComplianceByConfigRule / Compliance / ComplianceContributorCount",
+    "url": "https://docs.aws.amazon.com/config/latest/APIReference/API_DescribeComplianceByConfigRule.html",
+    "consulted_at": "2026-10-16",
+    "sources": [
+      "https://docs.aws.amazon.com/config/latest/APIReference/API_DescribeComplianceByConfigRule.html",
+      "https://docs.aws.amazon.com/config/latest/APIReference/API_ComplianceByConfigRule.html",
+      "https://docs.aws.amazon.com/config/latest/APIReference/API_Compliance.html",
+      "https://docs.aws.amazon.com/config/latest/APIReference/API_ComplianceContributorCount.html",
+      "https://docs.aws.amazon.com/config/latest/developerguide/managed-rules-by-aws-config.html",
+      "https://docs.aws.amazon.com/config/latest/developerguide/s3-bucket-tagged.html",
+      "https://docs.aws.amazon.com/config/latest/developerguide/lambda-function-tagged.html"
+    ]
+  },
+  "delivery": {
+    "kind": "read_api",
+    "format": "json",
+    "note": "read_api: o AWS Config nao publica artefato duravel para DescribeComplianceByConfigRule; a resposta vive na chamada. A API Reference publica a resposta em JSON (secao Response Syntax), portanto aqui a codificacao entregue e a codificacao documentada -- nao ha divergencia de envelope a registrar, ao contrario do que acontece com o EC2 DescribeInstances (XML)."
+  },
+  "sets": [
+    {
+      "name": "describe-compliance-by-config-rule-response",
+      "description": "Elementos de nivel de topo da resposta de DescribeComplianceByConfigRule, conforme a secao Response Syntax da pagina da acao.",
+      "columns": [
+        {
+          "name": "ComplianceByConfigRules",
+          "type": "array of ComplianceByConfigRule objects",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_DescribeComplianceByConfigRule.html",
+          "notes": "Response Syntax: { \"ComplianceByConfigRules\": [ { \"Compliance\": {...}, \"ConfigRuleName\": \"string\" } ], \"NextToken\": \"string\" }. A acao devolve um item POR REGRA, e nao por recurso: e o resumo da regra que interessa aqui."
+        },
+        {
+          "name": "NextToken",
+          "type": "String",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_DescribeComplianceByConfigRule.html",
+          "notes": "The string that you use in a subsequent request to get the next page of results in a paginated response."
+        }
+      ]
+    },
+    {
+      "name": "compliance-by-config-rule",
+      "description": "Membros do objeto ComplianceByConfigRule, conforme a pagina da propria forma.",
+      "columns": [
+        {
+          "name": "Compliance",
+          "type": "Compliance object",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ComplianceByConfigRule.html",
+          "notes": "Required: No. A propria ComplianceByConfigRule e este objeto sao 'Required: No' -- a acao devolve o objeto porque ele existe, nao porque o contrato obrigue."
+        },
+        {
+          "name": "ConfigRuleName",
+          "type": "String",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ComplianceByConfigRule.html",
+          "notes": "Required: No. Length Constraints: minimo 1, maximo 64. O parametro de REQUISICAO ConfigRuleNames tem outra janela (min 1, max 128, Pattern [A-Za-z0-9_-]+) -- sao restricoes de entradas diferentes e nenhuma delas e o tipo do campo."
+        }
+      ]
+    },
+    {
+      "name": "compliance",
+      "description": "Membros do objeto Compliance -- o veredito da regra e a contagem que o sustenta.",
+      "columns": [
+        {
+          "name": "ComplianceType",
+          "type": "String",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_Compliance.html",
+          "notes": "Valid Values: COMPLIANT | NON_COMPLIANT | NOT_APPLICABLE | INSUFFICIENT_DATA. SEMANTICA PUBLICADA (a mesma pagina): 'A rule is compliant if all of the resources that the rule evaluates comply with it. A rule is noncompliant if any of these resources do not comply' e 'AWS Config returns the INSUFFICIENT_DATA value when no evaluation results are available for the AWS Config rule'. DIVERGENCIA A OBSERVAR: o enum acima lista NOT_APPLICABLE, mas a propria pagina afirma, no paragrafo de descricao do tipo -- 'For the Compliance data type, AWS Config supports only COMPLIANT, NON_COMPLIANT, and INSUFFICIENT_DATA values. AWS Config does not support the NOT_APPLICABLE value for the Compliance data type.' Ler so a linha de Valid Values e precisely o que faria um consumidor emitir NOT_APPLICABLE."
+        },
+        {
+          "name": "ComplianceContributorCount",
+          "type": "ComplianceContributorCount object",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_Compliance.html",
+          "notes": "Required: No. A pagina o descreve como 'The number of AWS resources or AWS Config rules that cause a result of NON_COMPLIANT, up to a maximum number' -- e a contagem que SUSTENTA o veredito, nao um total de recursos avaliados."
+        }
+      ]
+    },
+    {
+      "name": "compliance-contributor-count",
+      "description": "Membros do objeto ComplianceContributorCount.",
+      "columns": [
+        {
+          "name": "CapExceeded",
+          "type": "Boolean",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ComplianceContributorCount.html",
+          "notes": "Required: No. 'Indicates whether the maximum count is reached.' O MAXIMO que o booleano compara NAO e publicado: a pagina so diz 'up to a maximum number'. Ver 'unverified'."
+        },
+        {
+          "name": "CappedCount",
+          "type": "Integer",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ComplianceContributorCount.html",
+          "notes": "Required: No. A pagina declara 'Type: Integer'; a secao Response Syntax da acao escreve \"CappedCount\": number. Integer e o tipo declarado pela pagina do campo, que e a fonte da verdade deste conjunto."
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "Parametros de REQUISICAO da acao, conforme a secao Request Parameters. Sao entradas de quem CHAMA, e nao membros da resposta.",
+      "columns": [
+        {
+          "name": "ComplianceTypes",
+          "type": "Array of strings",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_DescribeComplianceByConfigRule.html",
+          "notes": "Required: No. Array Members: minimo 0, maximo 3 itens. Valid Values: COMPLIANT | NON_COMPLIANT | NOT_APPLICABLE | INSUFFICIENT_DATA -- o filtro de REQUISICAO aceita NOT_APPLICABLE, mesmo que o tipo Compliance na resposta nao o suporte."
+        },
+        {
+          "name": "ConfigRuleNames",
+          "type": "Array of strings",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_DescribeComplianceByConfigRule.html",
+          "notes": "Required: No. Array Members: minimo 0, maximo 25 itens. Length Constraints: min 1, max 128. Pattern: [A-Za-z0-9_-]+."
+        },
+        {
+          "name": "NextToken",
+          "type": "String",
+          "type_source": "documented",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_DescribeComplianceByConfigRule.html",
+          "notes": "Required: No. O mesmo nome aparece na resposta e na requisicao: sao o token de CONTINUIDADE lido por um lado e enviado pelo outro. Por isso sao dois conjuntos, e nao um nome repetido."
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "topic": "o valor maximo que CappedCount trunca e que CapExceeded compara",
+      "reason": "A pagina ComplianceContributorCount publica 'up to a maximum number' e descreve CapExceeded como 'Indicates whether the maximum count is reached', mas NAO publica o numero. Sem o teto, a comparacao que CapExceeded faz nao e reproduzivel a partir da documentacao, e o booleano nao pode ser derivado. Verificado em https://docs.aws.amazon.com/config/latest/APIReference/API_ComplianceContributorCount.html"
+    },
+    {
+      "topic": "exemplo de resposta JSON de DescribeComplianceByConfigRule",
+      "reason": "A pagina da acao publica a secao Response Syntax, mas nenhum exemplo de payload preenchido. A estrutura dos artefatos deste renderer vem da Response Syntax e da secao Request Parameters, nao de um exemplo oficial."
+    },
+    {
+      "topic": "regra gerenciada 'ConfigRuleName' x regra gerenciada avaliada",
+      "reason": "ConfigRuleName e o NOME de uma regra gerenciada do AWS Config. A lista oficial (https://docs.aws.amazon.com/config/latest/developerguide/managed-rules-by-aws-config.html) foi lida em 2026-10-16 e contem 838 nomes; cada nome emitido por este renderer foi conferido nela antes de ser escrito. O PARAMETRO requiredKeyTags que varias regras etiquetadas aceitam NAO e publicado na API Reference desta acao, e portanto nao faz parte desta superficie: ele pertence ao parametro da regra, nao da resposta."
+    },
+    {
+      "topic": "o escopo (conta, regiao) de um item de ComplianceByConfigRules",
+      "reason": "A API Reference descreve a resposta como uma lista de regras, sem declarar no envelope qual conta e qual regiao produziram o item. O agrupamento por (conta, regiao) que o renderer faz e uma projecao do escopo do proprio estate -- o AWS Config grava por conta E por regiao -- e nao um campo que a documentacao publique."
+    }
+  ]
+}

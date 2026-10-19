@@ -1,0 +1,1444 @@
+{
+  "surface": "azure/vnet-flow-logs",
+  "provider": "azure",
+  "reference": {
+    "title": "Virtual network flow logs (Azure Network Watcher) + Traffic analytics schema and data aggregation (tab: Virtual network flow logs)",
+    "url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+    "consulted_at": "2026-10-14",
+    "secondary_urls": [
+      "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-manage",
+      "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet"
+    ]
+  },
+  "delivery": {
+    "kind": "azure-blob-storage",
+    "container": "insights-logs-flowlogflowevent",
+    "path_template": "https://{storageAccountName}.blob.core.windows.net/insights-logs-flowlogflowevent/flowLogResourceID=/{subscriptionID}_NETWORKWATCHERRG/NETWORKWATCHER_{Region}_{ResourceName}-{ResourceGroupName}-FLOWLOGS/y={year}/m={month}/d={day}/h={hour}/m=00/macAddress={macAddress}/PT1H.json",
+    "format": "json",
+    "compression": "",
+    "file_name": "PT1H.json",
+    "partitioning": "flowLogResourceID=/{subscriptionID}_NETWORKWATCHERRG/{NetworkWatcherName}/{FlowLogName}/ then y=/m=/d=/h= then literal m=00 (minute component is fixed) then macAddress={macAddress}",
+    "cadence": "PT1H (one blob per hour per MAC); ingested by appending blocks at one-minute intervals",
+    "root": "records[]",
+    "additional_target": {
+      "kind": "log-analytics",
+      "table": "NTANetAnalytics",
+      "path_template": "",
+      "format": "log-analytics-table",
+      "compression": "",
+      "note": "Reached only through traffic analytics, which reads the Storage blobs, aggregates and decorates the flows, then ingests into Azure Monitor logs. This is a DISTINCT, aggregated schema (FASchemaVersion 3) - not the raw blob record. A second table, NTAIpDetails, receives public IP enrichment data.",
+      "root": ""
+    }
+  },
+  "flow_log_version": 4,
+  "fa_schema_version": 3,
+  "notes": [
+    "Two different schemas are documented for this surface: the raw blob record (records[] with flowRecords/flowTuples) and the aggregated Log Analytics tables NTANetAnalytics / NTAIpDetails.",
+    "flowLogVersion (4) and FASchemaVersion (3) are independent; the docs state FASchemaVersion does not reflect the virtual network flow log version.",
+    "The minute path component is literally m=00.",
+    "No manifest or metadata file is documented.",
+    "Compression and encoding are not documented.",
+    "The docs describe 'platform rules' conceptually but do not publish the literal rule value used."
+  ],
+  "unverified": [
+    {
+      "name": "blob compression",
+      "reason": "No official page consulted documents compression for PT1H.json.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "blob encoding",
+      "reason": "No official page consulted documents the character encoding.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "NTANetAnalytics column data types",
+      "reason": "The official schema table presents 'Format' as descriptive prose (e.g. 'Date and time in UTC', 'Subscription ID') and leaves it empty for the flow-count fields. The integer/datetime types used here are the spec author's classification, not official assertions.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "NTAIpDetails column data types",
+      "reason": "Same as above: the official 'Format' cell is descriptive prose.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "literal value of a platform rule name in flowGroups[].rule",
+      "reason": "The docs describe 'platform rules' conceptually but never publish the literal string emitted in that case.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "allowed values of records[].flowLogVersion",
+      "reason": "The only value visible in the official documentation is 4 (sample record). No enumeration of valid values is published.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "manifest / metadata file",
+      "reason": "No manifest or metadata artifact is documented for virtual network flow logs.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "blob_id field",
+      "reason": "Referenced in the traffic analytics prose ('use the blob_id field, which can be referenced from storage') but absent from the published schema table, so no row/type/source could be established.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "exact derivation of the NETWORKWATCHER_{Region}_{ResourceName}-{ResourceGroupName}-FLOWLOGS partition segment",
+      "reason": "The path template shows the segment but the documentation does not state how it is derived when the flow log name is customised.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "SrcIP_s / DestIP_s / VMIP_s / PublicIPs_s suffixed variants",
+      "reason": "Mentioned in the Notes prose ('Some field names are appended with _s or _d') but not present as rows in the published schema table (which uses unsuffixed names). No schema row could be established.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "blob",
+      "description": "Registo bruto escrito no blob PT1H.json do contentor insights-logs-flowlogflowevent.",
+      "columns": [
+        {
+          "name": "records[].time",
+          "type": null,
+          "required": true,
+          "datetime_format": "ISO 8601 UTC, trailing Z",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowLogVersion",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowLogGUID",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].macAddress",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].category",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "FlowLogFlowEvent"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowLogResourceID",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].targetResourceID",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].operationName",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "FlowLogFlowEvent"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].aclID",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].rule",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[0]",
+          "type": null,
+          "required": true,
+          "unit": "milliseconds (UNIX epoch)",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[1]",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[2]",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[3]",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[4]",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[5]",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[6]",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "I",
+            "O"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[7]",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "B",
+            "C",
+            "E",
+            "D"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[8]",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "X",
+            "NX",
+            "NX_HW_NOT_SUPPORTED",
+            "NX_SW_NOT_READY",
+            "NX_NOT_ACCEPTED",
+            "NX_NOT_SUPPORTED",
+            "NX_LOCAL_DST",
+            "NX_FALLBACK"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[9]",
+          "type": null,
+          "required": false,
+          "unit": "packets",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[10]",
+          "type": null,
+          "required": false,
+          "unit": "bytes",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[11]",
+          "type": null,
+          "required": false,
+          "unit": "packets",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples[12]",
+          "type": null,
+          "required": false,
+          "unit": "bytes",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "NTANetAnalytics",
+      "description": "Tabela do Log Analytics com os fluxos agregados e decorados pelo traffic analytics.",
+      "columns": [
+        {
+          "name": "TableName",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "NTANetAnalytics"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SubType",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "FlowLog"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "FASchemaVersion",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "3"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "TimeProcessed",
+          "type": "datetime",
+          "required": true,
+          "datetime_format": "Date and time in UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "evidence": "declared"
+        },
+        {
+          "name": "FlowIntervalStartTime",
+          "type": "datetime",
+          "required": true,
+          "datetime_format": "Date and time in UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "evidence": "declared"
+        },
+        {
+          "name": "FlowIntervalEndTime",
+          "type": "datetime",
+          "required": true,
+          "datetime_format": "Date and time in UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "evidence": "declared"
+        },
+        {
+          "name": "FlowStartTime",
+          "type": "datetime",
+          "required": true,
+          "datetime_format": "Date and time in UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "evidence": "declared"
+        },
+        {
+          "name": "FlowEndTime",
+          "type": "datetime",
+          "required": true,
+          "datetime_format": "Date and time in UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "evidence": "declared"
+        },
+        {
+          "name": "FlowType",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "IntraVNet",
+            "InterVNet",
+            "S2S",
+            "P2S",
+            "AzurePublic",
+            "ExternalPublic",
+            "MaliciousFlow",
+            "Unknown Private",
+            "Unknown"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcIp",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestIp",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "TargetResourceId",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "TargetResourceType",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "VirtualNetwork",
+            "Subnet",
+            "NetworkInterface"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "FlowLogResourceId",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestPort",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "L4Protocol",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "T",
+            "U"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "L7Protocol",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "FlowDirection",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "I",
+            "O"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "FlowStatus",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "A",
+            "D"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "AclGroup",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "AclRule",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "MACAddress",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcSubscription",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestSubscription",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcRegion",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestRegion",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcNic",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestNic",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcVm",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestVm",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcSubnet",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestSubnet",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcApplicationGateway",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestApplicationGateway",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcExpressRouteCircuit",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestExpressRouteCircuit",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "ExpressRouteCircuitPeeringType",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "AzurePrivatePeering",
+            "AzurePublicPeering",
+            "MicrosoftPeering"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcLoadBalancer",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestLoadBalancer",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcLocalNetworkGateway",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestLocalNetworkGateway",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "ConnectionType",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "VNetPeering",
+            "VpnGateway",
+            "ExpressRoute"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "ConnectionName",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "ConnectingVNets",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Country",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "ISO 3166-1 alpha-2"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "AzureRegion",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "AllowedInFlows",
+          "type": null,
+          "required": true,
+          "unit": "flows",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DeniedInFlows",
+          "type": null,
+          "required": true,
+          "unit": "flows",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "AllowedOutFlows",
+          "type": null,
+          "required": true,
+          "unit": "flows",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DeniedOutFlows",
+          "type": null,
+          "required": true,
+          "unit": "flows",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "PacketsDestToSrc",
+          "type": null,
+          "required": true,
+          "unit": "packets",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "PacketsSrcToDest",
+          "type": null,
+          "required": true,
+          "unit": "packets",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "BytesDestToSrc",
+          "type": null,
+          "required": true,
+          "unit": "bytes",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "BytesSrcToDest",
+          "type": null,
+          "required": true,
+          "unit": "bytes",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "CompletedFlows",
+          "type": null,
+          "required": true,
+          "unit": "flows",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SrcPublicIps",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DestPublicIps",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "FlowEncryption",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "Encrypted",
+            "Unencrypted",
+            "Unsupported hardware",
+            "Software not ready",
+            "Drop due to no encryption",
+            "Discovery not supported",
+            "Destination on same host",
+            "Fall back to no encryption."
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "PrivateEndpointResourceId",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "PrivateLinkResourceId",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "PrivateLinkResourceName",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "IsFlowCapturedAtUDRHop",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "True",
+            "False"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "NTAIpDetails",
+      "description": "Tabela do Log Analytics com o enriquecimento de IP publico do traffic analytics.",
+      "columns": [
+        {
+          "name": "TableName",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "NTAIpDetails"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "SubType",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "FlowLog"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "FaSchemaVersion",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "3"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "FlowIntervalStartTime",
+          "type": "datetime",
+          "required": true,
+          "datetime_format": "Date and time in UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "evidence": "declared"
+        },
+        {
+          "name": "FlowIntervalEndTime",
+          "type": "datetime",
+          "required": true,
+          "datetime_format": "Date and time in UTC",
+          "status": "verified",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "evidence": "declared"
+        },
+        {
+          "name": "FlowType",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "AzurePublic",
+            "ExternalPublic",
+            "MaliciousFlow"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "IP",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "PublicIPDetails",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "ThreatType",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "Botnet",
+            "C2",
+            "CryptoMining",
+            "DarkNet",
+            "DDoS",
+            "MaliciousUrl",
+            "Malware",
+            "Phishing",
+            "Proxy",
+            "PUA",
+            "WatchList"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "DNSDomain",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "ThreatDescription",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Location",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Url",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Port",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/traffic-analytics-schema?tabs=vnet",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "blob-envelope",
+      "description": "",
+      "columns": [
+        {
+          "name": "records",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].time",
+          "type": null,
+          "required": true,
+          "datetime_format": "ISO 8601 UTC with trailing Z (e.g. 2022-09-14T09:00:52.5625085Z)",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowLogVersion",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowLogGUID",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].macAddress",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].category",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "FlowLogFlowEvent"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowLogResourceID",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].targetResourceID",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].operationName",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "FlowLogFlowEvent"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].aclID",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "unspecified"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "note": "'unspecified' is documented only for traffic denied because of encryption.",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].rule",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "unspecified"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "note": "'unspecified' is documented only for traffic denied because of encryption.",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "records[].flowRecords.flows[].flowGroups[].flowTuples",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "flowTuples-position",
+      "description": "",
+      "columns": [
+        {
+          "name": "Time Stamp",
+          "type": null,
+          "required": true,
+          "unit": "milliseconds (UNIX epoch)",
+          "datetime_format": "UNIX epoch; 13 digits in the official example (1663146003599)",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Source IP",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Destination IP",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Source port",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Destination port",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Protocol",
+          "type": null,
+          "required": true,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "note": "IANA assigned values (example 6 = TCP). The docs do not enumerate the full value set.",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Flow direction",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "I",
+            "O"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Flow state",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "B",
+            "C",
+            "E",
+            "D"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Flow encryption",
+          "type": null,
+          "required": true,
+          "allowed_values": [
+            "X",
+            "NX",
+            "NX_HW_NOT_SUPPORTED",
+            "NX_SW_NOT_READY",
+            "NX_NOT_ACCEPTED",
+            "NX_NOT_SUPPORTED",
+            "NX_LOCAL_DST",
+            "NX_FALLBACK"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Packets sent",
+          "type": null,
+          "required": false,
+          "unit": "packets",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Bytes sent",
+          "type": null,
+          "required": false,
+          "unit": "bytes",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Packets received",
+          "type": null,
+          "required": false,
+          "unit": "packets",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        },
+        {
+          "name": "Bytes received",
+          "type": null,
+          "required": false,
+          "unit": "bytes",
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview",
+          "type_note": "Coluna presente na tabela de schema oficial, mas a coluna 'Format' e prosa descritiva (ou vazia); o tipo foi classificado por nos, logo a coluna nao e geravel."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "surface": "gcp/billing-export-standard",
+  "provider": "gcp",
+  "reference": {
+    "title": "Structure of Standard data export",
+    "url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage",
+    "consulted_at": "2026-10-14",
+    "secondary_references": [
+      {
+        "title": "Understand the Cloud Billing data tables in BigQuery",
+        "url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables",
+        "consulted_at": "2026-10-14"
+      },
+      {
+        "title": "Example queries for Cloud Billing data export to BigQuery",
+        "url": "https://docs.cloud.google.com/billing/docs/how-to/bq-examples",
+        "consulted_at": "2026-10-14"
+      }
+    ],
+    "schema_version": null,
+    "schema_version_note": "Provider does not version this schema. Official docs state the table schema can change over time."
+  },
+  "delivery": {
+    "kind": "bigquery-table",
+    "table_name": "gcp_billing_export_v1_<BILLING_ACCOUNT_ID>",
+    "qualified_name_template": "project.dataset.gcp_billing_export_v1_<BILLING_ACCOUNT_ID>",
+    "path_template": null,
+    "format": "bigquery-native-table",
+    "compression": null,
+    "partitioning": null,
+    "clustering": null,
+    "partitioning_status": "unverified",
+    "clustering_status": "unverified",
+    "partitioning_note": "No official page consulted declares the partitioning column or granularity for gcp_billing_export_v1_*. The standard schema page and the Cloud Billing tables page do not mention partitioning. Official query examples for the detailed and pricing tables use _PARTITIONTIME, but that is not asserted for the standard table.",
+    "dataset_location": "user-selected; all multi-region locations (US, EU) plus a documented subset of region locations",
+    "load_frequency": "regular intervals; no delivery or latency guarantees",
+    "created_by": "Cloud Billing export to BigQuery (automatic table creation after enabling the export)"
+  },
+  "columns": [
+    { "name": "billing_account_id", "type": "String", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#billing_account_id", "status": "verified" },
+    { "name": "invoice.month", "type": "String", "required": true, "unit": null, "format": "YYYYMM", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#invoice-month", "status": "verified" },
+    { "name": "invoice.publisher_type", "type": "String", "required": false, "unit": null, "allowed_values": ["GOOGLE", "PARTNER"], "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#invoice-publisher_type", "status": "verified" },
+    { "name": "cost_type", "type": "String", "required": true, "unit": null, "allowed_values": ["regular", "tax", "adjustment", "rounding error"], "allowed_values_note": "Schema prose lists these; official query examples display regular, rounding_error, tax, adjustment. Both recorded in the .md divergence section.", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#cost_type", "status": "verified" },
+    { "name": "service.id", "type": "String", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#service-id", "status": "verified" },
+    { "name": "service.description", "type": "String", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#service-description", "status": "verified" },
+    { "name": "sku.id", "type": "String", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#sku-id", "status": "verified" },
+    { "name": "sku.description", "type": "String", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#sku-description", "status": "verified" },
+    { "name": "usage_start_time", "type": "Timestamp", "required": true, "unit": null, "datetime_format": "BigQuery TIMESTAMP; UTC; hourly usage window. Exact string rendering not asserted by the provider docs.", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#usage_start_time", "status": "verified" },
+    { "name": "usage_end_time", "type": "Timestamp", "required": true, "unit": null, "datetime_format": "BigQuery TIMESTAMP; UTC; hourly usage window. Exact string rendering not asserted by the provider docs.", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#usage_end_time", "status": "verified" },
+    { "name": "project", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project", "status": "verified" },
+    { "name": "project.id", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-id", "status": "verified" },
+    { "name": "project.number", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-number", "status": "verified", "first_full_day": "2020-10-29" },
+    { "name": "project.name", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-name", "status": "verified" },
+    { "name": "project.ancestry_numbers", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project_ancestry", "status": "verified" },
+    { "name": "project.ancestors", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-ancestors", "status": "verified", "first_full_month": "2022-04" },
+    { "name": "project.ancestors.resource_name", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-ancestors-resource_name", "status": "verified" },
+    { "name": "project.ancestors.display_name", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-ancestors-display_name", "status": "verified" },
+    { "name": "project.labels", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-labels", "status": "verified" },
+    { "name": "project.labels.key", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-labels-key", "status": "verified" },
+    { "name": "project.labels.value", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#project-labels-value", "status": "verified" },
+    { "name": "labels", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#labels", "status": "verified" },
+    { "name": "labels.key", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#labels-key", "status": "verified" },
+    { "name": "labels.value", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#labels-value", "status": "verified" },
+    { "name": "system_labels", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#system-labels", "status": "verified" },
+    { "name": "system_labels.key", "type": "String", "required": false, "unit": null, "allowed_values": ["compute.googleapis.com/machine_spec", "compute.googleapis.com/cores", "compute.googleapis.com/memory", "compute.googleapis.com/is_unused_reservation", "compute.googleapis.com/reservation_name", "compute.googleapis.com/reservation_project_id", "storage.googleapis.com/object_state"], "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#system_labels-key", "status": "verified" },
+    { "name": "system_labels.value", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#system_labels-value", "status": "verified" },
+    { "name": "location.location", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#location-location", "status": "verified" },
+    { "name": "location.country", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#location-country", "status": "verified" },
+    { "name": "location.region", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#location-region", "status": "verified" },
+    { "name": "location.zone", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#location-zone", "status": "verified" },
+    { "name": "cost", "type": "Float", "required": true, "unit": "currency of column `currency`", "currency_semantics": "Cost per the applicable consumption model including negotiated discounts; before credits are applied. Net cost is obtained by SUM(cost) + SUM(credits.amount).", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#cost", "status": "verified" },
+    { "name": "currency", "type": "String", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#currency", "status": "verified" },
+    { "name": "currency_conversion_rate", "type": "Float", "required": true, "unit": "USD -> local currency exchange rate", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#currency_conversion_rate", "status": "verified" },
+    { "name": "usage.amount", "type": "Float", "required": false, "unit": "usage.unit", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#usage-amount", "status": "verified" },
+    { "name": "usage.unit", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#usage-unit", "status": "verified" },
+    { "name": "usage.amount_in_pricing_units", "type": "Float", "required": false, "unit": "usage.pricing_unit", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#usage-amount_in_pricing_units", "status": "verified", "first_full_day": "2018-01-22" },
+    { "name": "usage.pricing_unit", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#usage-pricing_unit", "status": "verified", "first_full_day": "2018-01-22" },
+    { "name": "credits", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#credits", "status": "verified" },
+    { "name": "credits.id", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#credits-id", "status": "verified", "first_full_day": "2020-09-10" },
+    { "name": "credits.full_name", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#credits-full_name", "status": "verified", "first_full_day": "2020-09-10" },
+    { "name": "credits.type", "type": "String", "required": false, "unit": null, "allowed_values": ["FEE_UTILIZATION_OFFSET", "COMMITTED_USAGE_DISCOUNT_DOLLAR_BASE", "COMMITTED_USAGE_DISCOUNT", "DISCOUNT", "FREE_TIER", "PROMOTION", "RESELLER_MARGIN", "SUBSCRIPTION_BENEFIT", "SUSTAINED_USAGE_DISCOUNT"], "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#credits-type", "status": "verified", "first_full_day": "2020-09-10" },
+    { "name": "credits.name", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#credits-name", "status": "verified" },
+    { "name": "credits.amount", "type": "Float", "required": false, "unit": "currency of column `currency`", "currency_semantics": "The provider documents this only as 'The amount of the credit applied to the usage.' The sign is NOT stated in the field reference; official query examples compute net cost as SUM(cost) + SUM(credits.amount) and display negative credit totals.", "sign_documented": false, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#credits-amount", "status": "verified" },
+    { "name": "adjustment_info", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#adjustment_info", "status": "verified", "first_full_day": "2020-10-29" },
+    { "name": "adjustment_info.id", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#adjustment_info-id", "status": "verified" },
+    { "name": "adjustment_info.description", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#adjustment_info-description", "status": "verified" },
+    { "name": "adjustment_info.type", "type": "String", "required": false, "unit": null, "allowed_values": ["USAGE_CORRECTION", "PRICE_CORRECTION", "METADATA_CORRECTION", "GOODWILL", "SALES_BASED_GOODWILL", "SLA_VIOLATION", "BALANCE_TRANSFER", "ACCOUNT_CLOSURE", "GENERAL_ADJUSTMENT"], "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#adjustment_info-type", "status": "verified" },
+    { "name": "adjustment_info.mode", "type": "String", "required": false, "unit": null, "allowed_values": ["PARTIAL_CORRECTION", "COMPLETE_NEGATION_WITH_REMONETIZATION", "COMPLETE_NEGATION", "MANUAL_ADJUSTMENT"], "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#adjustment_info-mode", "status": "verified" },
+    { "name": "export_time", "type": "Timestamp", "required": true, "unit": null, "datetime_format": "BigQuery TIMESTAMP; UTC. Increases with each new export. Exact string rendering not asserted by the provider docs.", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#export_time", "status": "verified" },
+    { "name": "tags", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#tags-struct", "status": "verified", "first_full_month": "2022-10" },
+    { "name": "tags.key", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#tags-key", "status": "verified" },
+    { "name": "tags.value", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#tags-value", "status": "verified" },
+    { "name": "tags.inherited", "type": "Boolean", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#tags-inherited", "status": "verified" },
+    { "name": "tags.namespace", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#tags-namespace", "status": "verified" },
+    { "name": "cost_at_list", "type": "Float", "required": false, "unit": "currency of column `currency`", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#cost_at_list", "status": "verified", "first_full_day": "2023-06-29" },
+    { "name": "transaction_type", "type": "String", "required": false, "unit": null, "allowed_values": ["GOOGLE = 1", "THIRD_PARTY_RESELLER = 2", "THIRD_PARTY_AGENCY = 3"], "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#transaction_type", "status": "verified", "first_full_day": "2023-08-22" },
+    { "name": "seller_name", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#seller_name", "status": "verified", "first_full_day": "2023-08-22" },
+    { "name": "price", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#price-struct", "status": "verified", "first_full_day": "2025-07-15" },
+    { "name": "price.list_price", "type": "Numeric", "required": false, "unit": "currency per price.unit", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#price-list_price", "status": "verified", "first_full_day": "2025-07-15" },
+    { "name": "price.effective_price_default", "type": "Numeric", "required": false, "unit": "currency per price.unit", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#price-effective_price_default", "status": "verified", "first_full_day": "2025-07-15" },
+    { "name": "price.list_price_consumption_model", "type": "Numeric", "required": false, "unit": "currency per price.unit", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#price-list_price_consumption_model", "status": "verified", "first_full_day": "2025-07-15" },
+    { "name": "price.effective_price", "type": "Numeric", "required": false, "unit": "currency per price.unit", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#price-effective_price", "status": "verified", "first_full_day_standard": "2025-07-15", "first_full_day_detailed": "2023-04-13" },
+    { "name": "price.tier_start_amount", "type": "Numeric", "required": false, "unit": "pricing units", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#price-tier_start_amount", "status": "verified" },
+    { "name": "price.unit", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#price-unit", "status": "verified", "first_full_day_standard": "2025-07-15", "first_full_day_detailed": "2023-04-13" },
+    { "name": "price.pricing_unit_quantity", "type": "Numeric", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#price-pricing_unit_quantity", "status": "verified", "first_full_day_standard": "2025-07-15", "first_full_day_detailed": "2023-04-13" },
+    { "name": "cost_at_effective_price_default", "type": "Numeric", "required": false, "unit": "currency of column `currency`", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#cost_at_effective_price_default", "status": "verified", "first_full_day": "2025-07-15" },
+    { "name": "cost_at_list_consumption_model", "type": "Numeric", "required": false, "unit": "currency of column `currency`", "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#cost_at_list_consumption_model", "status": "verified", "first_full_day": "2025-07-15" },
+    { "name": "consumption_model", "type": "Struct", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#consumption_model", "status": "verified", "first_full_day": "2025-07-15" },
+    { "name": "consumption_model.id", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#consumption_model-id", "status": "verified", "first_full_day": "2025-07-15" },
+    { "name": "consumption_model.description", "type": "String", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#consumption_model-description", "status": "verified", "first_full_day": "2025-07-15" }
+  ],
+  "unverified": [
+    {
+      "item": "partitioning",
+      "target": "gcp_billing_export_v1_<BILLING_ACCOUNT_ID>",
+      "status": "UNVERIFIED",
+      "reason": "No official documentation page consulted states the partitioning column or granularity of the standard usage cost table. Searched: standard-usage, export-data-bigquery-tables, export-data-bigquery-setup, export-data-bigquery, bq-examples (no mention of partitioning for the standard table)."
+    },
+    {
+      "item": "clustering",
+      "target": "gcp_billing_export_v1_<BILLING_ACCOUNT_ID>",
+      "status": "UNVERIFIED",
+      "reason": "No official documentation page consulted states clustering columns for this table."
+    },
+    {
+      "item": "file_format",
+      "target": "gcp_billing_export_v1_<BILLING_ACCOUNT_ID>",
+      "status": "UNVERIFIED",
+      "reason": "Delivery is a BigQuery table; no file format, compression, encoding, delimiter or header is documented for this surface."
+    },
+    {
+      "item": "manifest_metadata_schema",
+      "target": "gcp_billing_export_v1_<BILLING_ACCOUNT_ID>",
+      "status": "UNVERIFIED",
+      "reason": "No manifest or metadata document is emitted to the customer in the documented mechanism."
+    },
+    {
+      "item": "credits.amount sign convention",
+      "target": "credits.amount",
+      "status": "UNVERIFIED",
+      "reason": "The field reference documents only 'The amount of the credit applied to the usage.' The sign is shown (negative) only in an example query result and implied by the net-cost formula SUM(cost) + SUM(credits.amount); no textual statement in the schema documents it as a contract."
+    },
+    {
+      "item": "net cost column",
+      "target": "table columns",
+      "status": "UNVERIFIED",
+      "reason": "No net-cost column exists in the documented schema; the docs compute it with a query expression."
+    },
+    {
+      "item": "closed enumeration of usage.unit / usage.pricing_unit / price.unit values",
+      "target": "usage.unit, usage.pricing_unit, price.unit",
+      "status": "UNVERIFIED",
+      "reason": "Docs give examples (byte-seconds) and refer to the Cloud Billing Catalog API; no closed value list is published."
+    },
+    {
+      "item": "exact timestamp string format",
+      "target": "usage_start_time, usage_end_time, export_time",
+      "status": "UNVERIFIED",
+      "reason": "Type is declared as Timestamp and the docs link to the BigQuery timestamp data types page; no exact literal pattern (e.g. YYYY-MM-DDTHH:MM:SSZ) is asserted for these columns. Official query examples render values as '2025-09-16 00:00:00.000000 UTC'."
+    }
+  ],
+  "divergences": [
+    {
+      "topic": "_PARTITIONTIME",
+      "documented_in_examples": "DATE(TIMESTAMP_TRUNC(t._PARTITIONTIME, DAY)) is used in the official detailed-table query examples, and WHERE DATE(_PARTITIONTIME) = \"2020-07-20\" in the official pricing-table examples, with the text '_PARTITIONTIME is a field auto-generated by BigQuery and represents the date that the data belongs to'.",
+      "not_documented_for": "the standard usage cost table",
+      "sources": ["https://docs.cloud.google.com/billing/docs/how-to/bq-examples", "https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/pricing-data"]
+    },
+    {
+      "topic": "cost_type value spelling",
+      "schema_prose": "regular, tax, adjustment, or rounding error",
+      "official_example_results": "regular, rounding_error, tax, adjustment",
+      "sources": ["https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/standard-usage#cost_type", "https://docs.cloud.google.com/billing/docs/how-to/bq-examples"]
+    }
+  ]
+}

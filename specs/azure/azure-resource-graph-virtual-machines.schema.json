@@ -1,0 +1,1586 @@
+{
+  "surface": "azure/azure-resource-graph-virtual-machines",
+  "provider": "azure",
+  "reference": {
+    "title": "Azure Resource Graph table and resource type reference + Explore your Azure resources with Resource Graph + Resources - Resources (REST, 2024-04-01) + Azure Resource Graph sample queries for Microsoft Defender for Cloud",
+    "url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/reference/supported-tables-resources",
+    "consulted_at": "2026-10-14",
+    "secondary_urls": [
+      "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+      "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/query-language",
+      "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/work-with-data",
+      "https://learn.microsoft.com/en-us/rest/api/azureresourcegraph/resourcegraph/resources/resources?view=rest-azureresourcegraph-resourcegraph-2024-04-01",
+      "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+      "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api"
+    ]
+  },
+  "delivery": {
+    "kind": "query-api",
+    "path_template": "",
+    "format": "",
+    "compression": "",
+    "note": "Azure Resource Graph is a QUERY service, not a push export. There is no documented delivery to Azure Storage, Log Analytics or Event Hub. The only documented file export is the manual 'Download as CSV' in Resource Graph Explorer, limited to 55000 records, whose column header is not published. delivery.path_template/format/compression are empty by design, not by omission.",
+    "rest_endpoint": "POST https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2024-04-01",
+    "result_formats": [
+      "Table",
+      "ObjectArray"
+    ],
+    "limits": {
+      "default_records_per_query": 1000,
+      "max_first_or_top": 1000,
+      "csv_export_max_records": 55000,
+      "query_timeout_seconds": 30,
+      "max_join_operators": 3,
+      "max_mv_expand_operators": 3,
+      "max_union_legs": 3,
+      "mv_expand_row_limit_max": 2000,
+      "mv_expand_row_limit_default": 128
+    }
+  },
+  "important_caveat": "The official documentation states: 'Azure Resource Graph scrubs PII information from our tables so you may see not see the same result as if you made a GET request on your resource directly.' The resources table representation of a VM is therefore NOT identical to the ARM GET representation.",
+  "tables": [
+    {
+      "name": "Resources",
+      "description": "The default table if a table isn't defined in the query. Most Resource Manager resource types and properties are here.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/query-language"
+    },
+    {
+      "name": "SecurityResources",
+      "description": "Includes resources related to Microsoft.Security.",
+      "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/query-language"
+    }
+  ],
+  "unverified": [
+    {
+      "name": "formal Resources table column schema (names + types)",
+      "reason": "Microsoft publishes no page listing the resources table's columns with types (unlike Azure Monitor tables, which have explicit column tables). All names were read from official JSON response examples; the types are not asserted by any consulted page.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "Resources column data types (kind, managedBy, plan, sku, tags, tenantId, ...)",
+      "reason": "They appear in examples as \"\"/{} which does not fix a type (string vs object vs nullability).",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "required flags for any Resources column",
+      "reason": "No consulted official page states that any resources column is always present.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "complete properties.* list for microsoft.compute/virtualmachines in the resources table",
+      "reason": "Only the paths listed in the .md are proven (official example JSON plus the official REST query example). No complete list is published, and the documented PII scrub means the set may differ from ARM.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "properties.extended.* for VMs beyond instanceView.powerState.code",
+      "reason": "Only that path is exemplified officially; extended properties are documented as a preview feature.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "official enumeration of SecurityResources resource types",
+      "reason": "The supported-tables-resources document retrieved does not present a SecurityResources section with an enumerated type list.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "SecurityResources field data types",
+      "reason": "No consulted official page publishes a type table; number/array/dynamic values in this file are the spec author's classification based on how the official queries use them (tolong, todouble, mv-expand, todynamic).",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "delivery.path_template / delivery.format / delivery.compression",
+      "reason": "Resource Graph is a query service, not a push export; no storage path, file format or compression is documented. The only documented file export is the manual Resource Graph Explorer CSV (55000 record cap) whose column header is not published. Empty by design.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "resourcechanges / ResourceChanges table schema",
+      "reason": "The 'Get resource changes' page shows an example payload and defers to the REST reference /rest/api/resources/changes for the full field reference. That reference was not read in this investigation, so no field is asserted here.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "Resources",
+      "description": "Tabela Resources do Azure Resource Graph: propriedades de nivel de linha comprovadas.",
+      "columns": [
+        {
+          "name": "id",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "kind",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "location",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "managedBy",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "name",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "plan",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "resourceGroup",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "note": "Documented as lowercase in the resources table.",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "sku",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "subscriptionId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/query-language",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "tags",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/changes/get-resource-changes",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "tenantId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "note": "Lowercased in official examples; official queries compare with =~ (case-insensitive).",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.extended",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/query-language",
+          "note": "Preview feature: 'extended properties'.",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "Resources/microsoft.compute/virtualmachines",
+      "description": "Caminhos properties.* comprovados para microsoft.compute/virtualmachines na tabela Resources.",
+      "columns": [
+        {
+          "name": "properties.hardwareProfile",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"hardwareProfile\": { \"vmSize\": \"Standard_B2s\" } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.hardwareProfile.vmSize",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"vmSize\": \"Standard_B2s\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.networkProfile",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"networkProfile\": { \"networkInterfaces\": [ ... ] } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.networkProfile.networkInterfaces",
+          "type": "array",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"networkInterfaces\": [ { \"id\": ..., \"resourceGroup\": \"MyResourceGroup\" } ] -- a lista fixa array.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.networkProfile.networkInterfaces[].id",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"id\": \"/subscriptions/<subscriptionId>/MyResourceGroup/providers/Microsoft.Network/networkInterfaces/contosovm2222\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.networkProfile.networkInterfaces[].resourceGroup",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"resourceGroup\": \"MyResourceGroup\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.osProfile",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"osProfile\": { \"adminUsername\": \"localAdmin\", \"computerName\": \"ContosoVM1\", \"secrets\": [], \"windowsConfiguration\": { ... } } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.osProfile.adminUsername",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"adminUsername\": \"localAdmin\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.osProfile.computerName",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"computerName\": \"ContosoVM1\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.osProfile.secrets",
+          "type": "array",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"secrets\": [] -- os colchetes fixam array.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.osProfile.windowsConfiguration",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"windowsConfiguration\": { \"enableAutomaticUpdates\": true, \"provisionVMAgent\": true } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.osProfile.windowsConfiguration.enableAutomaticUpdates",
+          "type": "boolean",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"enableAutomaticUpdates\": true -- true/false fixam boolean.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.osProfile.windowsConfiguration.provisionVMAgent",
+          "type": "boolean",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"provisionVMAgent\": true -- true/false fixam boolean.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.provisioningState",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"provisioningState\": \"Succeeded\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"storageProfile\": { \"dataDisks\": [], \"imageReference\": { ... }, \"osDisk\": { ... } } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.dataDisks",
+          "type": "array",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"dataDisks\": [] -- os colchetes fixam array.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.imageReference",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"imageReference\": { \"offer\": \"WindowsServer\", \"publisher\": \"MicrosoftWindowsServer\", \"sku\": \"2016-Datacenter\", \"version\": \"latest\" } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.imageReference.offer",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"offer\": \"WindowsServer\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.imageReference.publisher",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"publisher\": \"MicrosoftWindowsServer\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.imageReference.sku",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"sku\": \"2016-Datacenter\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.imageReference.version",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"version\": \"latest\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"osDisk\": { \"caching\": \"ReadWrite\", \"createOption\": \"FromImage\", \"diskSizeGB\": 127, \"managedDisk\": { ... }, \"name\": \"ContosoVM1_OsDisk_1_...\", \"osType\": \"Windows\" } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.caching",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"caching\": \"ReadWrite\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.createOption",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"createOption\": \"FromImage\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.diskSizeGB",
+          "type": "integer",
+          "required": false,
+          "unit": "GB",
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"diskSizeGB\": 127 -- numeral nu fixa numero inteiro.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.managedDisk",
+          "type": "object",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"managedDisk\": { \"id\": ..., \"resourceGroup\": \"MyResourceGroup\", \"storageAccountType\": \"Premium_LRS\" } -- o objeto fixa object.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.managedDisk.id",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"id\": \"/subscriptions/<subscriptionId>/resourceGroups/MyResourceGroup/providers/Microsoft.Compute/disks/ContosoVM1_OsDisk_1_11111111111111111111111111111111\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.managedDisk.resourceGroup",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"resourceGroup\": \"MyResourceGroup\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.managedDisk.storageAccountType",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"storageAccountType\": \"Premium_LRS\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.name",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"name\": \"ContosoVM1_OsDisk_1_11111111111111111111111111111111\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.storageProfile.osDisk.osType",
+          "type": "string",
+          "required": false,
+          "allowed_values": [
+            "Linux",
+            "Windows"
+          ],
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/azureresourcegraph/resourcegraph/resources/resources?view=rest-azureresourcegraph-resourcegraph-2024-04-01",
+          "note": "Confirmed twice: explore-resources example and the REST API 'Access a properties field' example (result column properties_storageProfile_osDisk_osType).",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"osType\": \"Windows\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.vmId",
+          "type": "string",
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/explore-resources",
+          "type_note": "exemplo oficial (explore-resources, resposta JSON de microsoft.compute/virtualmachines): \"vmId\": \"11111111-1111-1111-1111-111111111111\" -- valor entre aspas fixa string.",
+          "type_source": "format-observed"
+        },
+        {
+          "name": "properties.extended.instanceView.powerState.code",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/governance/resource-graph/concepts/query-language",
+          "note": "Extended properties are documented as a preview feature.",
+          "type_note": "Campo descrito normativamente na pagina da linguagem de consulta; a unica mencao oficial e a consulta \"summarize count() by tostring(properties.extended.instanceView.powerState.code)\", que nao e um exemplo de payload. Nenhum exemplo oficial fixa a forma, logo type=null e a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/locations/alerts",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/locations/alerts"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.Status",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "Active"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.Severity",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "Low",
+            "Medium",
+            "High"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.AlertType",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.SystemAlertId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.ResourceIdentifiers",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/iotalerts",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/iotalerts"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.alertType",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.systemAlertId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/insights/classification",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/insights/classification"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.associatedResource",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.insightProperties.purviewCatalogs[0].sensitivity",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/assessments",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/assessments"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "id",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "name",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.displayName",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.resourceDetails.Source",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.status.code",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.description",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.assessmentType",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.remediationDescription",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.policyDefinitionId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.implementationEffort",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.severity",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.categories",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.userImpact",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.metadata.threats",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.links.azurePortal",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/assessments/subassessments",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/assessments/subassessments"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "id",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "name",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "resourceGroup",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "subscriptionId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "tenantId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.description",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.displayName",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.resourceDetails.id",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.resourceDetails.source",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.category",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.status.severity",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.status.code",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.timeGenerated",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.remediation",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.impact",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.id",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.additionalData",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/securescores",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/securescores"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "subscriptionId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "tenantId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.score.max",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.score.current",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.weight",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/securescores/securescorecontrols",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/securescores/securescorecontrols"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "tenantId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "subscriptionId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.displayName",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.definition.name",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.notApplicableResourceCount",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.unhealthyResourceCount",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.healthyResourceCount",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.score.percentage",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.score.current",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.weight",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.definition.properties.maxScore",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.definition.properties.source.sourceType",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.definition.properties.assessmentDefinitions",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/regulatorycompliancestandards",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/regulatorycompliancestandards"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "name",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "tenantId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "subscriptionId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.state",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.passedControls",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.failedControls",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.skippedControls",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.unsupportedControls",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/regulatorycompliancestandards/regulatorycompliancecontrols/regulatorycomplianceassessments",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/regulatorycompliancestandards/regulatorycompliancecontrols/regulatorycomplianceassessments"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "id",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "tenantId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "subscriptionId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.description",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.state",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.skippedResources",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.passedResources",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.failedResources",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/resource-graph-samples",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        }
+      ]
+    },
+    {
+      "name": "SecurityResources/microsoft.security/attackpaths",
+      "description": "",
+      "columns": [
+        {
+          "name": "type",
+          "type": null,
+          "required": false,
+          "allowed_values": [
+            "microsoft.security/attackpaths"
+          ],
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "subscriptionId",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "example-only",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Nome lido de consultas/exemplos oficiais do Resource Graph; a Microsoft nao publica schema de colunas com tipos para esta tabela e o campo so existe no exemplo (evidence=example-only), o que pela trava do projeto impede type_source=format-observed; logo a coluna nao e geravel."
+        },
+        {
+          "name": "properties.displayName",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.description",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.attackPathType",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.manualRemediationSteps",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.refreshInterval",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.potentialImpact",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.riskCategories",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.entryPointEntityInternalID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.targetEntityInternalID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.assessments",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.graphComponent",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.graphComponent.insights",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.graphComponent.entities",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "properties.graphComponent.connections",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        },
+        {
+          "name": "Properties.AttackPathID",
+          "type": null,
+          "required": false,
+          "status": "verified",
+          "evidence": "declared",
+          "source_url": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/attack-path-api",
+          "type_note": "Campo normativamente descrito pela tabela de campos de defender-for-cloud/attack-path-api; essa tabela da o significado mas nao o tipo e a pagina nao publica exemplo de payload, logo format-observed nao se aplica e a coluna nao e geravel."
+        }
+      ]
+    }
+  ]
+}

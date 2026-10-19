@@ -1,0 +1,145 @@
+{
+  "surface": "gcp/asset-search-all-iam-policies",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Asset Inventory API v1 - message IamPolicySearchResult (method searchAllIamPolicies)",
+    "url": "https://docs.cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/searchAllIamPolicies",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/searchAllIamPolicies",
+    "format": "json",
+    "compression": "none",
+    "file_name": "search_all_iam_policies.json",
+    "root": "results[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "Segunda superficie da familia Cloud Asset Inventory. O envelope (results/nextPageToken) e o campo 'policy' com os bindings conferem com o proto oficial; a chave de juncao sintetica 'resourceUuid' do artefato antigo NAO e emitida aqui.",
+    "O artifact entrega uma politica por PROJETO do estado (o campo 'resource' e o full resource name do recurso ao qual a politica esta associada, e a associacao que o estado modela e no nivel do projeto)."
+  ],
+  "unverified": [
+    {
+      "name": "results[].resourceUuid",
+      "reason": "O artefato do gcp_rest_fixtures emite esta chave de juncao entre planos, e o contrato oficial de IamPolicySearchResult NAO a declara (zero ocorrencias no documento de descoberta completo). O caminho entra aqui porque o nucleo compara o caminho completo, e um nome nao pode pertencer ao formato e ser nao comprovado ao mesmo tempo.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "results[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'results' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "results",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/searchAllIamPolicies",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O metodo declara responder SearchAllIamPoliciesResponse, cujo campo de lista e 'results' (itens IamPolicySearchResult).",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/searchAllIamPolicies",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SearchAllIamPoliciesResponse.next_page_token: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "iamPolicySearchResult",
+      "description": "Campos de um item de 'results', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "results[].resource",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "IamPolicySearchResult: 'The full resource name of the resource associated with this IAM policy.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].project",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "IamPolicySearchResult: 'The project that the associated Google Cloud resource belongs to, in the form of projects/{PROJECT_NUMBER}.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].policy",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "IamPolicySearchResult: 'The IAM policy directly set on the given resource.' -- google.iam.v1.Policy, um objeto em JSON.",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].policy.bindings",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/iam/v1/policy.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Policy.bindings: a lista de Binding da politica. O caminho e emitido pela chave do array; os campos de cada posicao vem abaixo.",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].policy.bindings[].role",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/iam/v1/policy.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Binding: 'Role that is assigned to the list of members, or principals. For example, roles/viewer.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].policy.bindings[].members",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/iam/v1/policy.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Binding: 'Specifies the principals requesting access for a Google Cloud resource.' -- repeated string.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

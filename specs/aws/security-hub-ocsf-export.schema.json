@@ -1,0 +1,413 @@
+{
+  "surface": "aws/security-hub-ocsf-export",
+  "provider": "aws",
+  "reference": {
+    "title": "AWS Security Hub CSPM - FindingsOutput (StartExportJobV2): output format OCSF_JSON and the OCSF field paths the export publishes",
+    "url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "s3",
+    "format": "ocsf-json-lines",
+    "file_name": "newline-delimited JSON objects (one OCSF record per line)",
+    "path_template": null,
+    "path_template_note": "NOT DOCUMENTED: only ObjectPrefix (max 512 chars) is published as a prefix prepended to object keys; no partition layout is stated for the findings export.",
+    "compression": null,
+    "compression_note": "not stated for this export",
+    "encoding": null,
+    "manifest": null,
+    "destination_type": "S3 (only supported type)",
+    "service_principal": "exportv2.securityhub.amazonaws.com",
+    "data_type": "FINDINGS (the only supported member of ExportOutput)",
+    "field_selection": "SelectedFields is NOT supported for OCSF_JSON: the format includes each finding in full, so field selection does not apply. The AWS Valid Values list is used here as the FIELD CATALOG of the format, and not as a selection mechanism.",
+    "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html"
+  },
+  "notes": [
+    "Superficie do artefato que a AWS EXPORTA. Ela existe porque o D3(c) mostrou que o alvo atual (ASFF) nao e um formato de export: FindingsOutput.Format aceita 'CSV | OCSF_JSON', e ASFF e o formato da RESPOSTA da API, que a superficie aws/security-hub-asff ja descreve corretamente. Sao duas superficies do mesmo dado.",
+    "A FORMA publicada do arquivo, na propria pagina do FindingsOutput: 'OCSF_JSON produces newline-delimited JSON records in the Open Cybersecurity Schema Framework (OCSF) format used elsewhere in Security Hub'. Por isso o delivery.kind e 's3' com 'ocsf-json-lines', e nao um JSON de array.",
+    "ESCOPO DECLARADO: esta spec fixa o contrato dos campos que o ESTADO sustenta emitir. A lista de SelectedFields do FindingsOutput publica cerca de 120 caminhos OCSF validos (vulnerabilities.*, malware.*, databucket.*, evidences.*, resources.image.*, ...); os que nao sao emitidos ficam FORA deste contrato, e nao como coluna obrigatoria vazia. Ampliar o escopo e uma decisao com evidencia propria, nao um efeito colateral.",
+    "Os caminhos de coluna sao os que a PROPRIA AWS publica na lista de SelectedFields de FindingsOutput -- por exemplo 'metadata.uid', 'cloud.account.uid', 'finding_info.title', 'compliance.status'. Eles nao foram deduzidos do repositorio normativo do OCSF: as duas fontes diferem em forma de caminho (o OCSF usa 'resource' singular com @deprecated, a AWS publica 'resources'), e quando a AWS publica o caminho do SEU export, e ele que descreve o arquivo.",
+    "O repositorio normativo do OCSF foi consultado e NAO confirma qual classe o export emite: a lista da AWS mistura campos de compliance, de vulnerabilidade, de malware e de databucket, o que indica que o export NAO usa a classe compliance_finding (uid 3) como envelope. Escrever a spec contra essa classe por analogia teria posto uma suposicao dentro do contrato -- foi o que esta investigacao evitou.",
+    "O campo 'metadata.version' exige a versao do schema OCSF, e o 'main' do repositorio traz '1.10.0-dev' (pre-lancamento, que nao serve para campo obrigatorio). A ultima LANCADA, verificada na API de releases do repositorio, e 1.9.0. Ainda assim ela NAO e emitida aqui: nenhuma pagina da AWS consultada afirma qual revisao do OCSF o export usa, e escrever 1.9.0 seria afirmar isso. Ver 'unverified'.",
+    "RECONSULTA DE 2026-10-15 ao residual de classe e de revisao (esta superficie foi escrita em 2026-10-14; o residual foi procurado de novo antes de ser declarado encerrado). Consultadas: securityhub-v2-findings-export.html (a pagina real da operacao de export -- o slug antigo 'securityhub-findings-export.html' redireciona para o indice), securityhub-ocsf.html, ocsf-aws-extension.html, securityhub-v2-automation-rules.md, API_FindingsOutput.md, API_OcsfFindingFilters.md e API_GetFindingsV2.html. RESULTADO: nenhuma delas publica o class_uid/category_uid/type_uid nem o valor de metadata.version do export. O que apareceu foi (a) 'class_name' como caminho valido do export, sem os identificadores numericos e sem a lista de valores, e (b) a frase 'Security Hub currently supports findings in OCSF schema version 1.6', que e sobre a revisao SUPORTADA pelos achados do servico, nao sobre o campo no arquivo exportado. Os dois residuais permanecem declarados em 'unverified', com o motivo reescrito a partir desta consulta.",
+    "severity_id DEIXOU DE SER LACUNA em 2026-10-15, e a mesma busca corrigiu o 'severity'. O enum do OCSF foi lido no dictionary.json da tag 1.6.0 (0 Unknown, 1 Informational, 2 Low, 3 Medium, 4 High, 5 Critical, 6 Fatal, 99 Other) e reconferido na tag 1.9.0, onde e IDENTICO -- o que fecha a lacuna sem depender da revisao do export, que segue nao documentada. O campo passou a ser emitido. E o 'severity' deixou de sair com o literal nativo em maiusculas ('HIGH') para sair com a LEGENDA do enum ('High'): o mesmo dictionary.json define 'severity' como 'normalized to the caption of the severity_id value', e o par status/status_id deste renderer ja fazia assim. Emitir 'HIGH' ao lado de 4 afirmava um par que a fonte nao publica."
+  ],
+  "unverified": [
+    {
+      "name": "metadata.version",
+      "reason": "O OCSF declara 'version' como obrigatorio no objeto metadata, e a AWS nao afirma qual revisao do schema o export usa. A ultima revisao LANCADA do OCSF foi verificada (1.9.0, via a API de releases do repositorio, prerelease=false), mas escolher uma versao para o artefato seria afirmar um fato que a fonte da AWS nao publica. O campo fica fora do artefato ate a AWS (ou um exemplo de saida) dizer qual e. RECONSULTADO em 2026-10-15: a pagina da operacao de export (securityhub-v2-findings-export.html) diz apenas que o formato OCSF_JSON contem o achado inteiro, sem versao; e a lista completa de caminhos validos de FindingsOutput.SelectedFields (119 caminhos, conferida no .md) NAO publica 'metadata.version' -- ela publica 'metadata.uid' e 'metadata.product.*', e nao a revisao. A unica frase da AWS sobre uma versao ('Security Hub currently supports findings in OCSF schema version 1.6', securityhub-ocsf.html) declara a revisao de schema que o Security Hub SUPORTA para os achados em geral, e nao o valor do campo no export; transformar essa frase no valor seria inferencia, nao leitura.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "class_uid / category_uid / type_uid",
+      "reason": "O OCSF identifica a classe e a categoria por identificadores numericos no envelope do evento. A lista de campos da AWS NAO publica nenhum deles, e nenhuma pagina consultada afirma qual classe ('compliance_finding' seria o candidato natural) o export usa. Emiti-los seria escolher uma classe por analogia -- exatamente o que esta investigacao recusou fazer. RECONSULTADO em 2026-10-15, com evidencia a favor da recusa: a AWS publica 'class_name' como caminho valido do proprio export (na lista de FindingsOutput.SelectedFields e na tabela de campos OCSF da pagina securityhub-v2-automation-rules), mas nao publica o 'class_uid' correspondente, nem a categoria, nem o tipo, nem a lista de valores de 'class_name'. O que a fonte afirma e o NOME do campo, nunca o valor -- entao o envelope continua declarado como lacuna.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "partition layout of the exported objects",
+      "reason": "A AWS publica apenas ObjectPrefix (ate 512 caracteres) como prefixo prepended as chaves dos objetos; nao ha template de particionamento, numero de partes nem convencao de nome de arquivo publicada para o export de findings. O path_template fica null em vez de inventado.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "compliance.assessments / compliance.control / compliance.standards",
+      "reason": "Os caminhos sao publicados pela AWS e o estado NAO carrega framework, controle nem avaliacao: o mapeamento ASFF do mesmo achado tambem emite 'Compliance: None', com a justificativa registrada de que o modelo nao tem esses dados. Omitir e a resposta correta; emitir vazio afirmaria que o achado foi avaliado sem framework.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "ocsf-finding",
+      "description": "Os campos OCSF que este artefato emite, no nivel de UM registro (uma linha do arquivo newline-delimited). Os nomes sao os caminhos pontuados que a propria AWS publica na lista de SelectedFields do FindingsOutput.",
+      "columns": [
+        {
+          "name": "metadata",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Continente documentado: a AWS publica caminhos que passam por dentro dele ('metadata.uid', 'metadata.product.name'), e o OCSF declara 'metadata' no envelope base do evento. Declarar o continente e o que permite a conferencia de VALOR olhar o nivel em que o achado OCSF e lido (o mesmo tratamento das superficies ARM e GCP deste repositorio).",
+          "type_source": "documented"
+        },
+        {
+          "name": "cloud",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Continente documentado: a AWS publica 'cloud.account.name', 'cloud.account.uid', 'cloud.provider' e 'cloud.region'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "compliance",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Continente documentado: a AWS publica 'compliance.status', 'compliance.status_id', 'compliance.control' e 'compliance.standards'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "finding_info",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Continente documentado: a AWS publica 'finding_info.uid', 'finding_info.title', 'finding_info.desc' e 'finding_info.types'. O OCSF o declara OBRIGATORIO no evento de finding.",
+          "type_source": "documented"
+        },
+        {
+          "name": "resources",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Continente documentado: a AWS publica 'resources.name', 'resources.type', 'resources.provider', 'resources.region' e 'resources.uid'. O OCSF usa 'resources' no plural e depreciou 'resource' singular desde 1.3.0.",
+          "type_source": "documented"
+        },
+        {
+          "name": "metadata.product",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Continente documentado: a AWS publica 'metadata.product.name', 'metadata.product.vendor_name' e 'metadata.product.uid'. O OCSF declara 'product' OBRIGATORIO dentro de metadata.",
+          "type_source": "documented"
+        },
+        {
+          "name": "metadata.uid",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'metadata.uid' entre os caminhos OCSF validos do export (o OCSF o define como o identificador unico do evento OCSF).",
+          "type_source": "documented"
+        },
+        {
+          "name": "activity_name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'activity_name'. O valor emitido e o rotulo da atividade do achado ('Create'), que o proprio OCSF publica como caption de activity_id 1.",
+          "type_source": "documented"
+        },
+        {
+          "name": "cloud.account",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Continente documentado: a AWS publica 'cloud.account.name' e 'cloud.account.uid'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "cloud.account.name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'cloud.account.name' entre os caminhos OCSF validos.",
+          "type_source": "documented"
+        },
+        {
+          "name": "cloud.account.uid",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'cloud.account.uid'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "cloud.provider",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'cloud.provider'. O valor emitido e o do proprio provedor do artefato.",
+          "type_source": "documented"
+        },
+        {
+          "name": "cloud.region",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'cloud.region'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "compliance.status",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'compliance.status'. O OCSF o define como o rotulo normalizado do status da verificacao de conformidade.",
+          "type_source": "documented"
+        },
+        {
+          "name": "finding_info.desc",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'finding_info.desc'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "finding_info.title",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'finding_info.title'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "finding_info.types",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'finding_info.types'. O OCSF o define como uma lista de tipos do achado.",
+          "type_source": "documented"
+        },
+        {
+          "name": "finding_info.uid",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'finding_info.uid' (o OCSF o declara obrigatorio dentro de finding_info).",
+          "type_source": "documented"
+        },
+        {
+          "name": "finding_info.created_time_dt",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "ISO 8601 UTC",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'finding_info.created_time_dt' (a forma '_dt' e a que a AWS publica para o valor datetime).",
+          "type_source": "documented"
+        },
+        {
+          "name": "metadata.product.name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'metadata.product.name'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "metadata.product.vendor_name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'metadata.product.vendor_name'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "resources.name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'resources.name'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "resources.provider",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'resources.provider'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "resources.region",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'resources.region'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "resources.type",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'resources.type'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "severity",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'severity' (a forma textual). O valor emitido e a LEGENDA do enum de severity_id, nao o literal nativo em maiusculas: o dictionary.json do OCSF define 'severity' como 'normalized to the caption of the severity_id value', e e assim que o par status/status_id ja sai neste mesmo renderer.",
+          "type_source": "documented"
+        },
+        {
+          "name": "severity_id",
+          "type": "int",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/ocsf/ocsf-schema/1.6.0/dictionary.json",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'severity_id' como caminho valido do export. O enum vive no repositorio normativo do OCSF: dictionary.json (tag 1.6.0) declara severity_id como integer_t com 0 Unknown, 1 Informational, 2 Low, 3 Medium, 4 High, 5 Critical, 6 Fatal e 99 Other. O MESMO enum foi reconferido na tag 1.9.0 e e identico -- o valor nao depende de saber qual revisao o export usa, que continua nao documentada. O estado traz o literal nativo em maiusculas (CRITICAL|HIGH|MEDIUM|LOW, model/native.py); a entrada normaliza a caixa para a legenda do enum, como ja era feito com status.",
+          "type_source": "documented"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'status'. O valor emitido e o resultado do mapeamento do status nativo do achado, o mesmo que a superficie ASFF ja faz para RecordState.",
+          "type_source": "documented"
+        },
+        {
+          "name": "status_id",
+          "type": "int",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_FindingsOutput.html",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "FindingsOutput.SelectedFields lista 'status_id'. O OCSF o define como identificador normalizado do ciclo de vida do achado (1 New, 2 In Progress, 3 Suppressed, 4 Resolved, 5 Archived, 6 Deleted) -- e a AWS lista a forma numerica.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

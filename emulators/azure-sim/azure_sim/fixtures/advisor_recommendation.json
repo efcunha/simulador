@@ -1,0 +1,21 @@
+{
+  "_fixture": "advisor-recommendation",
+  "_description": "Skeleton of an Advisor recommendations value[] item. Mirrors projections/recommendations.project_recommendations.",
+  "api-version": "2023-01-01",
+  "_todo_verificar": "§11.10 — exact Advisor recommendations envelope keys/casing and api-version are not offline-verifiable.",
+  "value": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Advisor/recommendations/example",
+      "name": "example-recommendation",
+      "type": "Microsoft.Advisor/recommendations",
+      "properties": {
+        "category": "Cost",
+        "impact": "Medium",
+        "shortDescription": { "problem": "Example", "solution": "Example" },
+        "recommendationModel": "synthetic.seed.v1"
+      }
+    }
+  ],
+  "nextLink": null,
+  "synthetic": true
+}

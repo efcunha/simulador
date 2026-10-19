@@ -1,0 +1,814 @@
+{
+  "surface": "gcp/security-command-center-findings-bigquery",
+  "provider": "gcp",
+  "reference": {
+    "title": "Stream findings to BigQuery for analysis (dataset structure: findings table) + REST Resource: organizations.sources.findings (Finding object)",
+    "url": "https://cloud.google.com/security-command-center/docs/how-to-analyze-findings-in-big-query",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "bigquery",
+    "path_template": "projects/{PROJECT_ID}/datasets/{DATASET_ID}/findings",
+    "format": "bigquery-native-table",
+    "compression": "not-applicable"
+  },
+  "reference_urls": {
+    "continuous_export": "https://cloud.google.com/security-command-center/docs/how-to-analyze-findings-in-big-query",
+    "bulk_export": "https://cloud.google.com/security-command-center/docs/bulk-exports-to-big-query",
+    "finding_object_v1": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+    "finding_discovery_v1": "https://securitycenter.googleapis.com/$discovery/rest?version=v1",
+    "finding_object_v2": "https://cloud.google.com/security-command-center/docs/reference/rest/v2/organizations.sources.findings"
+  },
+  "notes": [
+    "Both export mechanisms exist and are officially documented: continuous (streaming, recommended) and bulk (on-demand snapshot). Both write to a BigQuery table named 'findings', clustered by source_id, finding_id, event_time.",
+    "The export pages document only 6 top-level columns and their descriptions. They do NOT declare BigQuery types, so 'type' is left null for those columns and the item is listed in 'unverified'.",
+    "The export pages state that nested fields of the 'finding' column are the API reference 'Finding' object. The 68 top-level Finding fields below are transcribed verbatim from the v1 REST resource page.",
+    "The export pages point to an API reference 'Resource' object for the 'resource' column, but no such SCC REST page is reachable (v1/Resource, v1/Asset, v1/organizations.assets all returned HTTP 404 on 2026-10-14). Its fields are therefore unverified.",
+    "Nested sub-objects of Finding (indicator.*, vulnerability.*, access.*, compliance.*, ...) exist per the v1 page but their inner fields were not transcribed in this pass and are listed in 'unverified'.",
+    "The documented event_time example is '2019-09-26 12:48:00.985000 UTC' (not RFC 3339 in the document's own example).",
+    "The four Finding enums (State, Severity, Mute, FindingClass) were read in the machine contract finding_discovery_v1 -- the Security Center v1 discovery -- because the HTML reference page is 1.1 MB and the reader truncates exactly the sections carrying the constants. The COLUMNS cite the documentation page (finding_object_v1), not the discovery: is_official_url() accepts the documentation host and rejects the googleapis endpoint, and that division is the right one -- a column cites documentation, and the machine contract is the reading that proved the documentation had not been read carefully enough. Both agree; the discovery is what proved the FindingClass list ends at SECRET."
+  ],
+  "columns": [
+    {
+      "name": "source_id",
+      "dataset": "findings_table",
+      "type": null,
+      "mode": null,
+      "required": true,
+      "unit": null,
+      "source_url": "https://cloud.google.com/security-command-center/docs/how-to-analyze-findings-in-big-query#dataset_structure",
+      "status": "verified"
+    },
+    {
+      "name": "finding_id",
+      "dataset": "findings_table",
+      "type": null,
+      "mode": null,
+      "required": true,
+      "unit": null,
+      "source_url": "https://cloud.google.com/security-command-center/docs/how-to-analyze-findings-in-big-query#dataset_structure",
+      "status": "verified"
+    },
+    {
+      "name": "event_time",
+      "dataset": "findings_table",
+      "type": null,
+      "mode": null,
+      "required": true,
+      "unit": null,
+      "source_url": "https://cloud.google.com/security-command-center/docs/how-to-analyze-findings-in-big-query#dataset_structure",
+      "status": "verified"
+    },
+    {
+      "name": "bulk_export_id",
+      "dataset": "findings_table",
+      "type": null,
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://cloud.google.com/security-command-center/docs/how-to-analyze-findings-in-big-query#dataset_structure",
+      "status": "verified"
+    },
+    {
+      "name": "finding",
+      "dataset": "findings_table",
+      "type": null,
+      "mode": null,
+      "required": true,
+      "unit": null,
+      "source_url": "https://cloud.google.com/security-command-center/docs/how-to-analyze-findings-in-big-query#dataset_structure",
+      "status": "verified"
+    },
+    {
+      "name": "resource",
+      "dataset": "findings_table",
+      "type": null,
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://cloud.google.com/security-command-center/docs/how-to-analyze-findings-in-big-query#dataset_structure",
+      "status": "verified"
+    },
+    {
+      "name": "finding.name",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.parent",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.resourceName",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.state",
+      "dataset": "finding_object",
+      "type": "enum (State)",
+      "allowed_values": "STATE_UNSPECIFIED,ACTIVE,INACTIVE",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.category",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.externalUri",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.sourceProperties",
+      "dataset": "finding_object",
+      "type": "map (key: string, value: value (Value format))",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.securityMarks",
+      "dataset": "finding_object",
+      "type": "object (SecurityMarks)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.eventTime",
+      "dataset": "finding_object",
+      "type": "string (Timestamp format)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.createTime",
+      "dataset": "finding_object",
+      "type": "string (Timestamp format)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.severity",
+      "dataset": "finding_object",
+      "type": "enum (Severity)",
+      "allowed_values": "SEVERITY_UNSPECIFIED,CRITICAL,HIGH,MEDIUM,LOW",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.canonicalName",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.mute",
+      "dataset": "finding_object",
+      "type": "enum (Mute)",
+      "allowed_values": "MUTE_UNSPECIFIED,MUTED,UNMUTED,UNDEFINED",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.findingClass",
+      "dataset": "finding_object",
+      "type": "enum (FindingClass)",
+      "allowed_values": "FINDING_CLASS_UNSPECIFIED,THREAT,VULNERABILITY,MISCONFIGURATION,OBSERVATION,SCC_ERROR,POSTURE_VIOLATION,TOXIC_COMBINATION,SENSITIVE_DATA_RISK,CHOKEPOINT,EXTERNAL_EXPOSURE,SECRET",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.indicator",
+      "dataset": "finding_object",
+      "type": "object (Indicator)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.vulnerability",
+      "dataset": "finding_object",
+      "type": "object (Vulnerability)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.muteUpdateTime",
+      "dataset": "finding_object",
+      "type": "string (Timestamp format)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.externalSystems",
+      "dataset": "finding_object",
+      "type": "map (key: string, value: object (ExternalSystem))",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.mitreAttack",
+      "dataset": "finding_object",
+      "type": "object (MitreAttack)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.access",
+      "dataset": "finding_object",
+      "type": "object (Access)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.connections[]",
+      "dataset": "finding_object",
+      "type": "object (Connection)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.muteInitiator",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.muteInfo",
+      "dataset": "finding_object",
+      "type": "object (MuteInfo)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.processes[]",
+      "dataset": "finding_object",
+      "type": "object (Process)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.contacts",
+      "dataset": "finding_object",
+      "type": "map (key: string, value: object (ContactDetails))",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.compliances[]",
+      "dataset": "finding_object",
+      "type": "object (Compliance)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.parentDisplayName",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.description",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.exfiltration",
+      "dataset": "finding_object",
+      "type": "object (Exfiltration)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.iamBindings[]",
+      "dataset": "finding_object",
+      "type": "object (IamBinding)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.nextSteps",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.moduleName",
+      "dataset": "finding_object",
+      "type": "string",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.containers[]",
+      "dataset": "finding_object",
+      "type": "object (Container)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.kubernetes",
+      "dataset": "finding_object",
+      "type": "object (Kubernetes)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.database",
+      "dataset": "finding_object",
+      "type": "object (Database)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.attackExposure",
+      "dataset": "finding_object",
+      "type": "object (AttackExposure)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.files[]",
+      "dataset": "finding_object",
+      "type": "object (File)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.cloudDlpInspection",
+      "dataset": "finding_object",
+      "type": "object (CloudDlpInspection)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.cloudDlpDataProfile",
+      "dataset": "finding_object",
+      "type": "object (CloudDlpDataProfile)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.kernelRootkit",
+      "dataset": "finding_object",
+      "type": "object (KernelRootkit)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.orgPolicies[]",
+      "dataset": "finding_object",
+      "type": "object (OrgPolicy)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.job",
+      "dataset": "finding_object",
+      "type": "object (Job)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.application",
+      "dataset": "finding_object",
+      "type": "object (Application)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.ipRules",
+      "dataset": "finding_object",
+      "type": "object (IpRules)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.backupDisasterRecovery",
+      "dataset": "finding_object",
+      "type": "object (BackupDisasterRecovery)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.securityPosture",
+      "dataset": "finding_object",
+      "type": "object (SecurityPosture)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.logEntries[]",
+      "dataset": "finding_object",
+      "type": "object (LogEntry)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.loadBalancers[]",
+      "dataset": "finding_object",
+      "type": "object (LoadBalancer)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.cloudArmor",
+      "dataset": "finding_object",
+      "type": "object (CloudArmor)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.notebook",
+      "dataset": "finding_object",
+      "type": "object (Notebook)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.toxicCombination",
+      "dataset": "finding_object",
+      "type": "object (ToxicCombination)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.groupMemberships[]",
+      "dataset": "finding_object",
+      "type": "object (GroupMembership)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.disk",
+      "dataset": "finding_object",
+      "type": "object (Disk)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.dataAccessEvents[]",
+      "dataset": "finding_object",
+      "type": "object (DataAccessEvent)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.dataFlowEvents[]",
+      "dataset": "finding_object",
+      "type": "object (DataFlowEvent)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.networks[]",
+      "dataset": "finding_object",
+      "type": "object (Network)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.dataRetentionDeletionEvents[]",
+      "dataset": "finding_object",
+      "type": "object (DataRetentionDeletionEvent)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.affectedResources",
+      "dataset": "finding_object",
+      "type": "object (AffectedResources)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.aiModel",
+      "dataset": "finding_object",
+      "type": "object (AiModel)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.chokepoint",
+      "dataset": "finding_object",
+      "type": "object (Chokepoint)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.complianceDetails",
+      "dataset": "finding_object",
+      "type": "object (ComplianceDetails)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.vertexAi",
+      "dataset": "finding_object",
+      "type": "object (VertexAi)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.artifactGuardPolicies",
+      "dataset": "finding_object",
+      "type": "object (ArtifactGuardPolicies)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.secret",
+      "dataset": "finding_object",
+      "type": "object (Secret)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.externalExposure",
+      "dataset": "finding_object",
+      "type": "object (ExternalExposure)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.policyViolationSummary",
+      "dataset": "finding_object",
+      "type": "object (PolicyViolationSummary)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.agentDataAccessEvents[]",
+      "dataset": "finding_object",
+      "type": "object (AgentDataAccessEvent)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    },
+    {
+      "name": "finding.discoveredWorkload",
+      "dataset": "finding_object",
+      "type": "object (DiscoveredWorkload)",
+      "mode": null,
+      "required": false,
+      "unit": null,
+      "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+      "status": "verified"
+    }
+  ],
+  "unverified": [
+    {
+      "name": "BigQuery types of the 6 findings-table columns",
+      "reason": "Neither the continuous nor the bulk export page declares column types (STRING/RECORD/TIMESTAMP/...). Only names and descriptions are published.",
+      "status": "unverified"
+    },
+    {
+      "name": "structure of the findings table 'resource' column",
+      "reason": "The export page says 'see the API reference for the Resource object', but no reachable SCC REST page for that object was found: reference/rest/v1/Resource, reference/rest/v1/Asset and reference/rest/v1/organizations.assets all returned HTTP 404 on 2026-10-14.",
+      "status": "unverified"
+    },
+    {
+      "name": "relationship between the 'resource' column and finding.resourceName / SecurityCenterProperties",
+      "reason": "No official page obtained asserts this relationship.",
+      "status": "unverified"
+    },
+    {
+      "name": "inner fields of every Finding sub-object (indicator.*, vulnerability.*, access.*, compliance.*, mitreAttack.*, ...)",
+      "reason": "RECLASSIFICADO em 2026-10-15: deixa de ser 'falta transcrever' e passa a ser TRABALHO DE MODELO. Os 67 campos internos existem e foram lidos no discovery v1 do Security Center (finding.vulnerability 35, finding.access 12, finding.indicator 7, finding.mitreAttack 5, finding.exfiltration 5, finding.securityMarks 3) -- a fonte publica, e o campo pode ser transcrito hoje. O que impede e o ESTADO: o renderer emite 'finding.indicator', 'finding.vulnerability' e 'finding.access' como objetos VAZIOS ({}), porque o modelo NativeFinding nao carrega nenhum desses valores. Declarar as 67 colunas sem emiti-las faria o teste golden acusar (ele exige coluna declarada == coluna emitida), e emiti-las exige antes modelar vulnerabilidade, acesso, indicador e MITRE no estado -- que e uma decisao de produto sobre o que o simulador representa, nao uma tarefa de evidencia.",
+      "status": "unverified"
+    },
+    {
+      "name": "file format, compression, encoding, delimiter, header, bucket path, partitioning, manifest",
+      "reason": "Delivery is a BigQuery table; no intermediate file or manifest is documented.",
+      "status": "unverified"
+    },
+    {
+      "name": "dataset name and location",
+      "reason": "The dataset is created by the user; the documentation fixes neither name nor region.",
+      "status": "unverified"
+    },
+    {
+      "name": "which API version (v1 or v2) feeds the BigQuery findings table",
+      "reason": "The export documentation does not state the API version. v2 documents a reduced Finding object, and the export pages do not cite it.",
+      "status": "unverified"
+    }
+  ]
+}

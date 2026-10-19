@@ -1,0 +1,213 @@
+{
+  "surface": "aws/s3-get-bucket-acl",
+  "provider": "aws",
+  "reference": {
+    "title": "GetBucketAcl / Grant / Grantee / Owner (Amazon S3 API Reference)",
+    "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html",
+    "consulted_at": "2026-10-16",
+    "version": "S3 REST API; a resposta desta acao e documentada em XML",
+    "member_pages": [
+      "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grant.html",
+      "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grantee.html",
+      "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Owner.html"
+    ],
+    "permission": "s3:GetBucketAcl",
+    "permission_note": "A acao e lida por subresource: 'this implementation of the GET action uses the acl subresource'. A pagina tambem diz que para USAR a acao e preciso ter acesso READ_ACP ao bucket -- e nao o mesmo nome da politica de IAM, entao os dois aparecem com seus proprios nomes."
+  },
+  "chosen_surface": {
+    "specified": "GetBucketAcl API response, the Grant type it lists, the Grantee type each grant carries and the Owner type",
+    "why": "E a acao que publica a ACL de um bucket, e a ACL e uma das tres fontes que a regra gerenciada s3-bucket-public-read-prohibited diz ler: 'The rule checks the Block Public Access settings, the bucket policy, and the bucket access control list (ACL).' Sem esta superficie a regra nao tem metade do fato que a propria AWS nomeia.",
+    "config_alternative": "AWS::S3::Bucket e suportado pelo Config, mas o Config avalia conformidade e nao publica a ACL como leitura. A ACL e estado de configuracao de recurso, e quem a publica em forma legivel e a API.",
+    "rejected": [
+      "GetObjectAcl: e a ACL de um OBJETO, nao do bucket; a regra avalia a ACL do bucket",
+      "PutBucketAcl: e a escrita, e o Incremento 3 entrega leitura",
+      "GetBucketPolicy:_OUTRO Incremento-3 surface; a ACL e a metade da avaliacao que a policy nao cobre"
+    ]
+  },
+  "delivery": {
+    "kind": "read_api",
+    "export_mechanism_exists": false,
+    "export_mechanism_note": "GetBucketAcl e uma API de leitura. A AWS nao documenta exportacao desta resposta para S3 nem qualquer artefato duravel.",
+    "path_template": null,
+    "format": "xml",
+    "format_note": "A pagina diz 'The following data is returned in XML format by the service' e o Response Syntax e XML. O elemento Type do Grantee aparece no XML como <xsi:type>, que e a mesma coisa com o namespace do schema instance -- o nome do membro e Type, como a pagina de tipo o publica, e a grafia XML fica declarada aqui.",
+    "response_wrapper": "AccessControlPolicy",
+    "item_element": "Grant",
+    "compression": null,
+    "manifest": null,
+    "pagination": {
+      "supported": false,
+      "request_parameters": [],
+      "response_parameters": [],
+      "note": "A acao nao publica paginacao nem token de continuacao: a ACL de um bucket cabe inteira em uma resposta."
+    },
+    "element_order_guaranteed": false,
+    "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html",
+    "encoding_source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html"
+  },
+  "structure": {
+    "response": "2.1",
+    "owner": "2.2",
+    "grant": "2.3",
+    "grantee": "2.4",
+    "request_parameters": "2.5"
+  },
+  "armadilhas": {
+    "a_resposta_e_a_acl_efetiva_nao_a_armazenada": "Este e o ponto que decide se a superficie e fiel. A pagina de Block Public Access diz: 'Calls to GetBucketAcl and GetObjectAcl always return the effective permissions in place for the specified bucket or object. For example, suppose that a bucket has an ACL that grants public access, but the bucket also has the IgnorePublicAcls setting enabled. In this case, GetBucketAcl returns an ACL that reflects the access permissions that Amazon S3 is enforcing, rather than the actual ACL that is associated with the bucket.' O estado guarda as DUAS coisas e este renderer publica a EFETIVA. Um bucket cujo IgnorePublicAcls esta ligado responde com a ACL sem os grants para os grupos publicos, ainda que os tenha armazenado.",
+    "o_que_e_publico_e_o_grantee_uri_e_nao_o_permission": "A definicao da AWS e sobre o RECEBEDOR, nao sobre a permissao: 'Amazon S3 considers a bucket or object ACL public if it grants any permissions to members of the predefined AllUsers or AuthenticatedUsers groups.' Um grant de FULL_CONTROL para AllUsers conta como leitura publica E como escrita publica, porque concede as duas. Um grant para o grupo LogDelivery NAO conta -- o grupo nao esta na frase da definicao.",
+    "type_e_obrigatorio_por_dentro_e_ignorado_por_fora": "A pagina de Grantee marca Type como Required: Yes e restringe os valores a CanonicalUser | AmazonCustomerByEmail | Group. Os outros quatro membros sao Required: No e ficam nulos conforme o grant: um grant de grupo carrega so URI, um grant de usuario canonico so ID. Preencher todos os quatro seria inventar dado que a resposta de exemplo nao traz.",
+    "grants_e-o-array-do-accesscontrollist": "A resposta de exemplo mostra <AccessControlList> como o contentor de <Grant>, mas a lista de Response Elements nomeia o membro como 'Grants' com Type 'Array of Grant'. O artefacto emite Grants como o nome de membro e cada elemento com os membros de Grant -- o contentor do meio e estrutura de XML, nao um membro nomeado da resposta."
+  },
+  "sets": [
+    {
+      "name": "get-bucket-acl-response",
+      "description": "Elementos de topo da resposta de GetBucketAcl. O elemento raiz e AccessControlPolicy, Required: Yes. Encoding documentado: XML. Fonte: API_GetBucketAcl.html",
+      "columns": [
+        {
+          "name": "Grants",
+          "type": "array",
+          "description": "A lista de grants (Array of Grant data types).",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html",
+          "status": "verified",
+          "scope": "get-bucket-acl-response"
+        },
+        {
+          "name": "Owner",
+          "type": "owner",
+          "description": "Contentor do ID de quem e dono do bucket (Owner data type).",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html",
+          "status": "verified",
+          "scope": "get-bucket-acl-response"
+        }
+      ]
+    },
+    {
+      "name": "owner",
+      "description": "O tipo Owner: o nome de exibicao e o ID de quem e dono. Os dois membros sao Required: No. Fonte: API_Owner.html",
+      "columns": [
+        {
+          "name": "DisplayName",
+          "type": "string",
+          "description": "O nome de exibicao do dono. Valor null: o estado nao modela um nome de exibicao de conta, e a resposta de exemplo da propria acao traz so <ID>.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Owner.html",
+          "status": "verified",
+          "scope": "owner"
+        },
+        {
+          "name": "ID",
+          "type": "string",
+          "description": "O ID do dono. A resposta de exemplo traz um hex de 64 caracteres.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Owner.html",
+          "status": "verified",
+          "scope": "owner"
+        }
+      ]
+    },
+    {
+      "name": "grant",
+      "description": "O tipo Grant: um granted Permission para um Grantee. Os dois membros sao Required: No. Fonte: API_Grant.html",
+      "columns": [
+        {
+          "name": "Grantee",
+          "type": "grantee",
+          "description": "A pessoa a quem a permissao e concedida (Grantee data type).",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grant.html",
+          "status": "verified",
+          "scope": "grant"
+        },
+        {
+          "name": "Permission",
+          "type": "string",
+          "description": "A permissao concedida ao granted. Valid Values: FULL_CONTROL | WRITE | WRITE_ACP | READ | READ_ACP.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grant.html",
+          "status": "verified",
+          "scope": "grant"
+        }
+      ]
+    },
+    {
+      "name": "grantee",
+      "description": "O tipo Grantee: o recipiente de quem recebe a permissao. Type e o unico Required: Yes. Fonte: API_Grantee.html",
+      "columns": [
+        {
+          "name": "Type",
+          "type": "string",
+          "required": true,
+          "description": "O tipo do granted. Valid Values: CanonicalUser | AmazonCustomerByEmail | Group. No XML aparece como <xsi:type>.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grantee.html",
+          "status": "verified",
+          "scope": "grantee"
+        },
+        {
+          "name": "DisplayName",
+          "type": "string",
+          "description": "Valor null: nenhum grant do estado concede a um granted que o use.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grantee.html",
+          "status": "verified",
+          "scope": "grantee"
+        },
+        {
+          "name": "EmailAddress",
+          "type": "string",
+          "description": "Valor null pelo mesmo motivo de DisplayName: o estado nao concede por email.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grantee.html",
+          "status": "verified",
+          "scope": "grantee"
+        },
+        {
+          "name": "ID",
+          "type": "string",
+          "description": "O ID de usuario canonico do granted. Preenchido nos grants de CanonicalUser e nulo nos de Group.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grantee.html",
+          "status": "verified",
+          "scope": "grantee"
+        },
+        {
+          "name": "URI",
+          "type": "string",
+          "description": "O URI do grupo do granted. Preenchido nos grants de Group e nulo nos demais.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Grantee.html",
+          "status": "verified",
+          "scope": "grantee"
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "Os dois parametros documentados da requisicao. O estado nao modela nenhuma requisicao capturada, entao estes nomes existem com valor nulo: e a forma do documento, nao um fato sobre uma chamada que alguem fez. Fonte: API_GetBucketAcl.html",
+      "columns": [
+        {
+          "name": "Bucket",
+          "type": "string",
+          "required": true,
+          "description": "Especifica o bucket S3 cuja ACL esta sendo solicitada. Valor null: o estado nao modela a requisicao que disparou a leitura.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "x-amz-expected-bucket-owner",
+          "type": "string",
+          "description": "O ID de conta do dono esperado do bucket; se nao bater com o dono real, a requisicao falha com 403. Valor null: o estado nao modela a requisicao.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "Order of the elements inside AccessControlPolicy",
+      "reason": "O Response Syntax mostra <Owner> antes de <AccessControlList> e a resposta e XML, mas a pagina nao promete ordenacao. O artefacto ordena os grants por (Type, URI, ID, Permission), que e determinismo do gerador e nao uma afirmacao sobre a ordem do servico."
+    },
+    {
+      "item": "JSON property names/schema for GetBucketAcl",
+      "reason": "E o XML que a documenta. Nenhum mapeamento JSON oficial e publicado para esta acao, e por isso o artefacto e JSON com os nomes de ELEMENTO do XML -- divergencia de serializacao, nao de contrato."
+    },
+    {
+      "item": "VersionId request parameter",
+      "reason": "A pagina nao publica VersionId entre os parametros desta acao, e o Request Syntax mostra apenas Bucket e x-amz-expected-bucket-owner. O parametro existe em outras acoes de bucket, mas nao nesta, entao nao entra no artefacto."
+    }
+  ]
+}

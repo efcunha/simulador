@@ -1,0 +1,720 @@
+{
+  "surface": "aws/ec2-describe-instances",
+  "provider": "aws",
+  "reference": {
+    "title": "DescribeInstances / Instance / Reservation (Amazon EC2 API Reference)",
+    "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+    "consulted_at": "2026-10-14",
+    "version": "EC2 API version 2016-11-15; documented response encoding is XML"
+  },
+  "chosen_surface": {
+    "specified": "DescribeInstances API response, Instance object",
+    "why": "The EC2 API Reference publishes an exhaustive field-by-field list for the Instance object. The AWS Config AWS::EC2::Instance configuration item has NO published per-resource-type property schema.",
+    "config_alternative": "AWS::EC2::Instance is a supported AWS Config resource type, but resource-config-reference.html documents only its relationships and redirects to the CloudFormation resource and property types reference for properties.",
+    "config_evidence_url": "https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html"
+  },
+  "delivery": {
+    "kind": "read_api",
+    "export_mechanism_exists": false,
+    "export_mechanism_note": "DescribeInstances is a paginated read API. AWS does not document an export of it to S3 or any durable artifact. The only documented durable path is indirect, via the AWS Config AWS::EC2::Instance configuration item, whose field mapping is itself not published.",
+    "path_template": null,
+    "format": "xml",
+    "format_note": "The EC2 API Reference documents the XML response only. No JSON property schema or JSON example is published for DescribeInstances.",
+    "response_wrapper": "DescribeInstancesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\"",
+    "item_element": "item",
+    "compression": null,
+    "manifest": null,
+    "pagination": "MaxResults, NextToken (in), nextToken (out)",
+    "element_order_guaranteed": false,
+    "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Welcome.html",
+    "encoding_source_url": "https://docs.aws.amazon.com/ec2/latest/devguide/Query-Requests.html"
+  },
+  "structure": {
+    "response": "3.1",
+    "reservation": "3.2",
+    "instance": "3.3",
+    "request_parameters": "3.4"
+  },
+  "sets": [
+    {
+      "name": "describe-instances-response",
+      "description": "Elementos de topo da resposta de DescribeInstances (requestId, reservationSet, nextToken). Encoding documentado: XML. Fonte: API_DescribeInstances.html",
+      "columns": [
+        {
+          "name": "requestId",
+          "type": "string",
+          "required": true,
+          "description": "O ID da requisição",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "describe-instances-response"
+        },
+        {
+          "name": "reservationSet",
+          "type": "array",
+          "description": "Informação sobre as reservas",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "describe-instances-response"
+        },
+        {
+          "name": "nextToken",
+          "type": "string",
+          "description": "O token a incluir numa outra requisição para obter a próxima página de itens. *\"This value is `null` when there are no more items to return.\"*",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "describe-instances-response"
+        }
+      ]
+    },
+    {
+      "name": "reservation",
+      "description": "Cada objeto Reservation em reservationSet. Nota: GroupSet.N aqui e \"Not supported\", diferente do GroupSet.N de Instance. Fonte: API_Reservation.html",
+      "columns": [
+        {
+          "name": "reservationId",
+          "type": "string",
+          "description": "O ID da reserva",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Reservation.html",
+          "status": "verified",
+          "scope": "reservation"
+        },
+        {
+          "name": "ownerId",
+          "type": "string",
+          "description": "O ID da conta AWS dona da reserva",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Reservation.html",
+          "status": "verified",
+          "scope": "reservation"
+        },
+        {
+          "name": "requesterId",
+          "type": "string",
+          "description": "O ID do requisitante que lançou as instâncias em seu nome (ex.: AWS Management Console ou Auto Scaling)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Reservation.html",
+          "status": "verified",
+          "scope": "reservation"
+        },
+        {
+          "name": "GroupSet.N",
+          "type": "array",
+          "description": "**Não suportado.** *\"Not supported.\"*",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Reservation.html",
+          "status": "verified",
+          "scope": "reservation"
+        },
+        {
+          "name": "InstancesSet.N",
+          "type": "array",
+          "description": "As instâncias",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Reservation.html",
+          "status": "verified",
+          "scope": "reservation"
+        }
+      ]
+    },
+    {
+      "name": "instance",
+      "description": "Inventario completo dos 61 membros publicados do objeto Instance, dentro de reservationSet[].instancesSet[]. Fonte: API_Instance.html",
+      "columns": [
+        {
+          "name": "amiLaunchIndex",
+          "type": "integer",
+          "description": "O índice de lançamento da AMI, que pode ser usado para encontrar esta instância no grupo de lançamento",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "architecture",
+          "type": "string",
+          "allowed_values": "`i386` \\| `x86_64` \\| `arm64` \\| `x86_64_mac` \\| `arm64_mac`",
+          "description": "A arquitetura da imagem",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "BlockDeviceMapping.N",
+          "type": "array",
+          "description": "Quaisquer entradas de mapeamento de dispositivos de bloco para a instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "bootMode",
+          "type": "string",
+          "allowed_values": "`legacy-bios` \\| `uefi` \\| `uefi-preferred`",
+          "description": "O modo de boot especificado pela AMI. Se o valor for `uefi-preferred`, a AMI suporta UEFI e Legacy BIOS",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "capacityBlockId",
+          "type": "string",
+          "description": "O ID do Capacity Block. Para instâncias P5 refere-se a um grupo de instâncias; para Trn2u, a um EC2 UltraServer",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "capacityReservationId",
+          "type": "string",
+          "description": "O ID da Capacity Reservation",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "capacityReservationSpecification",
+          "type": "object",
+          "description": "Informação sobre a opção de direcionamento da Capacity Reservation",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "clientToken",
+          "type": "string",
+          "description": "O token de idempotência fornecido no lançamento da instância, se aplicável",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "cpuOptions",
+          "type": "object",
+          "description": "As opções de CPU para a instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "currentInstanceBootMode",
+          "type": "string",
+          "allowed_values": "`legacy-bios` \\| `uefi`",
+          "description": "O modo de boot usado para iniciar a instância no lançamento ou arranque",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "dnsName",
+          "type": "string",
+          "description": "O nome DNS público atribuído à instância. Não disponível até a instância entrar no estado `running`; só disponível se os DNS hostnames estiverem habilitados na VPC",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "ebsOptimized",
+          "type": "boolean",
+          "description": "Indica se a instância está otimizada para I/O do Amazon EBS",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "ElasticGpuAssociationSet.N",
+          "type": "array",
+          "description": "**Deprecated.** *\"Amazon Elastic Graphics reached end of life on January 8, 2024.\"*",
+          "deprecated": true,
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "ElasticInferenceAcceleratorAssociationSet.N",
+          "type": "array",
+          "description": "**Deprecated.** *\"Amazon Elastic Inference is no longer available.\"*",
+          "deprecated": true,
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "enaSupport",
+          "type": "boolean",
+          "description": "Especifica se o enhanced networking com ENA está habilitado",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "enclaveOptions",
+          "type": "object",
+          "description": "Indica se a instância está habilitada para AWS Nitro Enclaves",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "GroupSet.N",
+          "type": "array",
+          "description": "Os security groups da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "hibernationOptions",
+          "type": "object",
+          "description": "Indica se a instância está habilitada para hibernação",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "hypervisor",
+          "type": "string",
+          "allowed_values": "`ovm` \\| `xen`",
+          "description": "O tipo de hypervisor da instância. O valor `xen` é usado tanto para Xen quanto para Nitro",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "iamInstanceProfile",
+          "type": "object",
+          "description": "O perfil de instância IAM associado à instância, se aplicável",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "imageId",
+          "type": "string",
+          "description": "O ID da AMI usada para lançar a instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "instanceId",
+          "type": "string",
+          "description": "O ID da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "instanceLifecycle",
+          "type": "string",
+          "allowed_values": "`spot` \\| `scheduled` \\| `capacity-block` \\| `interruptible-capacity-reservation`",
+          "description": "Indica se é uma Spot Instance ou uma Scheduled Instance",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "instanceState",
+          "type": "object",
+          "description": "O estado atual da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "instanceType",
+          "type": "string",
+          "allowed_values": "Lista muito extensa de tipos (ex.: `t2.micro`, `m5.large`, `c7g.metal`, `p5.48xlarge`)",
+          "description": "O tipo da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "ipAddress",
+          "type": "string",
+          "description": "O endereço IPv4 público, ou o Carrier IP atribuído à instância, se aplicável. Carrier IP só se aplica a instâncias lançadas numa subnet associada a uma Wavelength Zone",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "ipv6Address",
+          "type": "string",
+          "description": "O endereço IPv6 atribuído à instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "kernelId",
+          "type": "string",
+          "description": "O kernel associado a esta instância, se aplicável",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "keyName",
+          "type": "string",
+          "description": "O nome do key pair, se a instância foi lançada com um key pair associado",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "launchTime",
+          "type": "timestamp",
+          "datetime_format": "ISO 8601 UTC, ex.: `2018-05-08T16:46:19.000Z`",
+          "description": "O horário em que a instância foi lançada pela última vez. Para o primeiro lançamento, ver o attachment time da interface de rede primária",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "LicenseSet.N",
+          "type": "array",
+          "description": "As configurações de licença da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "maintenanceOptions",
+          "type": "object",
+          "description": "Informação sobre as opções de recuperação e manutenção da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "metadataOptions",
+          "type": "object",
+          "description": "As opções de metadados da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "monitoring",
+          "type": "object",
+          "description": "O monitoramento da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "NetworkInterfaceSet.N",
+          "type": "array",
+          "description": "As interfaces de rede da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "networkPerformanceOptions",
+          "type": "object",
+          "description": "Contém configurações para as opções de desempenho de rede da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "operator",
+          "type": "object",
+          "description": "O provedor de serviço que gerencia a instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "outpostArn",
+          "type": "string",
+          "description": "O ARN do Outpost",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "placement",
+          "type": "object",
+          "description": "O local onde a instância foi lançada, se aplicável",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "allowed_values": "`windows`",
+          "description": "A plataforma. O valor é `windows` para instâncias Windows; caso contrário é vazio",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "platformDetails",
+          "type": "string",
+          "description": "O valor de detalhes da plataforma da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "privateDnsName",
+          "type": "string",
+          "description": "**[IPv4 apenas]** O nome de host DNS privado atribuído à instância. Só pode ser usado dentro da rede do Amazon EC2; não disponível até a instância entrar no estado `running`",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "privateDnsNameOptions",
+          "type": "object",
+          "description": "As opções para o hostname da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "privateIpAddress",
+          "type": "string",
+          "description": "O endereço IPv4 privado atribuído à instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "ProductCodes.N",
+          "type": "array",
+          "description": "Os product codes anexados a esta instância, se aplicável",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "ramdiskId",
+          "type": "string",
+          "description": "O RAM disk associado a esta instância, se aplicável",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "description": "O motivo da transição de estado mais recente. Pode ser uma string vazia",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "rootDeviceName",
+          "type": "string",
+          "description": "O nome do dispositivo do volume do dispositivo raiz (ex.: `/dev/sda1`)",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "rootDeviceType",
+          "type": "string",
+          "allowed_values": "`ebs` \\| `instance-store`",
+          "description": "O tipo de dispositivo raiz usado pela AMI",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "SecondaryInterfaceSet.N",
+          "type": "array",
+          "description": "As interfaces secundárias da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "sourceDestCheck",
+          "type": "boolean",
+          "description": "Indica se a verificação de origem/destino está habilitada",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "spotInstanceRequestId",
+          "type": "string",
+          "description": "Se a requisição é uma requisição de Spot Instance, o ID da requisição",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "sriovNetSupport",
+          "type": "string",
+          "description": "Especifica se o enhanced networking com a interface Intel 82599 Virtual Function está habilitado",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "stateReason",
+          "type": "object",
+          "description": "O motivo da transição de estado mais recente",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "subnetId",
+          "type": "string",
+          "description": "O ID da subnet na qual a instância está a correr",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "TagSet.N",
+          "type": "array",
+          "description": "Quaisquer tags atribuídas à instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "tpmSupport",
+          "type": "string",
+          "allowed_values": "`v2.0`",
+          "description": "Se a instância está configurada para suporte NitroTPM, o valor é `v2.0`",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "usageOperation",
+          "type": "string",
+          "description": "O valor de operação de uso da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "usageOperationUpdateTime",
+          "type": "timestamp",
+          "datetime_format": "ISO 8601 UTC, ex.: `2022-09-15T17:15:20.000Z`",
+          "description": "O horário em que a operação de uso foi atualizada pela última vez",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "virtualizationType",
+          "type": "string",
+          "allowed_values": "`hvm` \\| `paravirtual`",
+          "description": "O tipo de virtualização da instância",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        },
+        {
+          "name": "vpcId",
+          "type": "string",
+          "description": "O ID da VPC na qual a instância está a correr",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Instance.html",
+          "status": "verified",
+          "scope": "instance"
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "Parametros de requisicao documentados de DescribeInstances. Fonte: API_DescribeInstances.html",
+      "columns": [
+        {
+          "name": "DryRun",
+          "type": "boolean",
+          "unit": "Verifica permissões sem fazer a requisição",
+          "datetime_format": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "Filter.N",
+          "type": "array",
+          "unit": "Os filtros. A página publica uma lista extensa de nomes de filtro documentados",
+          "datetime_format": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "IncludeManagedResources",
+          "type": "boolean",
+          "unit": "Se `true`, a saída inclui recursos geridos por serviços AWS, mesmo que a visibilidade esteja definida como oculta",
+          "datetime_format": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "InstanceId.N",
+          "type": "array",
+          "unit": "Os IDs das instâncias. Default: descreve todas as instâncias",
+          "datetime_format": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "MaxResults",
+          "type": "integer",
+          "unit": "O número máximo de itens a devolver. Não pode ser especificado em conjunto com o parâmetro de IDs de instância",
+          "datetime_format": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "NextToken",
+          "type": "string",
+          "unit": "O token devolvido por uma requisição paginada anterior",
+          "datetime_format": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "description": "O token a incluir numa outra requisição para obter a próxima página de itens. *\"This value is `null` when there are no more items to return.\"*",
+          "source_url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "JSON property names/schema for DescribeInstances",
+      "reason": "only XML is documented; no JSON example or JSON property list is published"
+    },
+    {
+      "item": "exact XML container element spelling rule",
+      "reason": "API Reference member names (BlockDeviceMapping.N) differ from Sample Response elements (<blockDeviceMapping>) and from the AWS Config CI example (blockDeviceMappings); no conversion rule is published"
+    },
+    {
+      "item": "az-id pattern",
+      "reason": "the availability-zone-id filter exists but the identifier pattern is not published. RECONFIRMADO em 2026-10-15: a pagina do objeto Placement (API_Placement.html) descreve Placement.AvailabilityZone como apenas 'The Availability Zone of the instance', Type: String, Required: No -- sem pattern, sem exemplo e sem format, enquanto o MESMO objeto publica Valid Values para Tenancy (default | dedicated | host). A ausencia de pattern e do tipo de dado, e nao de leitura: quando a AWS publica um dominio fechado, publica."
+    },
+    {
+      "item": "platformDetails valid values",
+      "reason": "the Instance object page does not publish the list; the list on DescribeInstances belongs to a filter, not to a return value"
+    },
+    {
+      "item": "AWS::EC2::Instance configuration-object schema",
+      "reason": "AWS Config does not publish per-resource-type property schemas; it redirects to CloudFormation"
+    },
+    {
+      "item": "field-by-field mapping between Instance and the AWS Config configuration object",
+      "reason": "AWS Config only states the configuration is what the Describe or List API returns"
+    },
+    {
+      "item": "export mechanism to a durable artifact",
+      "reason": "not documented (negative evidence); DescribeInstances is a read API"
+    },
+    {
+      "item": "publicDnsName / publicIpAddress as Instance return members",
+      "reason": "the Instance page uses dnsName and ipAddress; the AWS Config CI example uses publicDnsName and publicIpAddress; neither document publishes the latter as Instance members"
+    }
+  ]
+}

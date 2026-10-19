@@ -1,0 +1,227 @@
+{
+  "surface": "gcp/scc-findings",
+  "provider": "gcp",
+  "reference": {
+    "title": "Security Command Center API v1 - message Finding (method organizations.sources.findings.list)",
+    "url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "findings.json",
+    "root": "listFindingsResults[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "reference_urls": {
+    "finding_rest_resource": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+    "list_organizations": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings/list",
+    "list_projects": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/projects.sources.findings/list",
+    "finding_discovery_v1": "https://securitycenter.googleapis.com/$discovery/rest?version=v1",
+    "finding_message_proto": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+    "service_message_proto": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/securitycenter_service.proto"
+  },
+  "notes": [
+    "O envelope de ListFindingsResponse e 'listFindingsResults' (cada item embrulha um 'finding'), 'nextPageToken' e 'totalSize' -- o simulador ja usava os nomes corretos; aqui so os dois primeiros sao emitidos.",
+    "NIVEL DE PARENT: medido em 2026-10-18 contra o consumidor, e NAO e divergencia. O consumidor (security.py (modulo do consumidor):76) pede parent 'projects/{project_id}/sources/-', e o simulador emite 'organizations/{org}/sources/{n}'. Os dois sao publicados: o rpc ListFindings declara tres bindings -- organizations/*/sources/*, folders/*/sources/* e projects/*/sources/* (securitycenter_service.proto) -- e o discovery registra 'v1/projects/{projectsId}/sources/{sourcesId}/findings' ao lado dos outros dois. Finding.name tambem publica os tres padroes. Emitir no nivel org e, portanto, uma instancia valida do contrato, e nao um caso ausente: a forma de todas as colunas e a mesma nos tres niveis, e por isso nada nesta spec depende do nivel escolhido.",
+    "O 'resourceName' e resolvido a partir do recurso do estado: o artefato antigo embrulhava um UUID cru num host (//cloudasset.googleapis.com/<uuid>), que afirma ser um full resource name e nao traz caminho de recurso nenhum. Um achado cujo recurso nao esta no estado fica FORA da lista, em vez de receber nome inventado.",
+    "As chaves de 'sourceProperties' sao livres por contrato (o proto diz que sao geridas pela fonte); 'Explanation' e 'Recommendation' NAO tem enumeracao oficial encontrada, e por isso estao registradas como nao comprovadas."
+  ],
+  "unverified": [
+    {
+      "item": "chaves de 'sourceProperties' (Explanation, Recommendation)",
+      "reason": "O contrato afirma que as chaves desse mapa sao geridas pela FONTE, e nao publica a lista das chaves do Security Health Analytics: as duas chaves emitidas nao tem enumeracao oficial encontrada. E por isso um registro de TEMA, e nao de nome de campo -- as chaves ESTAO dentro de um campo que o contrato define (o mapa), e o que falta e a prova de que sejam as canonicas. Registrar o caminho como nome de campo seria dizer que ele nao pertence ao formato, e ele pertence: o mapa o aceita.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "listFindingsResults[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'listFindingsResults' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "listFindingsResults",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListFindingsResponse declara 'listFindingsResults' (itens ListFindingsResult, que embrulham 'finding'), 'nextPageToken' e 'totalSize'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListFindingsResponse.nextPageToken: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "finding",
+      "description": "Campos de um item de 'listFindingsResults', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "listFindingsResults[].finding",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListFindingsResult.finding: 'Finding matching the search request.' -- o item do envelope EMBRULHA o finding sob esta chave, e e por isso que os caminhos dos campos sao 'listFindingsResults[].finding.<campo>'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.name: 'The relative resource name of this finding. Example: organizations/{organization_id}/sources/{source_id}/findings/{finding_id}'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.parent",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.parent: 'The relative resource name of the source the finding belongs to. Example: organizations/{organization_id}/sources/{source_id}. This field is immutable after creation time.'",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.resourceName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.resourceName: 'For findings on Google Cloud resources, the full resource name of the Google Cloud resource this finding is for.'",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.description",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.description: 'Contains more details about the finding.' O proto declara 'string description = 37;' e o discovery do v1 publica a propriedade como {\"type\": \"string\"}. Campo lido pelo consumidor (security.py:94), que o montava a partir de 'f.description or f.resource_name' -- sem ele, todo finding caia no fallback.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.state",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.state: enum State com ACTIVE e INACTIVE. O artefato emite ACTIVE.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.category",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.category: 'The additional taxonomy group within findings from a given source.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.severity",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.severity: enum Severity com SEVERITY_UNSPECIFIED, CRITICAL, HIGH, MEDIUM, LOW. O artefato emite o valor nativo em maiusculas.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.findingClass",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources.findings/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.findingClass: enum FindingClass, que inclui MISCONFIGURATION -- o valor emitido.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.sourceProperties",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Finding.sourceProperties: 'Source specific properties. These properties are managed by the source that writes the finding.' -- map<string, Value>, um objeto em JSON.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.sourceProperties.Explanation",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Chave do mapa sourceProperties (o mapa aceita chaves livres; a chave especifica nao tem enumeracao oficial encontrada). O valor e string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "listFindingsResults[].finding.sourceProperties.Recommendation",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/securitycenter/v1/finding.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Chave do mapa sourceProperties. O valor e string.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

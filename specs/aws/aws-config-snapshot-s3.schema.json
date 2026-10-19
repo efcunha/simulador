@@ -1,0 +1,409 @@
+{
+  "surface": "aws/aws-config-snapshot-s3",
+  "provider": "aws",
+  "reference": {
+    "title": "Example Configuration Snapshot from AWS Config / Delivering Configuration Snapshots to an Amazon S3 Bucket",
+    "url": "https://docs.aws.amazon.com/config/latest/developerguide/example-s3-snapshot.html",
+    "consulted_at": "2026-10-14",
+    "version": "fileVersion 1.0; configurationItemVersion 1.0"
+  },
+  "delivery": {
+    "kind": "s3",
+    "path_template": "AWSLogs/{accountId}/Config/{region}/{year}/{month}/{day}/ConfigSnapshot/{accountId}_Config_{region}_ConfigSnapshot_{YYYYMMDDTHHmmssZ}_{configSnapshotId}.json.gz",
+    "path_template_history": "AWSLogs/{accountId}/Config/{region}/{year}/{month}/{day}/ConfigHistory/{accountId}_Config_{region}_ConfigHistory_{resourceType}_{YYYYMMDDTHHmmssZ}_{YYYYMMDDTHHmmssZ}_{n}.json.gz",
+    "path_template_status": "derived_from_published_examples_not_a_formal_AWS_template",
+    "month_day_zero_padded": false,
+    "format": "json",
+    "compression": "gzip",
+    "encoding": null,
+    "manifest": null,
+    "notification": "sns",
+    "timezone": "UTC",
+    "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-configuration-snapshot-notification.html"
+  },
+  "structure": {
+    "file": "3.1 Envelope do arquivo de snapshot",
+    "configuration_item": "3.2 Objeto ConfigurationItem dentro de configurationItems",
+    "relationship": "3.3 Objeto Relationship dentro de relationships",
+    "notification": "3.4 Notificacao SNS de entrega (metadados)"
+  },
+  "sets": [
+    {
+      "name": "configuration-file-envelope",
+      "description": "Objeto JSON de topo do arquivo de snapshot entregue ao S3 (fileVersion, requestId, configurationItems). Fonte: example-s3-snapshot.html",
+      "columns": [
+        {
+          "name": "fileVersion",
+          "type": "string",
+          "required": true,
+          "allowed_values": "`\"1.0\"` no exemplo oficial",
+          "description": "Versão do arquivo de snapshot",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-s3-snapshot.html",
+          "status": "verified",
+          "scope": "configuration-file-envelope"
+        },
+        {
+          "name": "requestId",
+          "type": "string",
+          "required": true,
+          "description": "Identificador da requisição que gerou o snapshot",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-s3-snapshot.html",
+          "status": "verified",
+          "scope": "configuration-file-envelope"
+        },
+        {
+          "name": "configurationItems",
+          "type": "array",
+          "required": true,
+          "description": "Lista dos configuration items dos recursos gravados na região/conta. *\"The snapshot describes the configuration for the resources that AWS Config is recording in the current region for your AWS account, and it describes the relationships between these resources.\"*",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-s3-snapshot.html",
+          "status": "verified",
+          "scope": "configuration-file-envelope"
+        }
+      ]
+    },
+    {
+      "name": "configuration-item",
+      "description": "Cada objeto de configurationItems[]. Grafia do arquivo S3, que difere da API em quatro campos. Fonte: example-s3-snapshot.html + API_ConfigurationItem.html",
+      "columns": [
+        {
+          "name": "configurationItemVersion",
+          "type": "string",
+          "required": true,
+          "allowed_values": "`\"1.0\"` no exemplo oficial",
+          "description": "Versão do configuration item. Corresponde a `version` na API `ConfigurationItem`",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "resourceId",
+          "type": "string",
+          "required": true,
+          "description": "O ID do recurso (ex.: `vol-ce676ccc`, `i-344c463d`)",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "resourceName",
+          "type": "string",
+          "description": "O nome customizado do recurso, se disponível",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "arn",
+          "type": "string",
+          "description": "Amazon Resource Name associado ao recurso. *Exemplo do arquivo:* `arn:aws:us-west-2b:123456789012:volume/vol-ce676ccc`",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "accountId",
+          "type": "string",
+          "allowed_values": "12 dígitos, pattern `\\d{12}`",
+          "description": "O ID de conta AWS de 12 dígitos associado ao recurso",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "awsRegion",
+          "type": "string",
+          "allowed_values": "comprimento 1–64",
+          "description": "A região onde o recurso reside",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "availibilityZone",
+          "type": "string",
+          "description": "A Availability Zone associada ao recurso. **Atenção: este é o nome exato publicado no exemplo do arquivo, com o erro de grafia `availibility`**",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "configurationItemCaptureTime",
+          "type": "string",
+          "datetime_format": "ISO 8601 UTC com milissegundos, ex.: `2014-03-07T23:47:08.918Z`",
+          "description": "O horário em que a gravação de mudanças de configuração foi iniciada para o recurso",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "configurationItemDeliveryTime",
+          "type": "string",
+          "datetime_format": "ISO 8601 UTC",
+          "description": "O horário em que as mudanças de configuração foram entregues. **Não garantido**: presente com gravação diária, omitido com gravação contínua",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "configurationStateID",
+          "type": "string",
+          "description": "Identificador que indica a ordenação dos configuration items de um recurso. **Grafia no arquivo: `configurationStateID`** (API: `configurationStateId`)",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "configurationStateId",
+          "type": "string",
+          "description": "Grafia da API para o mesmo campo. Use `configurationStateId` para garantir que se tem o CI mais recente, já que `configurationItemMD5Hash` está vazio desde a versão 1.3",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "configurationItemStatus",
+          "type": "string",
+          "allowed_values": "`OK` \\| `ResourceDiscovered` \\| `ResourceNotRecorded` \\| `ResourceDeleted` \\| `ResourceDeletedNotRecorded`",
+          "description": "O status do configuration item. No arquivo aparece como `\"OK\"`",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "configurationItemMD5Hash",
+          "type": "string",
+          "description": "Hash MD5 único que representa o estado do CI. **Vazio desde a versão 1.3**",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "relatedEvents",
+          "type": "array",
+          "description": "Lista de IDs de eventos CloudTrail. **Vazio desde a versão 1.3**; usar a API `LookupEvents` do CloudTrail",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "recordingFrequency",
+          "type": "string",
+          "allowed_values": "`CONTINUOUS` \\| `DAILY`",
+          "description": "Frequência de gravação. **Só aparece na resposta da API quando `DAILY` está habilitado**; ausente significa `CONTINUOUS`. **Não aparece no exemplo oficial do arquivo S3**",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "resourceCreationTime",
+          "type": "string",
+          "datetime_format": "ISO 8601, ex.: `2014-02-27T21:43:53.885Z`",
+          "description": "O timestamp de criação do recurso",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "resourceType",
+          "type": "string",
+          "allowed_values": "Lista de tipos suportados (ex.: `AWS::EC2::Instance`, `AWS::EC2::Volume`, `AWS::EC2::SUBNET`). Alterado dinamicamente; ver *Supported Resource Types for AWS Config*",
+          "description": "O tipo do recurso AWS",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "tags",
+          "type": "map",
+          "description": "Mapeamento de tags chave-valor associadas ao recurso. No arquivo aparece como objeto (`{\"Name\": \"integ-test-1\"}`)",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "relationships",
+          "type": "array",
+          "description": "Lista de recursos AWS relacionados",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "configuration",
+          "type": "string",
+          "description": "O conteúdo da configuração do recurso. *\"A JSON-encoded string that contains the contents for the resource configuration. This string needs to be deserialized using `json.loads()`.\"* **No arquivo de snapshot entregue ao S3, o mesmo campo aparece como objeto JSON já desserializado**",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        },
+        {
+          "name": "supplementaryConfiguration",
+          "type": "map",
+          "description": "Conteúdo adicional para a configuração do recurso, devolvido para certos tipos de recurso. Requer `json.loads()`",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigurationItem.html",
+          "status": "verified",
+          "scope": "configuration-item"
+        }
+      ]
+    },
+    {
+      "name": "relationship",
+      "description": "Cada objeto de configurationItems[].relationships[]. Fonte: API_Relationship.html + example-s3-snapshot.html",
+      "columns": [
+        {
+          "name": "resourceId",
+          "type": "string",
+          "allowed_values": "comprimento 1–768",
+          "description": "O ID do recurso relacionado (ex.: `sg-xxxxxx`)",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_Relationship.html",
+          "status": "verified",
+          "scope": "relationship"
+        },
+        {
+          "name": "resourceName",
+          "type": "string",
+          "description": "O nome customizado do recurso relacionado, se disponível",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_Relationship.html",
+          "status": "verified",
+          "scope": "relationship"
+        },
+        {
+          "name": "resourceType",
+          "type": "string",
+          "allowed_values": "Lista de tipos suportados",
+          "description": "O tipo do recurso relacionado",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_Relationship.html",
+          "status": "verified",
+          "scope": "relationship"
+        },
+        {
+          "name": "relationshipName",
+          "type": "string",
+          "description": "O tipo de relacionamento com o recurso relacionado. **Grafia da API**",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_Relationship.html",
+          "status": "verified",
+          "scope": "relationship"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "**Grafia que aparece no exemplo oficial do arquivo S3**, ex.: `\"Attached to Instance\"`, `\"Attached Volume\"`, `\"Is contained in Subnet\"`. Semanticamente igual a `relationshipName`",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_Relationship.html",
+          "status": "verified",
+          "scope": "relationship"
+        },
+        {
+          "name": "direction",
+          "type": "string",
+          "allowed_values": "`IN` \\| `OUT` (no exemplo oficial)",
+          "description": "**Presente no exemplo do arquivo S3**, ex.: `\"direction\": \"OUT\"`, `\"direction\": \"IN\"`. **Não está documentado no schema `Relationship` da API**",
+          "source_url": "https://docs.aws.amazon.com/config/latest/APIReference/API_Relationship.html",
+          "status": "verified",
+          "scope": "relationship"
+        }
+      ]
+    },
+    {
+      "name": "sns-delivery-notification",
+      "description": "Payload Message da notificacao SNS de conclusao de entrega (metadados, nao o arquivo). Fonte: example-configuration-snapshot-notification.html",
+      "columns": [
+        {
+          "name": "s3ObjectKey",
+          "type": "string",
+          "required": true,
+          "description": "A chave completa do objeto entregue no bucket",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-configuration-history-notification.html",
+          "status": "verified",
+          "scope": "sns-delivery-notification"
+        },
+        {
+          "name": "s3Bucket",
+          "type": "string",
+          "required": true,
+          "description": "O nome do bucket de destino",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-configuration-history-notification.html",
+          "status": "verified",
+          "scope": "sns-delivery-notification"
+        },
+        {
+          "name": "notificationCreationTime",
+          "type": "string",
+          "required": true,
+          "datetime_format": "ISO 8601 UTC com milissegundos, ex.: `2016-09-27T20:37:05.217Z`",
+          "description": "O horário de criação da notificação",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-configuration-history-notification.html",
+          "status": "verified",
+          "scope": "sns-delivery-notification"
+        },
+        {
+          "name": "messageType",
+          "type": "string",
+          "required": true,
+          "allowed_values": "`ConfigurationHistoryDeliveryCompleted` \\| `ConfigurationSnapshotDeliveryCompleted`",
+          "description": "O tipo da mensagem de entrega",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-configuration-history-notification.html",
+          "status": "verified",
+          "scope": "sns-delivery-notification"
+        },
+        {
+          "name": "recordVersion",
+          "type": "string",
+          "required": true,
+          "allowed_values": "`\"1.1\"`",
+          "description": "A versão do registo da notificação",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-configuration-history-notification.html",
+          "status": "verified",
+          "scope": "sns-delivery-notification"
+        },
+        {
+          "name": "configSnapshotId",
+          "type": "string",
+          "allowed_values": "UUID",
+          "description": "O ID do snapshot, presente **apenas** na notificação de snapshot",
+          "source_url": "https://docs.aws.amazon.com/config/latest/developerguide/example-configuration-history-notification.html",
+          "status": "verified",
+          "scope": "sns-delivery-notification"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "configurationItemDeliveryTime in S3 file",
+      "reason": "documented as optional and not guaranteed; absent from the official file example"
+    },
+    {
+      "item": "recordingFrequency in S3 file",
+      "reason": "documented as API-response-only when DAILY recording is enabled"
+    },
+    {
+      "item": "supplementaryConfiguration in S3 file",
+      "reason": "documented in API schema only; absent from official file example"
+    },
+    {
+      "item": "resourceName in S3 file",
+      "reason": "documented in API schema only; absent from official file example"
+    },
+    {
+      "item": "file character encoding",
+      "reason": "not documented"
+    },
+    {
+      "item": "formal s3ObjectKey template",
+      "reason": "AWS publishes literal examples only, not a placeholder template; templates here are marked derived"
+    },
+    {
+      "item": "manifest/index artifact",
+      "reason": "no manifest is described in any consulted official page (negative evidence)"
+    },
+    {
+      "item": "SNS envelope schema",
+      "reason": "standard SNS envelope appears in examples but is not defined by AWS Config documentation"
+    },
+    {
+      "item": "Configuration Snapshot Delivery Started notification",
+      "reason": "example page could not be retrieved; referenced by navigation only"
+    }
+  ]
+}

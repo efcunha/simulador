@@ -1,0 +1,23 @@
+{
+  "_fixture": "cost-management-export-manifest",
+  "_description": "Skeleton of a Cost Management Exports per-run manifest.json. Mirrors exporter/manifest.build_manifest output shape.",
+  "version": "1.2",
+  "_todo_verificar": "§11.2 — full official field names/nesting (runInfo, blobs[], schema, dataset version strings) and the exact field holding exportTime are not offline-verifiable.",
+  "runId": "0000000000000000",
+  "exportName": "focus-cost",
+  "exportType": "focus",
+  "format": "csv",
+  "agreement": "mca",
+  "billingPeriodStart": "2025-01-01",
+  "billingPeriodEnd": "2025-01-31",
+  "exportTime": "2025-02-01T00:00:00+00:00",
+  "schema": {
+    "columns": ["BilledCost", "BillingPeriodStart"],
+    "datasetVersion": "1.2"
+  },
+  "blobs": [
+    { "blobName": "part_0_0001.csv.gz", "byteCount": 0 }
+  ],
+  "synthetic": true,
+  "schemaFingerprint": "synth:focus:mca:1.2:42:small:USD"
+}

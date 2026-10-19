@@ -1,0 +1,900 @@
+{
+  "surface": "aws/bcm-data-exports-focus12",
+  "provider": "aws",
+  "reference": {
+    "title": "FOCUS 1.2 with AWS columns - AWS Data Exports",
+    "url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws.md",
+    "columns_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+    "consulted_at": "2026-10-14",
+    "sql_table_name": "FOCUS_1_2_AWS",
+    "focus_version": "1.2",
+    "schema_composition": "57 FOCUS columns + 3 AWS proprietary columns (x_Discounts, x_Operation, x_ServiceCode) = 60",
+    "spec_file": "specs/aws/bcm-data-exports-focus12.md"
+  },
+  "delivery": {
+    "kind": "s3",
+    "path_template": "s3://<bucket-name>/<prefix>/<export-name>/data/<partition>/",
+    "path_template_create_new": "s3://<bucket-name>/<prefix>/<export-name>/data/<partition>/<timestamp>-<execution-id>/",
+    "partition_key": null,
+    "partition_format": null,
+    "partition_status": "unverified",
+    "partition_note": "The delivery documentation details the partition only for CUR 2.0 (BILLING_PERIOD=YYYY-MM). It does not state the partition for a FOCUS 1.2 export.",
+    "data_prefix": "data/",
+    "metadata_prefix": "metadata/",
+    "manifest_path_template": "s3://<bucket-name>/<prefix>/<export-name>/metadata/<partition>/<export-name>-Manifest.json",
+    "manifest_path_template_alternate": "s3://<bucket-name>/<prefix>/<export-name>/metadata/<partition>/Manifest.json",
+    "format": "parquet",
+    "compression": "snappy",
+    "documented_output_formats": [
+      "GZIP",
+      "Parquet"
+    ],
+    "file_name_template_parquet": "<export-name>-<chunk-number>.snappy.parquet",
+    "file_name_template_csv": "<export-name>-<chunk-number>.csv.gz",
+    "chunk_number_format": "5 digits, enumerated from 00001",
+    "timestamp_convention": null,
+    "timestamp_convention_status": "unverified",
+    "timestamp_note": "Unlike CUR 2.0, no AWS page for this table states UTC or a literal timestamp format for its timestamp_milliseconds columns.",
+    "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+  },
+  "allowed_api_values": {
+    "Compression": [
+      "GZIP",
+      "PARQUET",
+      "ZIP"
+    ],
+    "Format": [
+      "TEXT_OR_CSV",
+      "PARQUET"
+    ],
+    "OutputType": [
+      "CUSTOM",
+      "ATHENA",
+      "REDSHIFT"
+    ],
+    "Overwrite": [
+      "CREATE_NEW_REPORT",
+      "OVERWRITE_REPORT"
+    ],
+    "source_url": "https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_DataExports_S3OutputConfigurations.html"
+  },
+  "table_configurations": {
+    "TIME_GRANULARITY": {
+      "valid_values": [
+        "HOURLY",
+        "DAILY",
+        "MONTHLY"
+      ],
+      "schema_effect": "changes time granularity of the cost and usage line items",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws.md#focus-1-2-table-configurations"
+    }
+  },
+  "manifest": {
+    "status": "partial",
+    "file_name": "Manifest.json",
+    "confirmed_keys": [
+      "additionalOutputFiles"
+    ],
+    "confirmed_fields_for_this_table": {
+      "FocusVersion": "1.2"
+    },
+    "documented_contents": [
+      "All of the columns that are included in the export.",
+      "A list of the export files and their file path.",
+      "The time period covered by the export.",
+      "A section called additionalOutputFiles that lists the additional files that are delivered if you have Athena or Amazon Redshift integration."
+    ],
+    "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md",
+    "focus_version_source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-migrating.md",
+    "notes": "AWS documents the manifest by prose description only. No JSON schema, key list or example is published; every key except additionalOutputFiles is UNVERIFIED."
+  },
+  "schema_delta_vs_focus_1_0": {
+    "new_columns_documented_in_migration_table": [
+      "InvoiceIssuerId",
+      "CapacityReservationId",
+      "CapacityReservationStatus",
+      "CommitmentDiscountQuantity",
+      "CommitmentDiscountUnit",
+      "ServiceSubcategory",
+      "SkuMeter",
+      "SkuPriceDetails",
+      "PricingCurrency",
+      "PricingCurrencyEffectiveCost",
+      "PricingCurrencyListUnitPrice",
+      "PricingCurrencyContractedUnitPrice",
+      "BillingAccountType",
+      "SubAccountType"
+    ],
+    "removed_columns": {
+      "x_UsageType": "now the SkuMeter column",
+      "x_CostCategories": "now included in the Tags column with the aws:tags:CostCategory/ prefix"
+    },
+    "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-migrating.md",
+    "note": "InvoiceIssuerId is listed as a new column but does NOT appear in the official column table; it is therefore excluded from columns and recorded in unverified."
+  },
+  "conformance_gaps_source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-conformance.md",
+  "columns": [
+    {
+      "name": "AvailabilityZone",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A provider-assigned identifier for a physically separated and isolated area within a Region that provides high availability and fault tolerance.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "BilledCost",
+      "type": "double",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A charge serving as the basis for invoicing, inclusive of all reduced rates and discounts while excluding the amortization of upfront charges (one-time or recurring).",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "BillingAccountId",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The identifier assigned to a billing account by the provider.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "BillingAccountName",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The display name assigned to a billing account.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "BillingAccountType",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A provider-assigned name to identify the type of billing account.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "BillingCurrency",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Represents the currency that a charge was billed in.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "BillingPeriodEnd",
+      "type": "timestamp_milliseconds",
+      "required": true,
+      "unit": null,
+      "datetime_format": "não documentado (tipo timestamp_milliseconds; formato literal e fuso não afirmados pela AWS)",
+      "allowed_values": "—",
+      "description": "The exclusive end bound of a billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "BillingPeriodStart",
+      "type": "timestamp_milliseconds",
+      "required": true,
+      "unit": null,
+      "datetime_format": "não documentado (tipo timestamp_milliseconds; formato literal e fuso não afirmados pela AWS)",
+      "allowed_values": "—",
+      "description": "The inclusive start bound of a billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "CapacityReservationId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The identifier assigned to a capacity reservation by the provider.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "CapacityReservationStatus",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Indicates whether the charge represents either the consumption of a capacity reservation or when a capacity reservation is unused.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ChargeCategory",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Represents the highest-level classification of a charge based on the nature of how it is billed.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "ChargeClass",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Indicates whether the row represents a correction to a previously invoiced billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ChargeDescription",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Self-contained summary of the charge's purpose and price.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ChargeFrequency",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Indicates how often a charge will occur.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "ChargePeriodEnd",
+      "type": "timestamp_milliseconds",
+      "required": true,
+      "unit": null,
+      "datetime_format": "não documentado (tipo timestamp_milliseconds; formato literal e fuso não afirmados pela AWS)",
+      "allowed_values": "—",
+      "description": "The exclusive end bound of a charge period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "ChargePeriodStart",
+      "type": "timestamp_milliseconds",
+      "required": true,
+      "unit": null,
+      "datetime_format": "não documentado (tipo timestamp_milliseconds; formato literal e fuso não afirmados pela AWS)",
+      "allowed_values": "—",
+      "description": "The inclusive start bound of a charge period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "CommitmentDiscountCategory",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Indicates whether the commitment discount identified in the CommitmentDiscountId column is based on usage quantity or cost (aka \"spend\").",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "CommitmentDiscountId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The identifier assigned to a commitment discount by the provider.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "CommitmentDiscountName",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The display name assigned to a commitment discount.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "CommitmentDiscountQuantity",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The amount of a commitment discount purchased or accounted for in commitment discount related rows that is denominated in Commitment Discount Units.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "CommitmentDiscountStatus",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Indicates whether the charge corresponds with the consumption of a commitment discount or the unused portion of the committed amount.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "CommitmentDiscountType",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A provider-assigned identifier for the type of commitment discount applied to the row.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "CommitmentDiscountUnit",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The provider-specified measurement unit indicating how a provider measures the Commitment Discount Quantity of a commitment discount.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ConsumedQuantity",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The volume of a metered SKU associated with a resource or service used, based on the Consumed Unit.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ConsumedUnit",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Provider-specified measurement unit indicating how a provider measures usage of a metered SKU associated with a resource or service.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ContractedCost",
+      "type": "double",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Cost calculated by multiplying contracted unit price and the corresponding Pricing Quantity.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "ContractedUnitPrice",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The agreed-upon unit price for a single Pricing Unit of the associated SKU, inclusive of negotiated discounts, if present, while excluding negotiated commitment discounts or any other discounts.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "EffectiveCost",
+      "type": "double",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The amortized cost of the charge after applying all reduced rates, discounts, and the applicable portion of relevant, prepaid purchases (one-time or recurring) that covered this charge.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "InvoiceId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The provider-assigned identifier for an invoice encapsulating some or all charges in the corresponding billing period for a given billing account.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "InvoiceIssuerName",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The name of the entity responsible for invoicing for the resources or services consumed.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "ListCost",
+      "type": "double",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Cost calculated by multiplying List Unit Price and the corresponding Pricing Quantity.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "ListUnitPrice",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The suggested provider-published unit price for a single Pricing Unit of the associated SKU, exclusive of any discounts.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "PricingCategory",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the pricing model used for a charge at the time of use or purchase.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "PricingCurrency",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The national or virtual currency denomination that a resource or service was priced in.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "PricingCurrencyContractedUnitPrice",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The agreed-upon unit price for a single Pricing Unit of the associated SKU, inclusive of negotiated discounts, if present, while excluding negotiated commitment discounts or any other discounts, and expressed in Pricing Currency.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "PricingCurrencyEffectiveCost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The cost of the charge after applying all reduced rates, discounts, and the applicable portion of relevant, prepaid purchases (one-time or recurring) that covered this charge, as denominated in Pricing Currency.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "PricingCurrencyListUnitPrice",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The suggested provider-published unit price for a single Pricing Unit of the associated SKU, exclusive of any discounts and expressed in Pricing Currency.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "PricingQuantity",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The volume of a given SKU associated with a resource or service used or purchased, based on the Pricing Unit.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "PricingUnit",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Provider-specified measurement unit for determining unit prices, indicating how the provider rates measured usage and purchase quantities after applying pricing rules like block pricing.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ProviderName",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The name of the entity that made the resources or services available for purchase.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "PublisherName",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The name of the entity that produced the resources or services that were purchased.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "RegionId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Provider-assigned identifier for an isolated geographic area where a resource is provisioned or a service is provided.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "RegionName",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The name of an isolated geographic area where a resource is provisioned or a service is provided.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ResourceId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Identifier assigned to a resource by the provider.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ResourceName",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Display name assigned to a resource.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ResourceType",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The kind of resource the charge applies to.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "ServiceCategory",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Highest-level classification of a service based on the core function of the service.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "ServiceName",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "An offering that can be purchased from a provider (e.g., cloud virtual machine, SaaS database, professional services from a systems integrator).",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "ServiceSubcategory",
+      "type": "string",
+      "required": true,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Secondary classification of the Service Category for a service based on its core function.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "No"
+    },
+    {
+      "name": "SkuId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Provider-specified unique identifier that represents a specific SKU (e.g., a quantifiable good or service offering).",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "SkuMeter",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the functionality being metered or measured by a particular SKU in a charge.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "SkuPriceId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A provider-specified unique identifier that represents a specific SKU Price associated with a resource or service used or purchased.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "SkuPriceDetails",
+      "type": "map <string, string>",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A set of properties of a SKU Price ID which are meaningful and common to all instances of that SKU Price ID.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "SubAccountId",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "An ID assigned to a grouping of resources or services, often used to manage access and/or cost.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "SubAccountName",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A name assigned to a grouping of resources or services, often used to manage access and/or cost.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "SubAccountType",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A provider-assigned name to identify the type of sub account.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "Tags",
+      "type": "map <string, string>",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The set of tags assigned to tag sources that account for potential provider-defined or user-defined tag evaluations.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes"
+    },
+    {
+      "name": "x_Discounts",
+      "type": "map <string, double>",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A map column containing key-value pairs of any specific discounts that apply to this line item.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes",
+      "aws_proprietary": true
+    },
+    {
+      "name": "x_Operation",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The specific AWS operation covered by this line item. This describes the specific usage of the line item. For example, a value of RunInstances indicates the operation of an Amazon EC2 instance.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes",
+      "aws_proprietary": true
+    },
+    {
+      "name": "x_ServiceCode",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The code of the product measured. For example, Amazon EC2 is the product code for Amazon Elastic Compute Cloud.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md",
+      "status": "verified",
+      "null_value_allowed": "Yes",
+      "aws_proprietary": true
+    }
+  ],
+  "counts": {
+    "documented_columns": 60,
+    "focus_spec_columns": 57,
+    "aws_proprietary_columns": 3,
+    "required_true": 19,
+    "count_method": "Rows extracted from the official HTML of table-dictionary-focus-1-2-aws-columns.html"
+  },
+  "unverified": [
+    {
+      "item": "Currency/unit of all monetary columns (BilledCost, EffectiveCost, ListCost, ContractedCost, ContractedUnitPrice, ListUnitPrice, PricingCurrencyContractedUnitPrice, PricingCurrencyEffectiveCost, PricingCurrencyListUnitPrice, x_Discounts)",
+      "reason": "The official column page documents type and nullability but never declares unit or currency. BillingCurrency exists as a column, but AWS does not state that BilledCost is denominated in it. The FinOps FOCUS 1.2 specification (focus.finops.org, incl. the official PDF) returned HTTP 403 on every attempt, so units could not be verified from an official source.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md"
+    },
+    {
+      "item": "Units of CommitmentDiscountQuantity, CommitmentDiscountUnit, ConsumedQuantity, ConsumedUnit, PricingQuantity, PricingUnit",
+      "reason": "AWS documents these as provider-specified or 'denominated in Commitment Discount Units' and does not enumerate values.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md"
+    },
+    {
+      "item": "Literal timestamp format and timezone of BillingPeriodStart, BillingPeriodEnd, ChargePeriodStart, ChargePeriodEnd",
+      "reason": "The type is documented as timestamp_milliseconds, but the page states neither the serialized format nor UTC for these columns (unlike CUR 2.0, which explicitly states UTC and YYYY-MM-DDTHH:mm:ssZ).",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md"
+    },
+    {
+      "item": "Allowed values of ChargeCategory, ChargeClass, ChargeFrequency, CommitmentDiscountCategory, CommitmentDiscountStatus, CommitmentDiscountType, PricingCategory, ServiceCategory, ServiceSubcategory, BillingAccountType, SubAccountType, CapacityReservationStatus, ResourceType",
+      "reason": "AWS documents the semantics but does not enumerate valid values on this page; the FOCUS 1.2 specification that enumerates them was unreachable (HTTP 403).",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md"
+    },
+    {
+      "item": "Complete list of tag prefixes used in the Tags column",
+      "reason": "The migration page mentions the aws:tags:CostCategory/ prefix, but no complete prefix list is published for this table.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-migrating.md"
+    },
+    {
+      "item": "Literal value of the S3 partition for a FOCUS 1.2 export",
+      "reason": "The delivery documentation describes data/<partition>/ generically and details the partition explicitly only for CUR 2.0 (BILLING_PERIOD=YYYY-MM). The FOCUS 1.2 partition is never stated.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+    },
+    {
+      "item": "Manifest.json literal key names for columns, data files and covered period",
+      "reason": "AWS documents the manifest contents in prose only; no JSON schema, key list or example is published.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+    },
+    {
+      "item": "JSON type of the FocusVersion manifest value and internal structure of additionalOutputFiles",
+      "reason": "Name and value ('1.2') are documented; the JSON type is not stated, and the internal structure of additionalOutputFiles is not published.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-migrating.md"
+    },
+    {
+      "item": "InvoiceIssuerId",
+      "reason": "Listed among the new FOCUS 1.2 columns on the migration page, but absent from the official column table of this surface. With no row documenting it, it is not generated.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-aws-columns.md"
+    },
+    {
+      "item": "CSV/gzip header, delimiter and encoding",
+      "reason": "The delivery documentation defines only file names and the format options; it makes no statement about header, delimiter or encoding.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+    }
+  ]
+}

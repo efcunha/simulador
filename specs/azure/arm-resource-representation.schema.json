@@ -1,0 +1,2533 @@
+{
+  "surface": "azure/arm-resource-representation",
+  "provider": "azure",
+  "reference": {
+    "title": "Virtual Machines - Get (REST API, Azure Compute, api-version 2026-04-01) response body of type VirtualMachine; corroborated by Virtual Machines - List All and the Microsoft.Compute/virtualMachines 2026-04-01 ARM template reference",
+    "url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP",
+    "consulted_at": "2026-10-14",
+    "secondary_urls": [
+      "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP",
+      "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines",
+      "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachines"
+    ]
+  },
+  "delivery": {
+    "kind": "arm-rest-api",
+    "endpoint": "GET https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}?api-version=2026-04-01",
+    "optional_query_params": {
+      "$expand": {
+        "type": "InstanceViewTypes",
+        "allowed_values": [
+          "InstanceView",
+          "UserData"
+        ],
+        "description": "'InstanceView' retrieves a snapshot of the runtime properties of the virtual machine that is managed by the platform and can change outside of control plane operations. 'UserData' retrieves the UserData property as part of the VM model view that was provided by the user during the VM Create/Update operation.",
+        "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+      }
+    },
+    "responses": {
+      "200": "VirtualMachine",
+      "other": "CloudError"
+    },
+    "path_template": "",
+    "format": "json",
+    "compression": "",
+    "note": "This is an ARM control-plane REST response, not a push export. No blob path, partitioning, compression or manifest is documented because none exists for this surface."
+  },
+  "uri_parameters": [
+    {
+      "name": "resourceGroupName",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "constraints": "minLength: 1, maxLength: 90",
+      "description": "The name of the resource group. The name is case insensitive.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "subscriptionId",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "constraints": "minLength: 1",
+      "description": "The ID of the target subscription.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "vmName",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "constraints": "",
+      "description": "The name of the virtual machine.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "api-version",
+      "in": "query",
+      "required": true,
+      "type": "string",
+      "constraints": "minLength: 1",
+      "description": "The API version to use for this operation.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "$expand",
+      "in": "query",
+      "required": false,
+      "type": "InstanceViewTypes",
+      "constraints": "",
+      "description": "The expand expression to apply on the operation.",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    }
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "Microsoft.Compute/virtualMachines"
+      ],
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "location",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "tags",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "zones",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "evidence": "declared",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines",
+      "type_source": "documented",
+      "type_note": "referencia de templates ARM 2026-04-01 (https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines), secao \"Property Values\" > 'Microsoft.Compute/virtualMachines': \"zones | The availability zones. | string[]\""
+    },
+    {
+      "name": "identity",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "identity.principalId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "identity.tenantId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "identity.type",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "declared",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP",
+      "type_source": "documented",
+      "type_note": "referencia de templates ARM 2026-04-01 (https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines), secao \"Property Values\" > 'VirtualMachineIdentity': \"type | The type of identity used for the virtual machine. | 'None' 'SystemAssigned' 'SystemAssigned, UserAssigned' 'UserAssigned'\" (enum de string)"
+    },
+    {
+      "name": "identity.userAssignedIdentities",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "evidence": "declared",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP",
+      "type_source": "documented",
+      "type_note": "referencia de templates ARM 2026-04-01 (https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines), secao \"Property Values\" > 'VirtualMachineIdentity': \"userAssignedIdentities | The list of user identities associated with the Virtual Machine. | VirtualMachineIdentityUserAssignedIdentities\" (tipo referenciado, objeto)"
+    },
+    {
+      "name": "identity.userAssignedIdentities.{key}.principalId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "identity.userAssignedIdentities.{key}.clientId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "plan",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "plan.name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "plan.product",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "plan.promotionCode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "plan.publisher",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "extendedLocation",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "extendedLocation.name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "declared",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP",
+      "type_source": "documented",
+      "type_note": "referencia de templates ARM 2026-04-01 (https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines), secao \"Property Values\" > 'ExtendedLocation': \"name | The name of the extended location. | string\""
+    },
+    {
+      "name": "extendedLocation.type",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "declared",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP",
+      "type_source": "documented",
+      "type_note": "referencia de templates ARM 2026-04-01 (https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines), secao \"Property Values\" > 'ExtendedLocation': \"type | The type of the extended location. | 'EdgeZone'\" (enum de string)"
+    },
+    {
+      "name": "placement",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "placement.excludeZones",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "placement.includeZones",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "placement.zonePlacementPolicy",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "resources",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.forceUpdateTag",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.publisher",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.type",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.typeHandlerVersion",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.autoUpgradeMinorVersion",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.enableAutomaticUpgrade",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.settings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.protectedSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.provisioningState",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.suppressFailures",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.protectedSettingsFromKeyVault",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.protectedSettingsFromKeyVault.sourceVault",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.protectedSettingsFromKeyVault.sourceVault.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "resources[].properties.protectedSettingsFromKeyVault.secretUrl",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "properties.additionalCapabilities",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.additionalCapabilities.enableFips1403Encryption",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.additionalCapabilities.hibernationEnabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.additionalCapabilities.ultraSSDEnabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.applicationProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.applicationProfile.galleryApplications",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.applicationProfile.galleryApplications[].configurationReference",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.applicationProfile.galleryApplications[].enableAutomaticUpgrade",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.applicationProfile.galleryApplications[].order",
+      "type": "integer",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.applicationProfile.galleryApplications[].packageReferenceId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.applicationProfile.galleryApplications[].tags",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.applicationProfile.galleryApplications[].treatFailureAsDeploymentFailure",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.availabilitySet",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.availabilitySet.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.billingProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.billingProfile.maxPrice",
+      "type": "integer",
+      "required": false,
+      "unit": "USD",
+      "allowed_values": [
+        "any decimal value greater than zero",
+        "-1"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.capacityReservation",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.capacityReservation.capacityReservationGroup",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.capacityReservation.capacityReservationGroup.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.capacityReservation.disableCapacityReservationAssignment",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.diagnosticsProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.diagnosticsProfile.bootDiagnostics",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.diagnosticsProfile.bootDiagnostics.enabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.diagnosticsProfile.bootDiagnostics.storageUri",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.evictionPolicy",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.extensionsTimeBudget",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.hardwareProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.hardwareProfile.processorMode",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "Deterministic",
+        "Opportunistic"
+      ],
+      "status": "verified",
+      "evidence": "declared",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP",
+      "type_source": "documented",
+      "type_note": "referencia de templates ARM 2026-04-01 (https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines), secao \"Property Values\" > 'HardwareProfile': \"processorMode | Specifies the processor mode for the virtual machine or virtual machine scale set. ... | 'Deterministic' 'Opportunistic'\" (enum de string)"
+    },
+    {
+      "name": "properties.hardwareProfile.vmSize",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "declared",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP",
+      "type_source": "documented",
+      "type_note": "referencia de templates ARM 2026-04-01 (https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines), secao \"Property Values\" > 'HardwareProfile': \"vmSize | Specifies the size of the virtual machine. ... | 'Basic_A0' ... 'Standard_A1_v2' ...\" (enum de string)"
+    },
+    {
+      "name": "properties.hardwareProfile.vmSizeProperties",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.hardwareProfile.vmSizeProperties.vCPUsAvailable",
+      "type": "integer",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.hardwareProfile.vmSizeProperties.vCPUsPerCore",
+      "type": "integer",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.host",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.host.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.hostGroup",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.hostGroup.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.interconnectBlockProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.interconnectBlockProfile.interconnectBlock",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.interconnectBlockProfile.interconnectBlock.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.licenseType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.interconnectGroupProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.interconnectGroupProfile.interconnectGroup",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.interconnectGroupProfile.interconnectGroup.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.interconnectGroupProfile.subgroups",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkApiVersion",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.auxiliaryMode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.auxiliarySku",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.deleteOption",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.disableTcpStateTracking",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.dnsSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.dnsSettings.dnsServers",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.dscpConfiguration",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.dscpConfiguration.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.enableAcceleratedNetworking",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.enableFpga",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.enableIPForwarding",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.applicationGatewayBackendAddressPools",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.applicationSecurityGroups",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.loadBalancerBackendAddressPools",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.primary",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.privateIPAddressVersion",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.deleteOption",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.dnsSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.dnsSettings.domainNameLabel",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.dnsSettings.domainNameLabelScope",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "TenantReuse",
+        "SubscriptionReuse",
+        "ResourceGroupReuse",
+        "NoReuse"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.idleTimeoutInMinutes",
+      "type": "integer",
+      "required": false,
+      "unit": "minutes",
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.ipTags",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.ipTags[].firstPartyServiceTagId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.ipTags[].ipTagType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.ipTags[].tag",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.publicIPAddressVersion",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.publicIPAllocationMethod",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.publicIPPrefix",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.properties.publicIPPrefix.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.sku",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.sku.name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.sku.tier",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.publicIPAddressConfiguration.tags",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.subnet",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.ipConfigurations[].properties.subnet.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.networkSecurityGroup",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.networkSecurityGroup.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].properties.primary",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaceConfigurations[].tags",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaces",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaces[].id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaces[].properties.deleteOption",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.networkProfile.networkInterfaces[].properties.primary",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.adminPassword",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines",
+      "note": "Never returned in the official response examples."
+    },
+    {
+      "name": "properties.osProfile.adminUsername",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.allowExtensionOperations",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.computerName",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.customData",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.disablePasswordAuthentication",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.enableVMAgentPlatformUpdates",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.patchSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.patchSettings.assessmentMode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.patchSettings.automaticByPlatformSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.patchSettings.automaticByPlatformSettings.bypassPlatformSafetyChecksOnUserSchedule",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.patchSettings.automaticByPlatformSettings.rebootSetting",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.patchSettings.patchMode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.provisionVMAgent",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.ssh",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.ssh.publicKeys",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.ssh.publicKeys[].keyData",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.linuxConfiguration.ssh.publicKeys[].path",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.requireGuestProvisionSignal",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.secrets",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.secrets[].sourceVault",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.secrets[].sourceVault.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.secrets[].vaultCertificates",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.secrets[].vaultCertificates[].certificateStore",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.secrets[].vaultCertificates[].certificateUrl",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.additionalUnattendContent",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.additionalUnattendContent[].componentName",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "Microsoft-Windows-Shell-Setup"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.additionalUnattendContent[].content",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.additionalUnattendContent[].passName",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "OobeSystem"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.additionalUnattendContent[].settingName",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "AutoLogon",
+        "FirstLogonCommands"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.enableAutomaticUpdates",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.patchSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.patchSettings.assessmentMode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.patchSettings.automaticByPlatformSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.patchSettings.automaticByPlatformSettings.bypassPlatformSafetyChecksOnUserSchedule",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.patchSettings.automaticByPlatformSettings.rebootSetting",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.patchSettings.enableHotpatching",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.patchSettings.patchMode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.provisionVMAgent",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.timeZone",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.winRM",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.winRM.listeners",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.winRM.listeners[].certificateUrl",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.osProfile.windowsConfiguration.winRM.listeners[].protocol",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.platformFaultDomain",
+      "type": "integer",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.priority",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.provisioningState",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP"
+    },
+    {
+      "name": "properties.proximityPlacementGroup",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.proximityPlacementGroup.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.resiliencyProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.resiliencyProfile.zoneMovement",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.resiliencyProfile.zoneMovement.isEnabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.allInstancesDown",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.allInstancesDown.automaticallyApprove",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.scheduledEventsAdditionalPublishingTargets",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.scheduledEventsAdditionalPublishingTargets.eventGridAndResourceGraph",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.scheduledEventsAdditionalPublishingTargets.eventGridAndResourceGraph.enable",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.scheduledEventsAdditionalPublishingTargets.eventGridAndResourceGraph.scheduledEventsApiVersion",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.userInitiatedReboot",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.userInitiatedReboot.automaticallyApprove",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.userInitiatedRedeploy",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsPolicy.userInitiatedRedeploy.automaticallyApprove",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsProfile.osImageNotificationProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsProfile.osImageNotificationProfile.enable",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsProfile.osImageNotificationProfile.notBeforeTimeout",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsProfile.terminateNotificationProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsProfile.terminateNotificationProfile.enable",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.scheduledEventsProfile.terminateNotificationProfile.notBeforeTimeout",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.encryptionAtHost",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.encryptionIdentity",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.encryptionIdentity.userAssignedIdentityResourceId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.addProxyAgentExtension",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.enabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.imds",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.imds.inVMAccessControlProfileReferenceId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.imds.mode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.imds.useLocalFileRules",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.keyIncarnationId",
+      "type": "integer",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.mode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.wireServer",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.wireServer.inVMAccessControlProfileReferenceId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.wireServer.mode",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.proxyAgentSettings.wireServer.useLocalFileRules",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.securityType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.uefiSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.uefiSettings.secureBootEnabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.securityProfile.uefiSettings.vTpmEnabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.alignRegionalDisksToVMZone",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks",
+      "type": "array",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].caching",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "None",
+        "ReadOnly",
+        "ReadWrite"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].createOption",
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "Attach",
+        "Copy",
+        "Empty",
+        "FromImage",
+        "Restore"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].deleteOption",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "Delete",
+        "Detach"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].detachOption",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "ForceDetach"
+      ],
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].diskIOPSReadWrite",
+      "type": "integer",
+      "required": false,
+      "unit": "IOPS",
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].diskMBpsReadWrite",
+      "type": "integer",
+      "required": false,
+      "unit": "MBps",
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].diskSizeGB",
+      "type": "integer",
+      "required": false,
+      "unit": "GB",
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].image",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].image.uri",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].lun",
+      "type": "integer",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.availabilityPolicy",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.availabilityPolicy.actionOnDiskDelay",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.burstingEnabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.diskAccessId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.diskIOPSReadOnly",
+      "type": "integer",
+      "required": false,
+      "unit": "IOPS",
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.diskMBpsReadOnly",
+      "type": "integer",
+      "required": false,
+      "unit": "MBps",
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.logicalSectorSize",
+      "type": "integer",
+      "required": false,
+      "unit": "bytes",
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.maxShares",
+      "type": "integer",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.networkAccessPolicy",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.optimizedForFrequentAttach",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.performancePlus",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.additionalDiskProperties.managedDiskProperties.tier",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.diskEncryptionSet",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.diskEncryptionSet.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.securityProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.securityProfile.diskEncryptionSet",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.securityProfile.diskEncryptionSet.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.securityProfile.securityEncryptionType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].managedDisk.storageAccountType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].sourceResource",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].sourceResource.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].storageFaultDomainAlignment",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].toBeDetached",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].vhd",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].vhd.uri",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.dataDisks[].writeAcceleratorEnabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.diskApiVersion",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.diskControllerType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference.communityGalleryImageId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference.offer",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference.publisher",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference.sharedGalleryImageId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference.sku",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference.version",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.imageReference.exactVersion",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP",
+      "note": "Present in the official List All example but absent from the template deployment property list, indicating read-only."
+    },
+    {
+      "name": "properties.storageProfile.osDisk",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.caching",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.createOption",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.deleteOption",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.diffDiskSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.diffDiskSettings.enableFullCaching",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.diffDiskSettings.option",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.diffDiskSettings.placement",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.diskSizeGB",
+      "type": "integer",
+      "required": false,
+      "unit": "GB",
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.diskEncryptionKey",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.diskEncryptionKey.secretUrl",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.diskEncryptionKey.sourceVault",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.diskEncryptionKey.sourceVault.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.enabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.keyEncryptionKey",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.keyEncryptionKey.keyUrl",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.keyEncryptionKey.sourceVault",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.encryptionSettings.keyEncryptionKey.sourceVault.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.image",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.image.uri",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.additionalDiskProperties",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.diskEncryptionSet",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.diskEncryptionSet.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.securityProfile",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.securityProfile.diskEncryptionSet",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.securityProfile.diskEncryptionSet.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.securityProfile.securityEncryptionType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.storageAccountType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.name",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.osType",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.storageFaultDomainAlignment",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.vhd",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.vhd.uri",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.writeAcceleratorEnabled",
+      "type": "boolean",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.timeCreated",
+      "type": "string",
+      "required": false,
+      "datetime_format": "ISO 8601 (example 2022-01-14T16:43:41.683Z)",
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/list-all?view=rest-compute-2026-04-01&tabs=HTTP",
+      "note": "Present only in the official List All example; absent from the template deployment property list, indicating read-only."
+    },
+    {
+      "name": "properties.userData",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "declared",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP",
+      "note": "Returned only when $expand=UserData.",
+      "type_source": "documented",
+      "type_note": "referencia de templates ARM 2026-04-01 (https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines), secao \"Property Values\" > 'VirtualMachineProperties': \"userData | UserData for the VM, which must be base-64 encoded. ... | string\""
+    },
+    {
+      "name": "properties.virtualMachineScaleSet",
+      "type": "object",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.virtualMachineScaleSet.id",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "source_url": "https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/2026-04-01/virtualmachines"
+    },
+    {
+      "name": "properties.vmId",
+      "type": "string",
+      "required": false,
+      "status": "verified",
+      "evidence": "example-only",
+      "source_url": "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/get?view=rest-compute-2026-04-01&tabs=HTTP",
+      "note": "Platform-assigned, read-only."
+    }
+  ],
+  "unverified": [
+    {
+      "name": "GET response Definitions table (per-field type and required flags for nested types)",
+      "reason": "The official Virtual Machines - Get page did not expose its type Definitions section in any retrieval attempt; the returned content stops at the Examples. The anchors #virtualmachine, #instanceviewtypes and #clouderror are referenced inside the page, so the definitions exist on the page but their content was never read. No field in this file is attributed to that section.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "sku (top-level)",
+      "reason": "Does not appear in any official GET/List All example response for Microsoft.Compute/virtualMachines, nor in the ARM template top-level property list for this type. Not listed, to avoid inventing a property.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "properties.instanceView.*",
+      "reason": "$expand=InstanceView is documented as a parameter, but no consulted official example returns the instanceView object, so none of its subfields (vmAgent, disks, extensions, statuses, computerName, osName, osVersion, ...) are listed.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "properties.storageProfile.osDisk.managedDisk.additionalDiskProperties.managedDiskProperties.*",
+      "reason": "The template reference lists the equivalent structure for osDisk but the child properties were only transcribed in full for dataDisks; not duplicated by inference.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "required flag for every field other than properties.storageProfile.dataDisks[].createOption",
+      "reason": "Only DataDisk.createOption is explicitly marked '(required)' in the consulted template reference: 'CreateOption' carries '(required)' in the Value column, and no other property does. Because the REST Definitions table could not be read, the remaining required flags are unknown rather than false.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "read-only (readOnly) status of most properties",
+      "reason": "Only properties.vmId, properties.storageProfile.imageReference.exactVersion, properties.timeCreated and identity.principalId/identity.tenantId have documentary evidence of being read-only (present in responses but absent from the deployment property list, or described as platform-assigned). For the rest the REST reference was not readable.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "structure of resources[].properties.settings and .protectedSettings",
+      "reason": "Examples show them as arbitrary objects; no schema is published.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "CloudError / ErrorResponse field list",
+      "reason": "The error response type is referenced but no field table for it was read.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "delivery.path_template / delivery.compression",
+      "reason": "Not applicable: this is an ARM REST JSON response, not a push export. No blob path or compression exists in the documentation. Empty by design.",
+      "status": "UNVERIFIED"
+    }
+  ]
+}

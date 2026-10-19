@@ -1,0 +1,1789 @@
+{
+  "surface": "aws/bcm-data-exports-cur2",
+  "provider": "aws",
+  "reference": {
+    "title": "Cost and Usage Report (CUR) 2.0 - AWS Data Exports",
+    "url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.md",
+    "consulted_at": "2026-10-14",
+    "sql_table_name": "COST_AND_USAGE_REPORT",
+    "spec_file": "specs/aws/bcm-data-exports-cur2.md"
+  },
+  "delivery": {
+    "kind": "s3",
+    "path_template": "s3://<bucket-name>/<prefix>/<export-name>/data/BILLING_PERIOD=YYYY-MM/",
+    "path_template_create_new": "s3://<bucket-name>/<prefix>/<export-name>/data/BILLING_PERIOD=YYYY-MM/<timestamp>-<execution-id>/",
+    "partition_key": "BILLING_PERIOD",
+    "partition_format": "YYYY-MM",
+    "data_prefix": "data/",
+    "metadata_prefix": "metadata/",
+    "manifest_path_template": "s3://<bucket-name>/<prefix>/<export-name>/metadata/BILLING_PERIOD=YYYY-MM/<export-name>-Manifest.json",
+    "manifest_path_template_alternate": "s3://<bucket-name>/<prefix>/<export-name>/metadata/BILLING_PERIOD=YYYY-MM/Manifest.json",
+    "format": "parquet",
+    "compression": "snappy",
+    "file_name_template_parquet": "<export-name>-<chunk-number>.snappy.parquet",
+    "file_name_template_csv": "<export-name>-<chunk-number>.csv.gz",
+    "chunk_number_format": "5 digits, enumerated from 00001",
+    "timestamp_convention": "UTC",
+    "timestamp_format": "YYYY-MM-DDTHH:mm:ssZ",
+    "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+  },
+  "allowed_api_values": {
+    "Compression": [
+      "GZIP",
+      "PARQUET",
+      "ZIP"
+    ],
+    "Format": [
+      "TEXT_OR_CSV",
+      "PARQUET"
+    ],
+    "OutputType": [
+      "CUSTOM",
+      "ATHENA",
+      "REDSHIFT"
+    ],
+    "Overwrite": [
+      "CREATE_NEW_REPORT",
+      "OVERWRITE_REPORT"
+    ],
+    "source_url": "https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_DataExports_S3OutputConfigurations.html"
+  },
+  "manifest": {
+    "status": "partial",
+    "file_name": "Manifest.json",
+    "documented_contents": [
+      "All of the columns that are included in the export.",
+      "A list of the export files and their file path.",
+      "The time period covered by the export.",
+      "A section called additionalOutputFiles that lists the additional files that are delivered if you have Athena or Amazon Redshift integration."
+    ],
+    "confirmed_keys": [
+      "additionalOutputFiles"
+    ],
+    "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md",
+    "notes": "AWS documents the manifest by prose description only. No JSON schema, key list or example is published; every key except additionalOutputFiles is UNVERIFIED."
+  },
+  "table_configurations": {
+    "TIME_GRANULARITY": {
+      "valid_values": [
+        "HOURLY",
+        "DAILY",
+        "MONTHLY"
+      ],
+      "schema_effect": "changes time granularity of line items",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.md"
+    },
+    "INCLUDE_RESOURCES": {
+      "valid_values": [
+        "TRUE",
+        "FALSE"
+      ],
+      "adds_columns": [
+        "line_item_resource_id"
+      ],
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.md"
+    },
+    "INCLUDE_SPLIT_COST_ALLOCATION_DATA": {
+      "valid_values": [
+        "TRUE",
+        "FALSE"
+      ],
+      "adds_columns": [
+        "split_line_item_*"
+      ],
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.md"
+    },
+    "INCLUDE_CAPACITY_RESERVATION_DATA": {
+      "valid_values": [
+        "TRUE",
+        "FALSE"
+      ],
+      "adds_columns": [
+        "capacity_reservation_capacity_reservation_arn",
+        "capacity_reservation_capacity_reservation_status",
+        "capacity_reservation_capacity_reservation_type"
+      ],
+      "data_starts": "2025-11-01",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.md"
+    },
+    "INCLUDE_IAM_PRINCIPAL_DATA": {
+      "valid_values": [
+        "TRUE",
+        "FALSE"
+      ],
+      "adds_columns": [
+        "line_item_iam_principal"
+      ],
+      "data_starts": "2026-04-08",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.md"
+    },
+    "INCLUDE_MANUAL_DISCOUNT_COMPATIBILITY": {
+      "valid_values": [
+        "TRUE",
+        "FALSE"
+      ],
+      "removes_columns": [
+        "discount",
+        "discount_total_discount"
+      ],
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.md"
+    }
+  },
+  "columns": [
+    {
+      "name": "bill_bill_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The type of bill that this report covers. There are three bill types: Anniversary: Line items for services that you used during the month. Purchase: Line items for upfront service fees. Refund: Line items for refunds.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-bill.md#table-dictionary-cur2-bill",
+      "status": "verified"
+    },
+    {
+      "name": "bill_billing_entity",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Helps you identify whether your invoices or transactions are for AWS Marketplace or for purchases of other AWS services.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-bill.md#table-dictionary-cur2-bill",
+      "status": "verified"
+    },
+    {
+      "name": "bill_billing_period_end_date",
+      "type": "timestamp",
+      "required": false,
+      "unit": null,
+      "datetime_format": "UTC, YYYY-MM-DDTHH:mm:ssZ",
+      "allowed_values": "—",
+      "description": "The end date of the billing period that is covered by this report, in UTC. The format is YYYY-MM-DDTHH:mm:ssZ.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-bill.md#table-dictionary-cur2-bill",
+      "status": "verified"
+    },
+    {
+      "name": "bill_billing_period_start_date",
+      "type": "timestamp",
+      "required": false,
+      "unit": null,
+      "datetime_format": "UTC, YYYY-MM-DDTHH:mm:ssZ",
+      "allowed_values": "—",
+      "description": "The start date of the billing period that is covered by this report, in UTC. The format is YYYY-MM-DDTHH:mm:ssZ.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-bill.md#table-dictionary-cur2-bill",
+      "status": "verified"
+    },
+    {
+      "name": "bill_invoice_id",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The ID associated with a specific line item. Until the report is final, the InvoiceId is blank.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-bill.md#table-dictionary-cur2-bill",
+      "status": "verified"
+    },
+    {
+      "name": "bill_invoicing_entity",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The AWS entity that issues the invoice.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-bill.md#table-dictionary-cur2-bill",
+      "status": "verified"
+    },
+    {
+      "name": "bill_payer_account_id",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The account ID of the paying account. For an organization in AWS Organizations, this is the account ID of the management account.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-bill.md#table-dictionary-cur2-bill",
+      "status": "verified"
+    },
+    {
+      "name": "bill_payer_account_name",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The account name of the paying account. For an organization in AWS Organizations, this is the name of the management account.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-bill.md#table-dictionary-cur2-bill",
+      "status": "verified"
+    },
+    {
+      "name": "cost_category",
+      "type": "map <string, string>",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A map column containing key-value pairs of the cost categories and their values for a given line item. These keys and values are populated based on the categorization rules you create in the cost categories feature. A cost category key only appears in the map column if it has a value that applies to the specific line item. The keys of this column can be queried as individual columns using the dot operator. For more information, see Data query.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-cost-category.md#table-dictionary-cur2-cost-category",
+      "status": "verified"
+    },
+    {
+      "name": "capacity_reservation_capacity_reservation_arn",
+      "type": "String",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE CAPACITY RESERVATION DATA The capacity reservation ARN represents the unique identifier of the capacity reservation",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-capacity-reservation.md#table-dictionary-cur2-capacity-reservation",
+      "status": "verified",
+      "nullable": true,
+      "added_by_table_configuration": "INCLUDE_CAPACITY_RESERVATION_DATA"
+    },
+    {
+      "name": "capacity_reservation_capacity_reservation_status",
+      "type": "String",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": [
+        "Reserved",
+        "Cancelling",
+        "Used",
+        "Unused"
+      ],
+      "description": "Table configuration: Added by: INCLUDE CAPACITY RESERVATION DATA Indicates whether the line item represents either the consumption or the cancellation (in the case of Future-dated Capacity reservation) of the capacity reservation identified in the capacity_reservation_capacity_reservation_arn column or when the capacity reservation is unused or when the capacity reservation is reserved.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-capacity-reservation.md#table-dictionary-cur2-capacity-reservation",
+      "status": "verified",
+      "nullable": true,
+      "added_by_table_configuration": "INCLUDE_CAPACITY_RESERVATION_DATA",
+      "allowed_values_closed": true
+    },
+    {
+      "name": "capacity_reservation_capacity_reservation_type",
+      "type": "String",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": [
+        "ODCR",
+        "EC2 Capacity Blocks for ML"
+      ],
+      "description": "Table configuration: Added by: INCLUDE CAPACITY RESERVATION DATA The capacity reservation type field represents the type of capacity reservation purchased. Currently, there are 2 types ODCR and EC2 Capacity Blocks for ML",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-capacity-reservation.md#table-dictionary-cur2-capacity-reservation",
+      "status": "verified",
+      "nullable": true,
+      "added_by_table_configuration": "INCLUDE_CAPACITY_RESERVATION_DATA",
+      "allowed_values_closed": true
+    },
+    {
+      "name": "discount",
+      "type": "map <string, double>",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Removed by: INCLUDE MANUAL DISCOUNT COMPATIBILITY A \"struct\" column containing key-value pairs of any specific discounts that apply to this line item. The keys correspond to a discount type and the values correspond to either the discount value or other information. The values in this column are either data type \"numeric\" or \"string\" depending on the specific key. The keys of this column can be queried as individual columns by using the dot operator. For more information, see Data query. This column is not available when \"Manual discount compatibility\" is enabled. When it's enabled, discounts are populated as separate line items and not in this column.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-discount.md#table-dictionary-cur2-discount",
+      "status": "verified",
+      "removed_by_table_configuration": "INCLUDE_MANUAL_DISCOUNT_COMPATIBILITY"
+    },
+    {
+      "name": "discount_bundled_discount",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The bundled discount applied to the line item. A bundled discount is a usage-based discount that provides free or discounted usage of a service or feature based on the usage of another service or feature. As of August 2025, bundled discounts are applied using an \"Owner-first approach\" where discounts are first applied to the account that generates the source usage. Within the source account, discounts are applied based on the following sequence: Highest per-unit priceEarlier usage timestampsLarger usage amounts when other factors are equal Any remaining discounts are distributed across other accounts in the Consolidated Billing Family (CBF) based on the following sequence: Highest per-unit priceAscending order of account IdEarlier usage timestampsLarger usage amounts Examples of bundled discounts include: If you use AWS Shield Advanced, then you don't have to pay for AWS WAF separately. AWS WAF usage is bundled with AWS Shield Advanced. For more information about AWS Shield Advanced, see Amazon CloudFront pricing. If you create a NAT gateway with AWS Network Firewall, then the standard NAT gateway processing and per-hour usage charges are waived on a one-to-one basis with the firewall's processing per GB and usage hours. For more information, see AWS Network Firewall pricing. With Amazon Interactive Video Service (IVS) Chat, for every hour of video input sent, you get 2,700 sent messages and 270,000 delivered messages at no additional cost. For more information, see Amazon Interactive Video Service pricing.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-discount.md#table-dictionary-cur2-discount",
+      "status": "verified"
+    },
+    {
+      "name": "discount_total_discount",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Removed by: INCLUDE MANUAL DISCOUNT COMPATIBILITY The sum of all the discount columns for the corresponding line item. This column is not available when \"Manual discount compatibility\" is enabled. When it's enabled, discounts are populated as separate line items and not in this column.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-discount.md#table-dictionary-cur2-discount",
+      "status": "verified",
+      "removed_by_table_configuration": "INCLUDE_MANUAL_DISCOUNT_COMPATIBILITY"
+    },
+    {
+      "name": "identity_line_item_id",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "This field is generated for each line item and is unique in a given partition. This does not guarantee that the field will be unique across an entire delivery (that is, all partitions in an update) of the AWS CUR. The line item ID isn't consistent between different Cost and Usage Reports and can't be used to identify the same line item across different reports.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-identity.md#table-dictionary-cur2-identity",
+      "status": "verified"
+    },
+    {
+      "name": "identity_time_interval",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "UTC, YYYY-MM-DDTHH:mm:ssZ/YYYY-MM-DDTHH:mm:ssZ",
+      "allowed_values": "—",
+      "description": "The time interval that this line item applies to, in the following format: YYYY-MM-DDTHH:mm:ssZ/YYYY-MM-DDTHH:mm:ssZ. The time interval is in UTC and can either be daily or hourly, depending on the report granularity.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-identity.md#table-dictionary-cur2-identity",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_usage_account_name",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The name of the account that used this line item. For organizations, this can be either the management account or a member account. You can use this field to track costs or usage by account.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_availability_zone",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The Availability Zone that hosts this line item. For example, us-east-1a or us-east-1b.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_blended_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The BlendedRate multiplied by the UsageAmount. BlendedCost is blank for line items that have a LineItemType of Discount. Discounts are calculated using only the unblended cost of a member account, aggregated by member account and SKU. As a result, BlendedCost is not available for discounts.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_blended_rate",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The BlendedRate is the average cost incurred for each SKU across an organization. For example, the Amazon S3 blended rates are the total cost of storage divided by the amount of data stored per month. For accounts with RIs, the blended rates are calculated as the average costs of the RIs and the On-Demand Instances. Blended rates are calculated at the management account level, and used to allocate costs to each member account. For more information, see Blended Rates and Costs in the AWS Billing User Guide.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_currency_code",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The currency that this line item is shown in. All AWS customers are billed in US dollars by default. To change your billing currency, see Changing which currency you use to pay your bill in the AWS Billing User Guide.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_iam_principal",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The IAM ARN of the principal that performed the Amazon Bedrock model inference. This column is populated when you enable IAM principal data in your CUR 2.0 data export. Currently supported for Amazon Bedrock only.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_IAM_PRINCIPAL_DATA"
+    },
+    {
+      "name": "line_item_legal_entity",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The Seller of Record of a specific product or service. In most cases, the invoicing entity and legal entity are the same. The values might differ for third-party AWS Marketplace transactions. Possible values include: Amazon Web Services, Inc.: The entity that sells AWS services. Amazon Web Services India Private Limited: The local Indian entity that acts as a reseller for AWS services in India.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_line_item_description",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The description of the line item type. For example, the description of a usage line item summarizes the type of usage incurred during a specific time period. For size-flexible RIs, the description corresponds to the RI the benefit was applied to. For example, if a line item corresponds to a t2.micro and a t2.small RI was applied to the usage, the line_item_line_item_description displays t2.small. The description for a usage line item with an RI discount contains the pricing plan covered by the line item.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_line_item_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": [
+        "BundledDiscount",
+        "Credit",
+        "Discount",
+        "DiscountedUsage",
+        "Fee",
+        "Refund",
+        "RIFee",
+        "Tax",
+        "Usage",
+        "SavingsPlanUpfrontFee",
+        "SavingsPlanRecurringFee",
+        "SavingsPlanCoveredUsage",
+        "SavingsPlanNegation",
+        "FlateRateSubscription"
+      ],
+      "description": "The type of charge covered by this line item. The possible types are as follows: BundledDiscount: A usage-based discount that provides free or discounted usage of a service or feature based on the usage of another service or feature. Credit: Any credits that AWS applied to your bill. See the Description column for details. AWS might update reports after they've been finalized, if AWS applies a credit to your account for the month after finalizing your bill. Discount: Any discounts that AWS applied to your usage. This specific line item name may vary and require parsing based on the discount. For more information, refer to the lineItem/LineItemDescription column. DiscountedUsage: The rate of any instances for which you had Reserved Instance (RI) benefits. Fee: Any upfront annual fee that you paid for subscriptions. For example, the upfront fee that you paid for an All Upfront RI or a Partial Upfront RI. Refund: The negative charges that AWS refunded money for. Review the Description column for details. AWS might update reports after they've been finalized, if AWS applies a refund to your account for the month after finalizing your bill. RIFee: The monthly recurring fee for subscriptions. For example, the recurring fee for Partial Upfront RIs, No Upfront RIs, and All Upfronts that you pay every month. Although the RIFee might be $0 for all upfront reservations, this line is still populated for those reservation types to provide other columns such as reservation/AmortizedUpfrontFeeForBillingPeriod and reservation/ReservationARN. Tax: Any taxes that AWS applied to your bill. For example, VAT or US sales tax. Usage: Any usage that is charged at On-Demand Instance rates. SavingsPlanUpfrontFee: Any one-time upfront fee from your purchase of an All Upfront or Partial Upfront Savings Plan. SavingsPlanRecurringFee: Any recurring hourly charges that correspond with your No Upfront or Partial Upfront Savings Plan. The Savings Plan recurring fee is initially added to your bill on the day that you purchase a No Upfront or Partial Upfront Savings Plan. After the initial purchase, AWS adds the recurring fee to the first day of each billing period thereafter. SavingsPlanCoveredUsage: Any On-Demand cost that is covered by your Savings Plan. Savings Plan covered usage line items are offset by the corresponding Savings Plan negation items. SavingsPlanNegation – Any offset cost through your Savings Plan benefit that’s associated with the corresponding Savings Plan covered usage item. FlateRateSubscription - Any hourly subscription fee AWS applied to your bill for services with subscription fee. For example, Kiro Enterprise.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified",
+      "allowed_values_documented": [
+        "BundledDiscount",
+        "Credit",
+        "Discount",
+        "DiscountedUsage",
+        "Fee",
+        "Refund",
+        "RIFee",
+        "Tax",
+        "Usage",
+        "SavingsPlanUpfrontFee",
+        "SavingsPlanRecurringFee",
+        "SavingsPlanCoveredUsage",
+        "SavingsPlanNegation",
+        "FlateRateSubscription"
+      ],
+      "allowed_values_closed": false
+    },
+    {
+      "name": "line_item_net_unblended_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The actual after-discount cost that you're paying for the line item. This column is only included in your report when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "line_item_net_unblended_rate",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The actual after-discount rate that you're paying for the line item. This column is only included in your report when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "line_item_normalization_factor",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "As long as the instance has shared tenancy, AWS can apply all Regional Linux or Unix Amazon EC2 and Amazon RDS RI discounts to all instance sizes in an instance family and AWS Region. This also applies to RI discounts for member accounts in an organization. All new and existing Amazon EC2 and Amazon RDS size-flexible RIs are sized according to a normalization factor, based on the instance size.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_normalized_usage_amount",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The amount of usage that you incurred, in normalized units, for size-flexible RIs. The NormalizedUsageAmount is equal to UsageAmount multiplied by NormalizationFactor.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_operation",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The specific AWS operation covered by this line item. This describes the specific usage of the line item. For example, a value of RunInstances indicates the operation of an Amazon EC2 instance.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_product_code",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The code of the product measured. For example, Amazon EC2 is the product code for Amazon Elastic Compute Cloud.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_resource_id",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE RESOURCES (Optional) If you chose to include individual resource IDs in your report, this column contains the ID of the resource that you provisioned. For example, an Amazon S3 storage bucket, an Amazon EC2 compute instance, or an Amazon RDS database can each have a resource ID. This field is blank for usage types that aren't associated with an instantiated host, such as data transfers and API requests, and line item types such as discounts, credits, and taxes.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_RESOURCES"
+    },
+    {
+      "name": "line_item_tax_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The type of tax that AWS applied to this line item.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_unblended_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The UnblendedCost is the UnblendedRate multiplied by the UsageAmount.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_unblended_rate",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "In consolidated billing for accounts using AWS Organizations, the unblended rate is the rate associated with an individual account's service usage. For Amazon EC2 and Amazon RDS line items that have an RI discount applied to them, the UnblendedRate is 0. Line items with an RI discount have a LineItemType of DiscountedUsage.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_usage_account_id",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The account ID of the account that used this line item. For organizations, this can be either the management account or a member account. You can use this field to track costs or usage by account.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_usage_amount",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The amount of usage that you incurred during the specified time period. For size-flexible Reserved Instances, use the reservation/TotalReservedUnits column instead. Certain subscription charges will have a UsageAmount of 0.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_usage_end_date",
+      "type": "timestamp",
+      "required": false,
+      "unit": null,
+      "datetime_format": "UTC, YYYY-MM-DDTHH:mm:ssZ (exclusivo)",
+      "allowed_values": "—",
+      "description": "The end date and time for the corresponding line item in UTC, exclusive. The format is YYYY-MM-DDTHH:mm:ssZ.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_usage_start_date",
+      "type": "timestamp",
+      "required": false,
+      "unit": null,
+      "datetime_format": "UTC, YYYY-MM-DDTHH:mm:ssZ (inclusivo)",
+      "allowed_values": "—",
+      "description": "The start date and time for the line item in UTC, inclusive. The format is YYYY-MM-DDTHH:mm:ssZ.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_usage_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The usage details of the line item. For example, USW2-BoxUsage:m2.2xlarge describes an M2 High Memory Double Extra Large instance in the US West (Oregon) Region.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "line_item_user_identifier",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The Identity Access Management (IAM) Identity Center identifier of a workforce user. The monthly flat-rate subscription and on-demand charges are calculated for the user identified by this identifier.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item",
+      "status": "verified"
+    },
+    {
+      "name": "pricing_currency",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The currency that the pricing data is shown in.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified"
+    },
+    {
+      "name": "pricing_lease_contract_length",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The length of time that your RI is reserved for.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified"
+    },
+    {
+      "name": "pricing_offering_class",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The offering class of the Reserved Instance.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified"
+    },
+    {
+      "name": "pricing_public_on_demand_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The total cost for the line item based on public On-Demand Instance rates. If you have SKUs with multiple On-Demand public costs, the equivalent cost for the highest tier is displayed. For example, services offering free-tiers or tiered pricing.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified"
+    },
+    {
+      "name": "pricing_public_on_demand_rate",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The public On-Demand Instance rate in this billing period for the specific line item of usage. If you have SKUs with multiple On-Demand public rates, the equivalent rate for the highest tier is displayed. For example, services offering free-tiers or tiered pricing.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified"
+    },
+    {
+      "name": "pricing_purchase_option",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": [
+        "All Upfront",
+        "Partial Upfront",
+        "No Upfront"
+      ],
+      "description": "How you chose to pay for this line item. Valid values are All Upfront, Partial Upfront, and No Upfront.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified",
+      "allowed_values_closed": true
+    },
+    {
+      "name": "pricing_rate_code",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A unique code for a product/offer/pricing-tier combination. The product and term combinations can have multiple price dimensions, such as a free tier, low-use tier, and high-use tier.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified"
+    },
+    {
+      "name": "pricing_rate_id",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The ID of the rate for a line item.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified"
+    },
+    {
+      "name": "pricing_term",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": [
+        "Reserved",
+        "On-Demand"
+      ],
+      "description": "Whether your AWS usage is Reserved or On-Demand.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified",
+      "allowed_values_closed": true
+    },
+    {
+      "name": "pricing_unit",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The pricing unit AWS used to calculate your usage cost. For example, the pricing unit for Amazon EC2 instance usage is in hours.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing",
+      "status": "verified"
+    },
+    {
+      "name": "product",
+      "type": "map <string, string>",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A map column containing key-value pairs of multiple product attributes and their values for a given line item. A product attribute only appears in the map column if it has a value that applies to the specific line item. NoteAny product column that appeared in legacy CUR, but is not part of the CUR 2.0 static schema, appears in this map column. The keys of this column can be queried as individual columns by using the dot operator. For more information, see Data query. For some AWS services, the map includes additional service-specific attributes. For the list of these attributes and the services that populate them, see Service-specific product attributes.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_comment",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A comment regarding the product.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_fee_code",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The code that refers to the fee.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_fee_description",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The description for the product fee.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_from_location",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the location where the usage originated from.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_from_location_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the location type where the usage originated from.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_from_region_code",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the source Region code for the AWS service.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_instanceSKU",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The SKU of the product instance",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified",
+      "note": "casing exato conforme documentado"
+    },
+    {
+      "name": "product_instance_family",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes your Amazon EC2 instance family. Amazon EC2 provides you with a large number of options across 10 different instance types, each with one or more size options, organized into distinct instance families optimized for different types of applications.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_instance_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the instance type, size, and family, which define the CPU, networking, and storage capacity of your instance.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_location",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the Region that your Amazon S3 bucket resides in.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_location_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the endpoint of your task.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_operation",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the specific AWS operation that this line item covers.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_pricing_unit",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The smallest billing unit for an AWS service. For example, 0.01c per API call.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_product_family",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The category for the type of product. For Amazon Bedrock line items, this is populated with the unified value Amazon Bedrock, so that all Amazon Bedrock usage can be identified under a single product family.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_region_code",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A Region is a physical location around the world where data centers are clustered. AWS calls each group of logical data centers an Availability Zone (AZ). Each AWS Region consists of multiple, isolated, and physically separate AZs within a geographical area. The Region code attribute has the same name as an AWS Region, and specifies where the AWS service is available.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_sku",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A unique code for a product. The SKU is created by combining the ProductCode, UsageType, and Operation. For size-flexible RIs, the SKU uses the instance that was used. For example, if you used a t2.micro instance and AWS applied a t2.small RI discount to the usage, the line item SKU is created with the t2.micro.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_servicecode",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "This identifies the specific AWS service to the customer as a unique short abbreviation.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_to _location_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the destination location of the service usage.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified",
+      "note": "nome reproduzido literalmente da documentacao, incluindo o espaco; ver divergencia 3 na spec .md"
+    },
+    {
+      "name": "product_to_location",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the location usage destination.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_to_region_code",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the source Region code for the AWS service.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "product_usagetype",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the usage details of the line item.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_amortized_upfront_cost_for_usage",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The initial upfront payment for all upfront RIs and partial upfront RIs amortized for usage time. The value is equal to: RIAmortizedUpfrontFeeForBillingPeriod * The normalized usage amount for DiscountedUsage line items / The normalized usage amount for the RIFee. Because there are no upfront payments for no upfront RIs, the value for a no upfront RI is 0. We don't provide this value for Dedicated Host reservations at this time. The change will be made in a future update.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_amortized_upfront_fee_for_billing_period",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes how much of the upfront fee for this reservation is costing you for the billing period. The initial upfront payment for all upfront RIs and partial upfront RIs, amortized over this month. Because there are no upfront fees for no upfront RIs, the value for no upfront RIs is 0. We don't provide this value for Dedicated Host reservations at this time. The change will be made in a future update.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_availability_zone",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The Availability Zone of the resource that is associated with this line item.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_effective_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The sum of both the upfront and hourly rate of your RI, averaged into an effective hourly rate. EffectiveCost is calculated by taking the amortizedUpfrontCostForUsage and adding it to the recurringFeeForUsage.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_end_time",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The end date of the associated RI lease term.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_modification_status",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Shows whether the RI lease was modified or if it is unaltered. Original: The purchased RI was never modified. System: The purchased RI was modified using the console or API. Manual: The purchased RI was modified using AWS Support assistance. ManualWithData: The purchased RI was modified using AWS Support assistance, and AWS calculated estimates for the RI.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_net_amortized_upfront_cost_for_usage",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The initial upfront payment for All Upfront RIs and Partial Upfront RIs amortized for usage time, if applicable. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "reservation_net_amortized_upfront_fee_for_billing_period",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The cost of the reservation's upfront fee for the billing period. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "reservation_net_effective_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The sum of both the upfront fee and the hourly rate of your RI, averaged into an effective hourly rate. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "reservation_net_recurring_fee_for_usage",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The after-discount cost of the recurring usage fee. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "reservation_net_unused_amortized_upfront_fee_for_billing_period",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The net unused amortized upfront fee for the billing period. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "reservation_net_unused_recurring_fee",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The recurring fees associated with unused reservation hours for Partial Upfront and No Upfront RIs after discounts. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "reservation_net_upfront_value",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The upfront value of the RI with discounts applied. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "reservation_normalized_units_per_reservation",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The number of normalized units for each instance of a reservation subscription.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_number_of_reservations",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The number of reservations that are covered by this subscription. For example, one RI subscription might have four associated RI reservations.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_recurring_fee_for_usage",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The recurring fee amortized for usage time, for partial upfront RIs and no upfront RIs. The value is equal to: The unblended cost of the RIFee * The sum of the normalized usage amount of Usage line items / The normalized usage amount of the RIFee for size flexible Reserved Instances. Because all upfront RIs don't have recurring fee payments greater than 0, the value for all upfront RIs is 0.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_reservation_a_r_n",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The Amazon Resource Name (ARN) of the RI that this line item benefited from. This is also called the \"RI Lease ID\". This is a unique identifier of this particular AWS Reserved Instance. The value string also contains the AWS service name and the Region where the RI was purchased.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_start_time",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The start date of the term of the associated Reserved Instance.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_subscription_id",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A unique identifier that maps a line item with the associated offer. We recommend you use the RI ARN as your identifier of an AWS Reserved Instance, but both can be used.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_total_reserved_normalized_units",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The total number of reserved normalized units for all instances for a reservation subscription. AWS computes total normalized units by multiplying the reservation/NormalizedUnitsPerReservation with reservation/NumberOfReservations.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_total_reserved_units",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "TotalReservedUnits populates for both Fee and RIFee line items with distinct values.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_units_per_reservation",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "UnitsPerReservation populates for both Fee and RIFee line items with distinct values.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_unused_amortized_upfront_fee_for_billing_period",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The amortized-upfront-fee-for-billing-period-column amortized portion of the initial upfront fee for all upfront RIs and partial upfront RIs. Because there are no upfront payments for no upfront RIs, the value for no upfront RIs is 0. We don't provide this value for Dedicated Host reservations at this time. The change will be made in a future update.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_unused_normalized_unit_quantity",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The number of unused normalized units for a size-flexible Regional RI that you didn't use during this billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_unused_quantity",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The number of RI hours that you didn't use during this billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_unused_recurring_fee",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The recurring fees associated with your unused reservation hours for partial upfront and no upfront RIs. Because all upfront RIs don't have recurring fees greater than 0, the value for All Upfront RIs is 0.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "reservation_upfront_value",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The upfront price paid for your AWS Reserved Instance. For no upfront RIs, this value is 0.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-reservation.md#table-dictionary-cur2-reservation",
+      "status": "verified"
+    },
+    {
+      "name": "resource_tags",
+      "type": "map <string, string>",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A map column containing key-value pairs of resource tags and their values for a given line item. The values in this column are all of data type \"string\". Resource tag keys only appear in this column if they've been enabled as cost allocation tags in the Billing console. After being enabled, a particular key only appears in the map column if it has a value that applies to the specific line item. The keys of this column can be queried as individual columns using the dot operator. For more information, see Data query.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-resource-tags.md#table-dictionary-cur2-resource-tags",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_amortized_upfront_commitment_for_billing_period",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The amount of upfront fee a Savings Plan subscription is costing you for the billing period. The initial upfront payment for All Upfront Savings Plan and Partial Upfront Savings Plan amortized over the current month. For No Upfront Savings Plan, the value is 0.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_end_time",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The expiration date for the Savings Plan agreement.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_instance_type_family",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The instance family that is associated with the specified usage.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_net_amortized_upfront_commitment_for_billing_period",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The cost of a Savings Plan subscription upfront fee for the billing period. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "savings_plan_net_recurring_commitment_for_billing_period",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The net unblended cost of the Savings Plan fee. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "savings_plan_net_savings_plan_effective_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The effective cost for Savings Plans, which is your usage divided by the fees. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "savings_plan_offering_type",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the type of Savings Plan purchased.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_payment_option",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The payment options available for your Savings Plan.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_purchase_term",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Describes the duration, or term, of the Savings Plan.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_recurring_commitment_for_billing_period",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The monthly recurring fee for your Savings Plan subscriptions. For example, the recurring monthly fee for a Partial Upfront Savings Plan or No Upfront Savings Plan.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_region",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The AWS Region (geographic area) that hosts your AWS services. You can use this field to analyze spend across a particular AWS Region.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_savings_plan_a_r_n",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The unique Savings Plan identifier.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_savings_plan_effective_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The proportion of the Savings Plan monthly commitment amount (upfront and recurring) that is allocated to each usage line.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_savings_plan_rate",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The Savings Plan rate for the usage.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_start_time",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The start date of the Savings Plan agreement.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_total_commitment_to_date",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The total amortized upfront commitment and recurring commitment to date, for that hour.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "savings_plan_used_commitment",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "The total dollar amount of the Savings Plan commitment used. (SavingsPlanRate multiplied by usage)",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-savings-plan.md#table-dictionary-cur2-savings-plan",
+      "status": "verified"
+    },
+    {
+      "name": "split_line_item_actual_usage",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The usage for vCPU, memory, or accelerator resources (based on lineItem/UsageType) you incurred for the specified time period for the Amazon ECS task or Kubernetes pod.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "split_line_item_net_split_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The effective cost for Amazon ECS tasks or Kubernetes pods after all discounts have been applied. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "split_line_item_net_unused_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The effective unused cost for Amazon ECS tasks or Kubernetes pods after all discounts have been applied. This column is included in your report only when your account has a discount in the applicable billing period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA",
+      "conditional_presence": "only included when your account has a discount in the applicable billing period"
+    },
+    {
+      "name": "split_line_item_parent_resource_id",
+      "type": "string",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The resource ID of the parent EC2 instance associated with the Amazon ECS task or Amazon EKS pod (referenced in the lineItem/ResourceId column). The parent resource ID implies that the ECS task or Kubernetes pod workload for the specified time period ran on the parent EC2 instance. This applies only for Amazon ECS tasks or Kubernetes pods with EC2 launch type.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "split_line_item_public_on_demand_split_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The cost for vCPU or memory (based on lineItem/UsageType) allocated for the time period to the Amazon ECS task or Kubernetes pod based on public On-Demand Instance rates (referenced in the pricing/publicOnDemandRate column).",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "split_line_item_public_on_demand_unused_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The unused cost for vCPU or memory (based on lineItem/UsageType) allocated for the time period to the Amazon ECS task or Kubernetes pod based on public On-Demand Instance rates. Unused costs are costs associated with resources (CPU or memory) on the EC2 instance (referenced in the splitLineItem/ParentResourceIdcolumn) that were not utilized for the specified time period.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "split_line_item_reserved_usage",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The usage for vCPU, memory, or accelerator resources (based on lineItem/UsageType) that you configured for the specified time period for the Amazon ECS task or Kubernetes pod.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "split_line_item_split_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The cost for vCPU or memory (based on lineItem/UsageType) allocated for the time period to the Amazon ECS task or Kubernetes pod. This includes amortized costs if the EC2 instance (referenced in the splitLineItem/parentResourceId column) has upfront or partial upfront charges for reservations or Savings Plans.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "split_line_item_split_usage",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The usage for vCPU or memory (based on lineItem/UsageType) allocated for the specified time period to the Amazon ECS task or Kubernetes pod. This is defined as the maximum usage of splitLineItem/ReservedUsage or splitLineItem/ActualUsage.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "split_line_item_split_usage_ratio",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The ratio of vCPU, memory, or accelerator resources (based on lineItem/UsageType) allocated to the Amazon ECS task or Kubernetes pod compared to the overall CPU, memory, or accelerator resources available on the EC2 instance (referenced in the splitLineItem/ParentResourceId column).",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "split_line_item_unused_cost",
+      "type": "double",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "Table configuration: Added by: INCLUDE SPLIT COST ALLOCATION DATA The unused cost for vCPU, memory, or accelerator resources (based on lineItem/UsageType) allocated for the time period to the Amazon ECS task or Kubernetes pod. Unused costs are costs associated with resources (CPU, memory, or accelerator resources) on the EC2 instance (referenced in the splitLineItem/ParentResourceId column) that were not utilized for the specified time period. This includes amortized costs if the EC2 instance (splitLineItem/parentResourceId) has upfront or partial upfront charges for reservations or Savings Plans.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-split-line-item.md#table-dictionary-cur2-split-line-item",
+      "status": "verified",
+      "added_by_table_configuration": "INCLUDE_SPLIT_COST_ALLOCATION_DATA"
+    },
+    {
+      "name": "tags",
+      "type": "map <string, string>",
+      "required": false,
+      "unit": null,
+      "datetime_format": "—",
+      "allowed_values": "—",
+      "description": "A map column containing key-value pairs of all tags and their values for a given line item. The values in this column are all of data type \"string\". Tag keys only appear in this column if they've been enabled as cost allocation tags in the Billing console. After being enabled, a particular key only appears in the map column if it has a value that applies to the specific line item. The keys of this column can be queried as individual columns using the dot operator. For more information, see Data query.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-tag-columns.md#table-dictionary-cur2-tag-columns",
+      "status": "verified",
+      "documented_prefixes": [
+        "resourceTags/",
+        "userAttribute/",
+        "accountTag/",
+        "costCategory/",
+        "iamPrincipal/"
+      ]
+    }
+  ],
+  "non_column_map_keys_verified": [
+    {
+      "name": "provider",
+      "applies_to": "Amazon Bedrock",
+      "example_values": [
+        "Amazon",
+        "Anthropic",
+        "Meta",
+        "Cohere"
+      ],
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product-service-attributes"
+    },
+    {
+      "name": "model",
+      "applies_to": "Amazon Bedrock",
+      "example_values": [
+        "Claude 3.5 Sonnet",
+        "Nova Pro",
+        "Llama 3"
+      ],
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product-service-attributes"
+    },
+    {
+      "name": "inference_type",
+      "applies_to": "Amazon Bedrock",
+      "example_values": [
+        "input tokens",
+        "output tokens",
+        "image generation"
+      ],
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product-service-attributes"
+    },
+    {
+      "name": "feature",
+      "applies_to": "Amazon Bedrock",
+      "example_values": [
+        "On-Demand",
+        "Batch"
+      ],
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-product.md#table-dictionary-cur2-product-service-attributes"
+    }
+  ],
+  "counts": {
+    "documented_column_names": 131,
+    "aws_stated_possible_columns": 125,
+    "count_method": "Rows extracted from the official HTML of each table-dictionary-cur2-* column group page. The second table on the product page (Service-specific product attributes) is not columns and is excluded; those keys are listed in non_column_map_keys_verified.",
+    "by_group": {
+      "bill": 8,
+      "cost_category": 1,
+      "capacity_reservation": 3,
+      "discount": 3,
+      "identity": 2,
+      "line_item": 25,
+      "pricing": 10,
+      "product": 22,
+      "reservation": 27,
+      "resource_tags": 1,
+      "savings_plan": 17,
+      "split_line_item": 11,
+      "tags": 1
+    }
+  },
+  "unverified": [
+    {
+      "item": "Manifest.json key names for columns, data files and covered period",
+      "reason": "AWS documents the manifest contents in prose only; no JSON schema, key list or example is published. Only the literal key additionalOutputFiles is confirmed.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+    },
+    {
+      "item": "Manifest.json key order, nesting and required/optional status",
+      "reason": "Not documented.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+    },
+    {
+      "item": "Structure of the additionalOutputFiles section",
+      "reason": "Only the section name is documented; its internal structure is not.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+    },
+    {
+      "item": "JSON type of the FocusVersion manifest value",
+      "reason": "Name and values ('1.2' / '1.0') are documented; the JSON type is not explicitly stated.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-focus-1-2-migrating.md"
+    },
+    {
+      "item": "Manifest file name (<export-name>-Manifest.json vs Manifest.json)",
+      "reason": "The Metadata section and the Summary section of the same page document different file names.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md"
+    },
+    {
+      "item": "Compression parameter value PARQUET equals Snappy",
+      "reason": "PARQUET is a documented valid value of the Compression parameter, but the documentation never states it maps to Snappy. The only documented Parquet/Snappy link is the .snappy.parquet file extension.",
+      "source_url": "https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_DataExports_S3OutputConfigurations.html"
+    },
+    {
+      "item": "Currency/unit of monetary CUR 2.0 columns (line_item_*_cost, pricing_public_on_demand_cost, reservation_*, savings_plan_*, discount_*)",
+      "reason": "Field documentation describes semantics but never declares the currency unit. The only currency statement in the table is 'All AWS customers are billed in US dollars by default' on line_item_currency_code; the actual export currency is runtime-determined by line_item_currency_code and pricing_currency.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item"
+    },
+    {
+      "item": "Unit of line_item_usage_amount, line_item_normalized_usage_amount and split_line_item_* usage columns",
+      "reason": "Unit is service-dependent; the documentation refers to pricing_unit / lineItem/UsageType without a fixed value.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-pricing.md#table-dictionary-cur2-pricing"
+    },
+    {
+      "item": "CSV/gzip header, delimiter and encoding",
+      "reason": "The delivery documentation defines only file names and the TEXT_OR_CSV format option; it makes no statement about header, delimiter or encoding.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/dataexports-export-delivery.md#export-data-file-names"
+    },
+    {
+      "item": "Whether the line_item_line_item_type value list is exhaustive",
+      "reason": "14 values are documented with descriptions, but the documentation does not state the list is closed.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2-line-item.md#table-dictionary-cur2-line-item"
+    },
+    {
+      "item": "Second 'Capacity Reservation' column group",
+      "reason": "The column-group list names both 'Capacity reservation' and 'Capacity Reservation'. No own page could be retrieved for the second (HTTP 404 on candidate URLs); it cannot be confirmed whether a separate set of columns exists.",
+      "source_url": "https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.md#cur2-column-groups"
+    }
+  ]
+}

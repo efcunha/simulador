@@ -1,0 +1,77 @@
+# aws-sim OCI image (Podman) — design sec. 6.1, FR-17.1.
+#
+# Build context = the WORKTREE ROOT (the dir containing both tools/ and services/),
+# NOT emulators/aws-sim. The Phase 1 generator is imported as the namespace path
+# ``tools.synthetic_clouds.*`` resolved via PYTHONPATH — never a wheel install — so
+# the image bakes both trees under /app and sets PYTHONPATH. Build from the worktree
+# root with:
+#   podman build -f emulators/aws-sim/Containerfile -t aws-sim .
+#
+# Multi-stage: the builder installs ONLY aws-sim's third-party deps into a venv (NOT
+# FinOps-synthetic-clouds); the runtime stage copies the venv + source and runs as
+# a non-root user.
+#
+# ``botocore`` is a runtime dep for two reasons, both load-bearing: the Query-protocol
+# XML is generated from its CloudFormation service model, and ``aws_sim.upload`` uses
+# it to push the rendered tree into MinIO. boto3 is deliberately NOT installed — the
+# uploader needs one S3 client, not the resource layer.
+
+# ---- builder ---------------------------------------------------------------
+FROM python:3.12-slim AS builder
+
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+# Mirrors emulators/aws-sim/pyproject.toml [project.dependencies] plus pandas and
+# pyarrow, which the Phase 1 package pulls in at import time (same reason azure-sim
+# ships them).
+#
+# ``cbor2`` is the encoder for CloudWatch's RPC-v2 CBOR framing (aws_sim.smithy_rpc).
+# botocore parses CBOR but ships no encoder a server can write a response with, so the
+# emulator brings its own. The import is deferred in the wire: the framing the installed
+# client actually sends for CloudWatch is JSON-1.0, so the package is only touched when a
+# CBOR request arrives.
+RUN pip install \
+    "botocore" \
+    "cbor2" \
+    "fastapi" \
+    "uvicorn" \
+    "pandas" \
+    "pyarrow"
+
+# ---- runtime ---------------------------------------------------------------
+FROM python:3.12-slim AS runtime
+
+# Non-root (FR-17.1): the sim never needs root; the estate is built in-process and
+# artefact uploads go over the network to MinIO.
+RUN useradd --create-home --uid 10001 awssim
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+
+# Bake both trees in. The build context is the worktree root, so these are relative
+# to it. tools.synthetic_clouds resolves via PYTHONPATH=/app.
+COPY tools/synthetic_clouds /app/tools/synthetic_clouds
+COPY specs /app/specs
+COPY emulators/aws-sim /app/emulators/aws-sim
+
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app:/app/emulators/aws-sim" \
+    PYTHONUNBUFFERED=1 \
+    AWS_SIM_PORT=8086
+
+USER awssim
+
+EXPOSE 8086
+
+# Liveness probe hits GET /healthz. stdlib urllib so the slim image needs no
+# curl/wget — the GCP phase had to replace a wget probe for exactly this reason.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD ["python", "-c", "import os,urllib.request,sys; p=os.environ.get('AWS_SIM_PORT','8086'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/healthz', timeout=3).status==200 else 1)"]
+
+# Default: serve the CloudFormation control plane. The refusal guard runs first, so a
+# container handed real credential material exits 2 instead of listening.
+CMD ["python", "-m", "aws_sim", "serve", "--host", "0.0.0.0", "--port", "8086"]

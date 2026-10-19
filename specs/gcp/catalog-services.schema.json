@@ -1,0 +1,114 @@
+{
+  "surface": "gcp/catalog-services",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Billing API v1 - message Service (method services.list)",
+    "url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "services.json",
+    "root": "services[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "Nenhum campo desconhecido: o artefato antigo usava exatamente estes tres campos, e o envelope correto.",
+    "O VALOR de 'serviceId' e derivado do nome do servico do estado, enquanto a documentacao exemplifica ids no formato '6F81-5844-456A'. O campo e o formato 'services/{id}' estao corretos; o conteudo do id e sintetico e esta registrado como nao comprovado."
+  ],
+  "unverified": [
+    {
+      "name": "services[].serviceId value shape",
+      "reason": "O tipo e o formato do campo sao publicados (a doc exemplifica '6F81-5844-456A'), e o valor e derivado do nome do servico do estado. O campo esta correto; o conteudo do id nao segue o exemplo publicado.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "services[].name value shape",
+      "reason": "Idem: 'services/{id}' e o formato publicado, e o id embutido e derivado do estado.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "services[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'services' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "services",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListServicesResponse declara o array 'services' (itens Service) e 'nextPageToken'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListServicesResponse.nextPageToken: 'A token to retrieve the next page of results.' -- string.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "service",
+      "description": "Campos de um item de 'services', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "services[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Service.name: 'The resource name for the service. Example: services/6F81-5844-456A' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "services[].serviceId",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Service.serviceId: 'The identifier for the service. Example: 6F81-5844-456A' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "services[].displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Service.displayName: 'A human readable display name for this service.' -- string.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

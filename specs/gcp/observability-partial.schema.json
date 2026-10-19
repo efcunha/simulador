@@ -1,0 +1,453 @@
+{
+  "surface": "gcp/observability-partial",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Monitoring API v3 - message TimeSeries (method projects.timeSeries.list)",
+    "url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+    "consulted_at": "2026-10-18",
+    "scope_rule_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "time_series.json",
+    "root": "timeSeries[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "chosen_surface": {
+    "specified": "projects.timeSeries.list, asked with the project scope left as the wildcard",
+    "why": "A forma de fazer a pergunta que o diagnostico retrospectivo precisa fazer ao GCP: 'se a leitura fosse concedida num escopo de projeto INTEIRO, o que a API devolveria, e o que deixaria de fora?'. E a mesma pergunta que o Config responde com Informational Message e 404 Missing, e ela nao se responde com uma resposta completa -- se responde com uma resposta parcial DECLARADA.",
+    "rejected": [
+      "projects.timeSeries.list por um projeto nomeado: seria a resposta completa de um escopo, e nao diria nada sobre o que o escopo largo deixou de fora",
+      "ListLogEntries: outro contrato, e a lacuna que este incremento fecha e a de escopo de leitura, nao a de um servico de log especifico"
+    ]
+  },
+  "notes": [
+    "O envelope e o mesmo de gcp/monitoring-time-series: 'timeSeries' e 'nextPageToken'. O que muda NAO e a forma e o CONTEUDO: a resposta carrega as series de UM projeto do estate, e nao todas.",
+    "'projects/-' e o curinga do lado da REQUISICAO. Ele NUNCA aparece no corpo da resposta -- o mesmo principio ja declarado para os nomes do Recommender em docs/CONTRATO-APIS-GCP.md (AIP-159): o corpo carrega o nome canonico do recurso real.",
+    "O conjunto 'request-parameters' declara o pedido ANONIMO: o escopo e um conjunto de DADOS (o curinga de projeto e o intervalo de tempo), e nao uma credencial. Nenhum campo de credencial existe nesta spec, e a sua ausencia e o que torna o pedido anonimo -- nao um valor vazio."
+  ],
+  "armadilhas": {
+    "o_corpo_nao_declara_o_que_falta": "O Googleapis NAO publica um campo de 'itens ausentes' em ListTimeSeriesResponse. ListTimeSeriesResponse declara 'timeSeries', 'nextPageToken' e 'executionErrors', e nada que diga 'isto e o subconjunto'. Publicar um 'missing' no corpo seria um campo inventado, entao o inventario fica num artefato IRMAO -- missing.json -- e a razao fica declarada no _provenance. Um consumidor que le so o corpo tem de saber que ele e parcial, e por isso a resposta carrega o subconjunto de UM projeto e nao se apresenta como completa.",
+    "o_token_de_paginacao_e_vazio_mesmo_numa_resposta_parcial": "nextPageToken vazio significa 'ultima pagina', nao 'todos os dados'. Uma resposta parcial e uma ultima pagina sao coisas diferentes com o mesmo campo, e e por isso que 'missing' e um artefato separado em vez de uma leitura do token.",
+    "o_escopo_do_pedido_e_o_unico_lugar_onde_a_credencial_poderia_entrar": "Numa API REST a credencial vai no cabecalho HTTP, e nao no corpo da requisicao. O conjunto 'request-parameters' declara o QUE o pedido carrega em dados; a credencial nao e um parametro de pedido e por isso nao entra. Declarar um 'accessToken' ou um 'apiKey' aqui seria afirmar que o GCP os aceita como parametro de consulta -- o que o contrato nao diz e o que o proprio campo request_parameters da API de diagnostico do FinOps ja evita."
+  },
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'timeSeries' que hospeda os itens e o token de paginacao. Identico ao de gcp/monitoring-time-series; o conteudo e que e parcial.",
+      "columns": [
+        {
+          "name": "timeSeries",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListTimeSeriesResponse declara o array 'timeSeries' (itens TimeSeries), 'nextPageToken' e 'executionErrors'. Aqui o array carrega o SUB-CONJUNTO de um projeto, que e o que um escopo largo devolve quando o consumidor le o primeiro projeto que responde.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListTimeSeriesResponse.nextPageToken: o token da proxima pagina. Vazio significa 'ultima pagina', e NAO significa 'todos os dados do escopo' -- ver armadilhas.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "timeSeries",
+      "description": "Campos de um item de 'timeSeries', no nivel do ITEM. Os mesmos de gcp/monitoring-time-series, porque o item nao muda: muda quantos itens a resposta traz.",
+      "columns": [
+        {
+          "name": "timeSeries[].metric",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeSeries.metric: 'The associated metric. A fully-specified metric used to identify the time series.' -- objeto Metric.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].metric.type",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Metric.type: 'An existing metric type, see google.api.MetricDescriptor.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeSeries.resource: 'The associated monitored resource.' -- objeto MonitoredResource.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.type",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MonitoredResource.type: 'Required. The monitored resource type. This field must match the type field of a MonitoredResourceDescriptor object.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.labels",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MonitoredResource.labels: 'Required. Values for all of the labels listed in the associated monitored resource descriptor.' -- map<string,string>. O catalogo declara project_id em gce_instance E em cloudsql_database, entao project_id e o unico label comum e o unico exigido por esta spec; os labels proprios de cada tipo ficam em conjuntos nomeados.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.labels.project_id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo de recursos monitorados declara 'project_id' entre os labels de gce_instance E de cloudsql_database.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeSeries.points: 'The data points of this time series.' -- repeated Point.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points[].interval",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Point.interval: 'The time interval to which the data point applies.' -- objeto TimeInterval.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points[].interval.endTime",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeInterval.endTime: 'Required. The end of the time interval.' -- string com formato google-datetime.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points[].value",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Point.value: 'The value of the data point.' -- objeto TypedValue.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points[].value.doubleValue",
+          "type": "number",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TypedValue.doubleValue: 'A 64-bit double-precision floating-point number.' -- number.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "gce_instance_labels",
+      "description": "Os labels que o catalogo de recursos monitorados declara para 'gce_instance'. Eles NAO coexistem com os de 'cloudsql_database' no mesmo registro: um conjunto por tipo e o que permite conferir cada um sem exigir a uniao numa linha so.",
+      "columns": [
+        {
+          "name": "timeSeries[].resource.labels.instance_id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo declara 'instance_id' entre os labels de gce_instance: o identificador da instancia atribuido pelo Compute Engine.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.labels.zone",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo declara 'zone' entre os labels de gce_instance: a zona do Compute Engine em que a instancia reside.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "cloudsql_database_labels",
+      "description": "Os labels que o catalogo declara para 'cloudsql_database' (Cloud SQL). Idem: um conjunto por tipo monitorado.",
+      "columns": [
+        {
+          "name": "timeSeries[].resource.labels.database_id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo declara 'database_id' entre os labels de cloudsql_database: o identificador do banco da instancia Cloud SQL.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.labels.region",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo declara 'region' entre os labels de cloudsql_database: a regiao da instancia Cloud SQL.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "O pedido ANONIMO, no nivel do PARAMETRO. O escopo e um conjunto de DADOS -- o curinga de projeto e a janela de tempo -- e nao uma credencial. Nao existe campo de credencial neste conjunto, e essa ausencia e o que torna o pedido anonimo: declarar um 'accessToken', um 'apiKey' ou um 'Authorization' aqui afirmaria que o GCP os aceita como parametro de consulta, o que o contrato nao diz. Este conjunto e o oposto do 'request_parameters' que a API de diagnostico do FinOps preenche com um token.",
+      "columns": [
+        {
+          "name": "request.name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O nome do projeto, no formato 'projects/{PROJECT_ID}'. O metodo aceita '-' como curinga, que e o escopo de projeto INTEIRO e o que torna o pedido anonimo em relacao a quais projetos ele alcanca.",
+          "type_source": "documented"
+        },
+        {
+          "name": "request.filter",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Uma expressao que seleciona um conjunto de series. E o segundo meio de carregar o escopo em DADOS, e ele contem filtros -- nunca credenciais.",
+          "type_source": "documented"
+        },
+        {
+          "name": "request.interval",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O intervalo de tempo a recuperar -- objeto TimeInterval, com startTime e endTime. O terceiro meio de carregar o escopo em DADOS.",
+          "type_source": "documented"
+        },
+        {
+          "name": "request.interval.startTime",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeInterval.startTime: 'Required. The start time of the time interval.' -- string com formato google-datetime.",
+          "type_source": "documented"
+        },
+        {
+          "name": "request.interval.endTime",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeInterval.endTime: 'Required. The end time of the time interval.' -- string com formato google-datetime.",
+          "type_source": "documented"
+        },
+        {
+          "name": "request.view",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Como os dados sao classificados em linhas de serie, com 'HEADERS' ou 'FULL'. Um filtro por VIEW e o que faz a resposta devolver o SUB-CONJUNTO que o consumidor pediu, e nao todas as series do escopo.",
+          "type_source": "documented"
+        },
+        {
+          "name": "request.pageSize",
+          "type": "integer",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O numero maximo de series a devolver por pagina. E o parametro que faz um escopo largo devolver um subconjunto sem erro nenhum.",
+          "type_source": "documented"
+        },
+        {
+          "name": "request.pageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Token que identifica a pagina seguinte. A resposta que carrega um subconjunto tem este token VAZIO quando acabou a pagina, e um consumidor que le so o token nao distingue 'ultima pagina' de 'todos os dados'.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "missing",
+      "description": "O INVENTARIO do que a resposta nao carrega, num artefato IRMAO (missing.json). Nao e um campo de ListTimeSeriesResponse -- o contrato nao declara nenhum -- e por isso nao entra no corpo: um 'missing' dentro da resposta seria um campo inventado, que o auditor tem de acusar. O conteudo deriva do proprio estado: e a lista dos projetos e series que a resposta parcial deixou de fora.",
+      "columns": [
+        {
+          "name": "scope",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "derived",
+          "type_note": "O escopo do pedido, 'projects/-'. Copia o request.name do pedido anonimo, para que o inventario se leia sozinho.",
+          "type_source": "derived"
+        },
+        {
+          "name": "returned_projects",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "derived",
+          "type_note": "Os projetos que a resposta carrega. Derivado do proprio array 'timeSeries', pelo label project_id.",
+          "type_source": "derived"
+        },
+        {
+          "name": "missing_projects",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "derived",
+          "type_note": "Os projetos do escopo que a resposta NAO carrega. Derivado do escopo do pedido menos o que voltou. E a lista que responde 'o que a leitura parcial custou'.",
+          "type_source": "derived"
+        },
+        {
+          "name": "missing_series",
+          "type": "integer",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "derived",
+          "type_note": "Quantas series do estate NAO chegaram nesta resposta. Derivado do total do estate menos o que voltou.",
+          "type_source": "derived"
+        },
+        {
+          "name": "total_series",
+          "type": "integer",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "derived",
+          "type_note": "Quantas series o estate tem. Derivado do proprio estado, e o que torna 'missing_series' uma FRAcao e nao um numero solto.",
+          "type_source": "derived"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "request.name accepts '-' as a wildcard",
+      "reason": "O uso do curinga '-' para alcance multi-projeto e documentado na pratica do Googleapis, mas a pagina do metodo consultada descreve o campo como 'The project on which to execute the query, formatted as projects/{PROJECT_ID}' sem declarar o curinga. Declarado aqui como nao comprovado em vez de afirmado; o artefato NAO emite '-', porque '-' e de REQUISICAO e nunca entra no corpo de uma resposta.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "item": "Whether a resposta parcial e indistinguivel de uma completa sem o inventario irmao",
+      "reason": "ListTimeSeriesResponse nao declara um campo que diga quantos itens o escopo tinha. Um nextPageToken vazio significa 'ultima pagina', nao 'todos os dados'. Por isso missing.json existe: a honestidade do artefato nao pode depender de um campo que o contrato nao publica.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "item": "timeSeries[].metric.type value shape",
+      "reason": "Mesma declaracao da superficie mae gcp/monitoring-time-series: o namespace publico e usado e o ultimo segmento e o nome da metrica do estado, que nao foi verificavel nas fontes consultadas.",
+      "status": "UNVERIFIED"
+    }
+  ]
+}

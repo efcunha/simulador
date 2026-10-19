@@ -1,0 +1,19 @@
+{
+  "_fixture": "resource-graph-resources",
+  "_description": "Skeleton of a Resource Graph resources query envelope. Mirrors projections/inventory.project_resources rows.",
+  "api-version": "2024-04-01",
+  "_todo_verificar": "§11.8 — exact Resource Graph row envelope keys/casing, $skipToken placement, changeType vocabulary, and api-version are not offline-verifiable.",
+  "totalRecords": 1,
+  "count": 1,
+  "data": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-example/providers/Microsoft.Compute/virtualMachines/vm-example",
+      "name": "vm-example",
+      "type": "microsoft.compute/virtualmachines",
+      "location": "eastus",
+      "resourceGroup": "rg-example"
+    }
+  ],
+  "$skipToken": null,
+  "synthetic": true
+}

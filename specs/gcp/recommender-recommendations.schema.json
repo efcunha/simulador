@@ -1,0 +1,139 @@
+{
+  "surface": "gcp/recommender-recommendations",
+  "provider": "gcp",
+  "reference": {
+    "title": "Recommender API v1 - message GoogleCloudRecommenderV1Recommendation (method projects.locations.recommenders.recommendations.list)",
+    "url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "recommendations.json",
+    "root": "recommendations[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "O envelope de ListRecommendationsResponse e 'recommendations' com 'nextPageToken' -- o simulador ja usava o nome correto.",
+    "O NOME e o problema desta familia no artefato antigo: ele emitia 'projects/-/locations/global/...' no CORPO. O curinga ' - ' e recurso de URI de REQUISICAO (AIP-159); a resposta deve trazer o nome canonico com o projeto real, e o renderer novo usa o projeto do recurso alvo.",
+    "O 'content' e emitido como objeto VAZIO: e um Struct livre, e a unica coisa que o estado carrega para ele e um saco de marcadores cujas chaves a nuvem nao define."
+  ],
+  "unverified": [
+    {
+      "name": "recommendations[].resourceUuid",
+      "reason": "Chave de juncao entre planos emitida pelo artefato antigo; o contrato de Recommendation NAO a declara.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "recommendations[].name value shape",
+      "reason": "A FORMA esta confirmada no contrato de maquina: o discovery v1 do Recommender descreve o campo como 'Recommendation resource name, e.g. projects/[PROJECT_NUMBER]/locations/[LOCATION]/recommenders/[RECOMMENDER_ID]/recommendations/[RECOMMENDATION_ID]' -- exatamente o que o artefato emite. O que a leitura de 2026-10-15 acrescenta e NEGA: o parametro `parent` do metodo list diz que 'LOCATION here refers to GCP Locations' (https://cloud.google.com/about/locations/) e remete o leitor ao catalogo de recommenders, sem afirmar que a localizacao de uma recomendacao seja sempre `global`. `global` E uma localizacao GCP valida -- entao o valor emitido nao e invalido -- mas e uma escolha dentro de um dominio publicado, nao um valor que a fonte imponha. Por isso o campo continua sob auditoria: fechar exigiria a lista de recommenders por localizacao, que e uma segunda fonte.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "recommendations[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'recommendations' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "recommendations",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListRecommendationsResponse declara o array 'recommendations' (itens GoogleCloudRecommenderV1Recommendation) e 'nextPageToken'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListRecommendationsResponse.nextPageToken: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "recommendation",
+      "description": "Campos de um item de 'recommendations', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "recommendations[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1Recommendation.name: 'Identifier. Name of recommendation.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "recommendations[].recommenderSubtype",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1Recommendation.recommenderSubtype: 'Contains an identifier for a subtype of recommendations produced for the same recommender.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "recommendations[].stateInfo",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1Recommendation.stateInfo: 'Information for state. Contains state and metadata.' -- objeto.",
+          "type_source": "documented"
+        },
+        {
+          "name": "recommendations[].stateInfo.state",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1RecommendationStateInfo.state: 'The state of the recommendation, Eg ACTIVE, SUCCEEDED, FAILED.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "recommendations[].content",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/recommender/docs/reference/rest/v1/projects.locations.recommenders.recommendations/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudRecommenderV1Recommendation.content: 'Content of the recommendation describing recommended changes to resources.' -- objeto.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

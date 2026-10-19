@@ -1,0 +1,187 @@
+{
+  "surface": "gcp/monitoring-alert-policies",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Monitoring API v3 - message AlertPolicy (method projects.alertPolicies.list)",
+    "url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "alert_policies.json",
+    "root": "alertPolicies[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "O envelope de ListAlertPoliciesResponse e 'alertPolicies' com 'nextPageToken'.",
+    "A politica e DERIVADA das series que o estado reporta -- uma por serie --, porque o estado nao modela configuracao de alerta. A condicao e de AUSENCIA ('conditionAbsent') de proposito: o estado nao carrega limiar de operador, e cunhar um numero poria um limiar fabricado num campo real.",
+    "Nenhuma chave de juncao sintetica e emitida: nem no topo (o proto recusaria) nem em 'userLabels' (que o artefato antigo usava). A politica identifica o alvo pelo NOME do recurso no 'displayName' e pelo filtro da serie."
+  ],
+  "unverified": [
+    {
+      "name": "alertPolicies[].userLabels.resource_uuid",
+      "reason": "Chave de juncao entre planos que o artefato antigo punha no mapa userLabels (schema-valida, porque o mapa aceita chaves de usuario, e nao uma chave canonica). O artefato novo nao emite juncao sintetica nenhuma.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "alertPolicies[].conditions[].conditionAbsent.duration value",
+      "reason": "O campo e o formato sao publicados; o valor '600s' e a janela de lookback do proprio consumidor, citada do codigo dele e nao de uma pagina da Google. Registrado como nao comprovado.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "alertPolicies[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'alertPolicies' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "alertPolicies",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListAlertPoliciesResponse declara o array 'alertPolicies' (itens AlertPolicy) e 'nextPageToken'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListAlertPoliciesResponse.nextPageToken: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "alertPolicy",
+      "description": "Campos de um item de 'alertPolicies', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "alertPolicies[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AlertPolicy.name: 'Identifier. Required if the policy exists. ... projects/[PROJECT_ID_OR_NUMBER]/alertPolicies/[ALERT_POLICY_ID]' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "alertPolicies[].displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AlertPolicy.displayName: 'A short name or phrase used to identify the policy in dashboards, notifications, and incidents.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "alertPolicies[].combiner",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AlertPolicy.combiner: 'How to combine the results of multiple conditions to determine if an incident should be opened.' -- enum ConditionCombinerType, que inclui AND.",
+          "type_source": "documented"
+        },
+        {
+          "name": "alertPolicies[].enabled",
+          "type": "boolean",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AlertPolicy.enabled: 'Whether or not the policy is enabled.' -- boolean.",
+          "type_source": "documented"
+        },
+        {
+          "name": "alertPolicies[].conditions",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AlertPolicy.conditions: 'A list of conditions for the policy.' -- repeated Condition.",
+          "type_source": "documented"
+        },
+        {
+          "name": "alertPolicies[].conditions[].displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Condition.displayName: 'A short name or phrase used to identify the condition in dashboards, notifications, and incidents.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "alertPolicies[].conditions[].conditionAbsent",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Condition.conditionAbsent: 'A condition that checks that a time series continues to receive new data points.' -- objeto MetricAbsence.",
+          "type_source": "documented"
+        },
+        {
+          "name": "alertPolicies[].conditions[].conditionAbsent.filter",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MetricAbsence.filter: 'Required. A filter ... that identifies which time series should be compared with the threshold.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "alertPolicies[].conditions[].conditionAbsent.duration",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MetricAbsence.duration: 'Required. The amount of time that a time series must fail to report new data to be considered failing.' -- string com formato google-duration.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

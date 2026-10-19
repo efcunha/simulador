@@ -1,0 +1,210 @@
+{
+  "surface": "aws/s3-list-buckets",
+  "provider": "aws",
+  "reference": {
+    "title": "ListBuckets / Bucket / Owner (Amazon S3 API Reference)",
+    "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+    "consulted_at": "2026-10-16",
+    "version": "S3 REST API; a resposta desta acao e documentada em XML",
+    "member_pages": [
+      "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Bucket.html",
+      "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Owner.html"
+    ],
+    "permission": "s3:ListAllMyBuckets",
+    "permission_note": "A propria pagina da acao diz: 'To grant IAM permission to use this operation, you must add the s3:ListAllMyBuckets policy action'. O nome da acao e ListBuckets e o da politica de IAM e ListAllMyBuckets -- sao dois nomes distintos e o artefato nao os confunde."
+  },
+  "chosen_surface": {
+    "specified": "ListBuckets API response, the Bucket type it lists and the Owner type it attributes",
+    "why": "E a unica acao que responde 'quais buckets a CONTA tem', e por isso a unica que carrega o escopo de conta do S3. As outras tres superficies do Incremento 3 sao por bucket; esta e o indice que asThree hangs from, e sem ela um consumidor so descobre os buckets percorrendo outra coisa.",
+    "config_alternative": "AWS::S3::Bucket e um tipo de recurso suportado pelo AWS Config, mas o Config nao publica uma listagem de buckets como artefato de leitura; ele avalia por recurso. A listagem de conta e uma leitura de API, e a API e o que a documenta.",
+    "rejected": [
+      "GetBucketLocation/GetBucketAcl/GetBucketPolicy/GetPublicAccessBlock como superficie de listagem: as quatro sao por bucket e nenhuma devolve o conjunto de buckets da conta",
+      "ListObjectsV2: lista OBJETOS de um bucket, nao buckets; o escopo do artefato seria outro"
+    ]
+  },
+  "delivery": {
+    "kind": "read_api",
+    "export_mechanism_exists": false,
+    "export_mechanism_note": "ListBuckets e uma API de leitura. A AWS nao documenta exportacao dela para S3 nem qualquer artefato duravel; a unica saida publicada e a resposta HTTP.",
+    "path_template": null,
+    "format": "xml",
+    "format_note": "A pagina diz literalmente 'The following data is returned in XML format by the service' e o Response Syntax e um documento XML. O artefato entregue aqui e JSON, com os nomes de elemento do proprio XML: e a mesma divergencia de serializacao que as demais superficies de API assumem, declarada aqui em vez de silenciada.",
+    "response_wrapper": "ListAllMyBucketsResult",
+    "item_element": "Bucket",
+    "compression": null,
+    "manifest": null,
+    "pagination": {
+      "supported": true,
+      "request_parameters": ["bucket-region", "continuation-token", "max-buckets", "prefix"],
+      "response_parameters": ["ContinuationToken", "Prefix"],
+      "note": "A acao E paginada e a pagina exige paginacao para contas com cota acima de 10.000 buckets. O estado tem 25 buckets por conta, entao uma pagina responde tudo: ContinuationToken e Prefix sao emitidos nulos por ausencia de paginacao, nao por recusa de modelar a paginacao."
+    },
+    "element_order_guaranteed": false,
+    "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+    "encoding_source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html"
+  },
+  "structure": {
+    "response": "2.1",
+    "bucket": "2.2",
+    "owner": "2.3",
+    "request_parameters": "2.4"
+  },
+  "armadilhas": {
+    "escopo_e_a_conta_nao_a_regiao": "ListBuckets NAO tem regiao no escopo. A acao lista 'all buckets owned by the authenticated sender of the request', e o proprio parametro bucket-region aparece na resposta de cada Bucket -- o bucket carrega a regiao, a resposta nao. Um consumidor que ragu um escopo de conta por regiao aqui estara contando tres vezes o mesmo conjunto. E por isso que este renderer emite UM artefacto por conta, e nao por (conta, regiao).",
+    "bucketarn_so_para_directory_buckets": "A pagina do tipo Bucket diz do BucketArn: 'This parameter is only supported for S3 directory buckets.' Um bucket de uso geral, que e o caso do estado, nao tem BucketArn publicado por esta acao. A coluna entra no formato por ser membro documentado, e o estado a emite nula -- e nao um ARN inventado.",
+    "o_parametro_chama-se_bucket-region": "O parametro de requisicao se chama bucket-region, com hifen e minusculo, porque e o que aparece no Request Syntax. Ele NAO e o membro BucketRegion da resposta, que se escreve em camelCase. Os dois nomes coexistem na mesma pagina e sao-propriedades distintas.",
+    "owner_e_o_mesmo_das_duas_respostas": "O Owner que o ListBuckets publica e o mesmo que o GetBucketAcl publica: as duas paginas apontam para o mesmo tipo API_Owner.md. O estado guarda UM owner por bucket e as duas superficies leem o mesmo objeto, entao o consumidor nao encontra dois donos diferentes para o mesmo bucket."
+  },
+  "sets": [
+    {
+      "name": "list-buckets-response",
+      "description": "Elementos de topo da resposta de ListBuckets. O elemento raiz e ListAllMyBucketsResult, Required: Yes. Encoding documentado: XML. Fonte: API_ListBuckets.html",
+      "columns": [
+        {
+          "name": "Buckets",
+          "type": "array",
+          "description": "A lista de buckets que o requisitante possui (Array of Bucket data types).",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+          "status": "verified",
+          "scope": "list-buckets-response"
+        },
+        {
+          "name": "ContinuationToken",
+          "type": "string",
+          "description": "Presente na resposta quando ha mais buckets que podem ser listados com paginacao. Valor null: a conta inteira cabe em uma pagina.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+          "status": "verified",
+          "scope": "list-buckets-response"
+        },
+        {
+          "name": "Owner",
+          "type": "owner",
+          "description": "O dono dos buckets listados (Owner data type).",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+          "status": "verified",
+          "scope": "list-buckets-response"
+        },
+        {
+          "name": "Prefix",
+          "type": "string",
+          "description": "Se Prefix foi enviado na requisicao, ele vem na resposta. Valor null: a listagem nao foi filtrada por prefixo.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+          "status": "verified",
+          "scope": "list-buckets-response"
+        }
+      ]
+    },
+    {
+      "name": "bucket",
+      "description": "O tipo Bucket: um bucket e, nas palavras da propria pagina, 'a resource'. Os quatro membros sao Required: No. Fonte: API_Bucket.html",
+      "columns": [
+        {
+          "name": "BucketArn",
+          "type": "string",
+          "description": "O ARN do bucket. A propria pagina restringe: 'This parameter is only supported for S3 directory buckets.' Valor null: o estado so tem buckets de uso geral, para os quais a acao nao publica ARN.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Bucket.html",
+          "status": "verified",
+          "scope": "bucket"
+        },
+        {
+          "name": "BucketRegion",
+          "type": "string",
+          "description": "A regiao AWS onde o bucket esta. A pagina explica a condicao: 'If the request contains at least one valid parameter, it is included in the response.'",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Bucket.html",
+          "status": "verified",
+          "scope": "bucket"
+        },
+        {
+          "name": "CreationDate",
+          "type": "timestamp",
+          "description": "A data em que o bucket foi criado. A pagina avisa que a data pode mudar quando o bucket muda, por exemplo quando a bucket policy e editada.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Bucket.html",
+          "status": "verified",
+          "scope": "bucket"
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "description": "O nome do bucket.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Bucket.html",
+          "status": "verified",
+          "scope": "bucket"
+        }
+      ]
+    },
+    {
+      "name": "owner",
+      "description": "O tipo Owner: o nome de exibicao e o ID de quem e dono. Os dois membros sao Required: No. Fonte: API_Owner.html",
+      "columns": [
+        {
+          "name": "DisplayName",
+          "type": "string",
+          "description": "O nome de exibicao do dono. Valor null: o estado nao modela um nome de exibicao de conta, e a resposta de exemplo da propria API tambem traz so o ID.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Owner.html",
+          "status": "verified",
+          "scope": "owner"
+        },
+        {
+          "name": "ID",
+          "type": "string",
+          "description": "O ID de quem e dono. A resposta de exemplo do ListBuckets mostra o formato de ID de conta AWS ('AIDACKCEVSQ6C2EXAMPLE').",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_Owner.html",
+          "status": "verified",
+          "scope": "owner"
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "Os quatro parametros de query documentados da requisicao. O estado nao modela nenhuma requisicao capturada, entao estes nomes existem com valor nulo: e a forma do documento, nao um fato sobre uma chamada que alguem fez. Fonte: API_ListBuckets.html",
+      "columns": [
+        {
+          "name": "bucket-region",
+          "type": "string",
+          "description": "Limita a resposta a buckets na regiao AWS indicada, no codigo de regiao como 'us-west-2'. Valor null: a listagem nao foi filtrada por regiao.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "continuation-token",
+          "type": "string",
+          "description": "Indica que a listagem continua num bucket com o token. Valor null: a primeira pagina nao precisa de continuacao.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "max-buckets",
+          "type": "integer",
+          "description": "Numero maximo de buckets a retornar na resposta. Valor null: a conta inteira coube em uma pagina.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "prefix",
+          "type": "string",
+          "description": "Limita a resposta a nomes de bucket que comecam com o prefixo indicado. Valor null: sem filtro de prefixo.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "Order of the elements inside ListAllMyBucketsResult",
+      "reason": "O Response Syntax mostra <Buckets>, <Owner>, <ContinuationToken>, <Prefix> nesta ordem, mas a resposta e XML e a pagina nao promete ordenacao. O artefacto ordena a lista de buckets por nome, que e determinismo do gerador e nao uma afirmacao sobre a ordem que o servico devolve."
+    },
+    {
+      "item": "Ordering of Buckets within the array",
+      "reason": "Nenhuma das cinco respostas de exemplo da pagina esta em ordem alfabetica e a pagina nao declara ordenacao. A ordenacao por nome aqui e uma escolha de determinismo, declarada no _provenance.json de cada artefacto."
+    },
+    {
+      "item": "timestamp representation of CreationDate",
+      "reason": "A pagina publica o tipo como 'Timestamp' sem fixar a forma textual. O exemplo usa '2019-12-11T23:32:47+00:00'. O estado emite ISO-8601 com offset UTC, que e a forma do exemplo oficial, mas a AWS nao promete que e a unica representacao aceita."
+    }
+  ]
+}

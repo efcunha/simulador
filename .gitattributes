@@ -1,0 +1,16 @@
+# Determinismo byte-a-byte.
+#
+# O gerador promete saida reproduzivel byte a byte. A conversao automatica de
+# fim de linha (autocrlf) reescreveria os artefatos golden no checkout e
+# quebraria essa garantia, entao nenhum arquivo e tratado como texto para fins
+# de normalizacao: os bytes entram e saem como estao.
+* -text
+
+# Formatos binarios, explicitados por clareza.
+*.parquet binary
+*.parquet.snappy binary
+*.gz binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.ico binary

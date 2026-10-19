@@ -1,0 +1,170 @@
+{
+  "surface": "gcp/billing-budgets",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Billing Budgets API v1 - message GoogleCloudBillingBudgetsV1Budget (method billingAccounts.budgets.list)",
+    "url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "budgets.json",
+    "root": "budgets[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "O envelope de ListBudgetsResponse e 'budgets' com 'nextPageToken' -- o simulador ja usava o nome correto.",
+    "Nenhum campo desconhecido. O formato do nome ('billingAccounts/{billingAccountId}/budgets/{budgetId}') e o publicado, e o contrato NAO impoe formato ao budgetId -- um UUID e aceitavel.",
+    "O valor de 'amount.specifiedAmount.units' e emitido como STRING, que e a representacao ProtoJSON de um int64."
+  ],
+  "unverified": [
+    {
+      "name": "budgets[].amount.specifiedAmount.units value shape",
+      "reason": "O campo e o tipo sao publicados (int64 como string); o VALOR e fixo ('1000') e nao vem de nenhum orcamento do estado -- um valor de exemplo declarado, nao medido.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "budgets[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'budgets' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "budgets",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListBudgetsResponse declara o array 'budgets' (itens GoogleCloudBillingBudgetsV1Budget) e 'nextPageToken'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListBudgetsResponse.nextPageToken: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "budget",
+      "description": "Campos de um item de 'budgets', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "budgets[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudBillingBudgetsV1Budget.name: 'Output only. Resource name of the budget. ... Values are of the form billingAccounts/{billingAccountId}/budgets/{budgetId}.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "budgets[].displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudBillingBudgetsV1Budget.displayName: 'User data for display name in UI. The name must be less than or equal to 60 characters.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "budgets[].budgetFilter",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudBillingBudgetsV1Budget.budgetFilter: 'Filters that define which resources are used to compute the actual spend against the budget amount.' -- objeto Filter.",
+          "type_source": "documented"
+        },
+        {
+          "name": "budgets[].budgetFilter.projects",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Filter.projects: 'A set of projects of the form projects/{project}, specifying that usage from only this set of projects should be included in the budget.' -- repeated string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "budgets[].amount",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "GoogleCloudBillingBudgetsV1Budget.amount: 'Required. Budgeted amount.' -- objeto BudgetAmount.",
+          "type_source": "documented"
+        },
+        {
+          "name": "budgets[].amount.specifiedAmount",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "BudgetAmount.specifiedAmount: 'A specified amount to use as the budget.' -- google.type.Money.",
+          "type_source": "documented"
+        },
+        {
+          "name": "budgets[].amount.specifiedAmount.currencyCode",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Money.currencyCode: 'The three-letter currency code defined in ISO 4217.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "budgets[].amount.specifiedAmount.units",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/budget/rest/v1/billingAccounts.budgets/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Money.units: 'The whole units of the amount.' -- int64, cuja representacao ProtoJSON e string.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "surface": "gcp/asset-search-all-resources",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Asset Inventory API v1 - message ResourceSearchResult and method searchAllResources (google/cloud/asset/v1/assets.proto + discovery document)",
+    "url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://cloudasset.googleapis.com/v1/{scope}:searchAllResources",
+    "format": "json",
+    "compression": "none",
+    "file_name": "cai_search_all_resources.json",
+    "root": "results[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "Primeira superficie do G11 (auditoria do gcp_rest_fixtures). O renderer declara em comentario que o envelope e 'best-effort official-shaped' com TODO-verificar #7 em quase todo campo; esta spec substitui a memoria pela fonte, campo a campo.",
+    "FONTES E A GUARDA DE DOMINIO. Todos os source_url desta spec estao em dominios que a lista fechada do projeto aceita: 'docs.cloud.google.com' para a pagina do metodo e 'raw.githubusercontent.com' para o .proto oficial que o Google publica. O documento de descoberta em maquina (https://cloudasset.googleapis.com/$discovery/rest?version=v1) foi a fonte que CONFIRMOU o envelope -- e o host dele (cloudasset.googleapis.com) NAO esta na lista de dominios oficiais, entao ele nao e citado como source_url: seria uma citacao correta e ao mesmo tempo uma quebra da regra que a suite verifica. O que ele afirma esta transcrito no type_note de 'results' e no docs/CONTRATO-APIS-GCP.md.",
+    "ESCOPO: esta spec fixa o contrato dos campos que ESTA superficie se propos a emitir, e nao o schema inteiro de ResourceSearchResult. O proto documenta ~30 campos (folders, organization, description, networkTags, kmsKeys, createTime, updateTime, state, additionalAttributes, parentFullResourceName, versionedResources, attachedResources, relationships, tagKeys, tagValues, tagValueIds, tags, effectiveTags, enrichments, parentAssetType, sccSecurityMarks); nenhum deles e emitido pelo artefato de hoje e todos ficam FORA deste contrato em vez de virarem coluna obrigatoria vazia. Ampliar o escopo e uma decisao, nao um efeito colateral.",
+    "Nivel do item: os campos de ResourceSearchResult sao os caminhos 'results[].<campo>', e o nome no JSON segue a convencao lowerCamelCase do proto3 ('asset_type' -> 'assetType', 'display_name' -> 'displayName'). O envelope (results[], nextPageToken) vive no conjunto 'response'.",
+    "O campo 'name' e o FULL RESOURCE NAME, e a tabela oficial de nomes de asset publica o formato POR TIPO -- o valor que o artefato compoe nao segue essa tabela e esta registrado em 'unverified'."
+  ],
+  "unverified": [
+    {
+      "name": "results[].resourceUuid",
+      "reason": "O artefato do gcp_rest_fixtures emite 'resourceUuid' (chave de juncao entre planos sinteticos) dentro de cada resultado, e o proto oficial de ResourceSearchResult NAO declara esse campo. Em proto3 campo desconhecido nao esta no contrato, e o proprio codigo registra, para a familia alertPolicies, que um campo de topo nao declarado faz o cliente RECUSAR a resposta inteira ('ParseDict fails with has no field named resourceUuid'). O CAMINHO entra aqui, e nao em 'sets', porque um nome nao pode pertencer ao formato e ser nao comprovado ao mesmo tempo -- e o nucleo de fidelidade compara o caminho completo, nao o nome curto. Onde ele MORA quando e emitido: dentro do item, entao aqui; onde ele mora no corpo bruto: ao lado de 'name'. Enquanto o renderer o emitir, o auditor acusa [unverified_emitted] -- e essa acusacao e a decisao pendente deste item, nao um ruido a silenciar.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "results[].name value shape",
+      "reason": "O TIPO e a FORMA do campo sao publicados, e o VALOR nao segue o formato por tipo. O proto diz que 'name' e o full resource name (exemplo: //compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1) e a tabela oficial de nomes de asset (https://docs.cloud.google.com/asset-inventory/docs/asset-names) publica o formato POR TIPO: Instance -> //compute.googleapis.com/projects/PROJECT_ID/zones/ZONE/instances/INSTANCE; Instance (Cloud SQL) -> //cloudsql.googleapis.com/projects/PROJECT_ID/instances/INSTANCE; Cluster -> //container.googleapis.com/projects/PROJECT_ID/locations/LOCATION/clusters/CLUSTER; Bucket -> //storage.googleapis.com/BUCKET. O artefato compoe '//<resource_type>.googleapis.com/projects/<project>/<resource_type>/<resource_name>', que nao traz zonas/locations e usa o nome interno do tipo como segmento de caminho. O campo existe e e emitido; o valor esta sob auditoria.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "results[].assetType value shape",
+      "reason": "O TIPO do campo e publicado (string) e o proto exemplifica 'compute.googleapis.com/Disk'; a tabela oficial de nomes publica 'compute.googleapis.com/Instance'. O artefato compoe '<resource_type>.googleapis.com' (ex.: 'compute_instance.googleapis.com'), sem sufixo de tipo de asset -- o nome interno do tipo do estado nao e o tipo de asset que a CAI indexa. A lista oficial completa e uma pagina propria (supported-asset-types) que nao foi consultada tipo a tipo deste estado.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope de SearchAllResourcesResponse: o array que hospeda os resultados e o token de paginacao. O artefato e o corpo da resposta inteiro, entao o envelope e o nivel do DOCUMENTO.",
+      "columns": [
+        {
+          "name": "results",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/searchAllResources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "A pagina oficial do metodo declara que searchAllResources responde SearchAllResourcesResponse, e os campos de resposta dessa mensagem (o array 'results' e 'nextPageToken') estao no documento de descoberta que o Google publica em maquina para a mesma API, na mesma revisao. A lista de campos de lista conferidos esta em docs/CONTRATO-APIS-GCP.md.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SearchAllResourcesResponse.next_page_token (string): o token da proxima pagina. O artefato o emite como string vazia na ultima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "resourceSearchResult",
+      "description": "Campos de ResourceSearchResult (google/cloud/asset/v1/assets.proto) que este artefato emite, no nivel do ITEM. Os caminhos usam o nome JSON (lowerCamelCase) porque e ele que existe no arquivo entregue.",
+      "columns": [
+        {
+          "name": "results[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ResourceSearchResult: 'The full resource name of this resource. Example: //compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].assetType",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ResourceSearchResult: 'The type of this resource. Example: compute.googleapis.com/Disk.' -- string (proto field asset_type).",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].project",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ResourceSearchResult: 'The project that this resource belongs to, in the form of projects/{PROJECT_NUMBER}.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ResourceSearchResult: 'The display name of this resource. This field is available only when the resource's Protobuf contains it.' -- string (proto field display_name).",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].location",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ResourceSearchResult: 'Location can be global, regional like us-east1, or zonal like us-west1-b.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "results[].labels",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://raw.githubusercontent.com/googleapis/googleapis/master/google/cloud/asset/v1/assets.proto",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ResourceSearchResult: 'User labels associated with this resource.' -- map<string, string>, que em JSON e um objeto de chaves string.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

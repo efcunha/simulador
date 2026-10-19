@@ -1,0 +1,22 @@
+{
+  "_fixture": "cost-management-query-result",
+  "_description": "Skeleton of a Cost Management Query (ActualCost) QueryResult. Mirrors projections/cost_query.project_cost_query output.",
+  "api-version": "2023-11-01",
+  "_todo_verificar": "§11.6 — exact Query column-name spellings and column 'type' strings, and the Query api-version string, are not offline-verifiable.",
+  "properties": {
+    "columns": [
+      { "name": "PreTaxCost", "type": "Number" },
+      { "name": "UsageDate", "type": "DateTime" },
+      { "name": "ServiceName", "type": "String" },
+      { "name": "ResourceGroupName", "type": "String" },
+      { "name": "ResourceLocation", "type": "String" },
+      { "name": "ResourceId", "type": "String" },
+      { "name": "Currency", "type": "String" }
+    ],
+    "rows": [
+      [0.0, "2025-01-01", "Azure OpenAI", "rg-example", "eastus", "", "USD"]
+    ]
+  },
+  "nextLink": null,
+  "synthetic": true
+}

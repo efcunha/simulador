@@ -1,0 +1,74 @@
+# Config of record for the tools/synthetic_clouds package (Phase 1).
+#
+# F1 (design-review must-fix): ruff and mypy discover configuration by walking
+# UP the directory tree from the target file. pyproject.toml do consumidor is a
+# SIBLING subtree, not an ancestor of tools/synthetic_clouds/, so it is never
+# auto-inherited. Without this file ruff would fall back to line-length 88 and
+# fail AC-1. This file mirrors the backend values (line-length 120, target
+# py312, same select/ignore rule set, mypy strict + same disable_error_code)
+# so `ruff check tools/synthetic_clouds` / `mypy tools/synthetic_clouds` from
+# the repo root discover the package config here. Writing it INSIDE the
+# permitted package path does not violate NFR-5 (a root config would).
+[project]
+name = "simulador-nuvem-generator"
+version = "0.1.0"
+description = "Gerador de nuvens sinteticas fiel aos formatos de export oficiais da AWS, GCP e Azure."
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: tests that need a database; they must NEVER target the FinOps DB",
+    "topology: conformance tests of the GCP BigQuery topology renderer (DDL provisioning and invoice reconciliation)",
+]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+# `src` is resolved against ruff's project_root, which differs between the two
+# invocation forms: hierarchical discovery -> the config file's own dir,
+# explicit `--config` -> that dir's parent. Only under the explicit form does
+# this resolve to the dir that actually contains the `tools` package, so only
+# there is `tools.synthetic_clouds` classified as FIRST-PARTY -- which is what
+# it is. `tools.*` is this project's own code, imported by its own tests.
+# Measured 2026-10-19; see simulador-nuvem/README.md.
+src = ["."]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "S", "B", "ANN", "ASYNC"]
+ignore = [
+  "ANN401",  # Allow Any type when needed (complex generics)
+  "S101",
+  "E501",    # Line-too-long enforced by formatter, not linter
+  "B008",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests: assert-heavy, fixtures, intentionally loose typing (mirrors backend).
+# The pattern is anchored at ruff's `project_root`, which is the directory of the
+# config file's PARENT when `--config` is passed from the repo root -- not the
+# package dir. A bare "tests/*" therefore stops matching
+# `simulador-nuvem/tools/synthetic_clouds/tests/*` and the S/ANN findings in the
+# test suite reappear. "**/tests/*" matches at any depth, so the two invocations
+# agree. Measured 2026-10-19; see simulador-nuvem/README.md.
+"**/tests/*" = ["S", "ANN", "B017", "N805", "F841", "F821", "E402"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+disable_error_code = ["type-arg", "unused-ignore"]
+# The package is imported as ``tools.synthetic_clouds`` (matches
+# ``python -m tools.synthetic_clouds``). ``tools/`` has no ``__init__.py`` (adding
+# one would write outside the permitted package path, violating NFR-5), so mypy
+# would otherwise map the same file to two module names. explicit_package_bases +
+# a repo-root mypy_path pin the canonical ``tools.synthetic_clouds.*`` namespace.
+explicit_package_bases = true
+mypy_path = "../.."
+namespace_packages = true
+
+[[tool.mypy.overrides]]
+# pytest decorators (@pytest.fixture, @pytest.mark.*) are untyped — framework
+# limitation, not a bug. Scoped to the test package only.
+module = ["tests.*"]
+disable_error_code = ["untyped-decorator"]

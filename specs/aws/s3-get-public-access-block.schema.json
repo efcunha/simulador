@@ -1,0 +1,214 @@
+{
+  "surface": "aws/s3-get-public-access-block",
+  "provider": "aws",
+  "reference": {
+    "title": "GetPublicAccessBlock / PublicAccessBlockConfiguration (Amazon S3 API Reference)",
+    "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+    "consulted_at": "2026-10-16",
+    "version": "S3 REST API; a resposta desta acao e documentada em XML",
+    "member_pages": [
+      "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PublicAccessBlockConfiguration.html"
+    ],
+    "permission": "s3:GetBucketPublicAccessBlock",
+    "permission_note": "Nomeado na propria pagina: 'To use this operation, you must have the s3:GetBucketPublicAccessBlock permission.'"
+  },
+  "chosen_surface": {
+    "specified": "GetPublicAccessBlock API response and its PublicAccessBlockConfiguration type",
+    "why": "E a acao que publica os quatro interruptores de Block Public Access de um bucket, e sao eles que a regra gerenciada s3-bucket-public-read-prohibited consulta PRIMEIRO: a regra so avalia a policy e a ACL quando 'the Block Public Access setting does not restrict public policies' / '... does not restrict public bucket ACLs'. Sem esta superficie a regra comeca sem resposta.",
+    "config_alternative": "O Config consome esses mesmos interruptores ao avaliar o bucket, mas nao os publica como leitura. Quem os devolve e a API.",
+    "rejected": [
+      "GetPublicAccessBlock da s3control (nivel de conta): a regra s3-bucket-level-public-access-prohibited e de NIVEL DE BUCKET, e a propria pagina avisa 'This operation returns the bucket-level configuration only'",
+      "GetBucketPolicyStatus: devolve o booleano IsPublic, que e um JUIZO e nao os quatro fatos que a regra precisa ler"
+    ]
+  },
+  "delivery": {
+    "kind": "read_api",
+    "export_mechanism_exists": false,
+    "export_mechanism_note": "GetPublicAccessBlock e uma API de leitura. A AWS nao documenta exportacao desta resposta para S3 nem qualquer artefato duravel.",
+    "path_template": null,
+    "format": "xml",
+    "format_note": "A pagina diz 'The following data is returned in XML format by the service'. A resposta de exemplo escreve os booleanos como TRUE/FALSE, que e a grafia XML; o artefacto e JSON e por isso os emite como true/false, o valor booleano correspondente. A conversao esta declarada aqui porque um consumidor que leia o exemplo oficial vai ver outra grafia.",
+    "response_wrapper": "PublicAccessBlockConfiguration",
+    "item_element": null,
+    "compression": null,
+    "manifest": null,
+    "pagination": {
+      "supported": false,
+      "request_parameters": [],
+      "response_parameters": [],
+      "note": "A acao nao publica paginacao: a configuracao e um objeto de quatro membros."
+    },
+    "element_order_guaranteed": false,
+    "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+    "encoding_source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html"
+  },
+  "structure": {
+    "response": "2.1",
+    "request_parameters": "2.2"
+  },
+  "armadilhas": {
+    "a_resposta_e_o_proprio_tipo_raiz": "Aqui o elemento raiz E o PublicAccessBlockConfiguration -- a pagina lista 'PublicAccessBlockConfiguration' na propria lista de Response Elements, com Required: Yes --, e os quatro booleanos sao membros dele. Por isso este e o unico Incremento-3 artifact em que o conjunto de resposta e o conjunto de tipo, e nao dois: nao existe envelope separado para desembrulhar.",
+    "os_quatro_nao_sao_equivalentes": "Os quatro nomes sao parecidos e nenhum e redundante com outro. BlockPublicAcls impede GRAVAR ACL publica; IgnorePublicAcls faz o servico IGNORAR ACLs publicas ja existentes -- e o que faz GetBucketAcl devolver a ACL EFETIVA em vez da armazenada; BlockPublicPolicy impede GRAVAR policy publica; RestrictPublicBuckets restringe o ACESSO a um bucket que tem policy publica. Tratar os quatro como um so boolean -- ou como um so 'public access' ligado -- apaga a diferenca que a regra le.",
+    "configuracao_ausente_tem_um_valor": "Os quatro sao Required: No, e um bucket que nunca teve PutPublicAccessBlock chamado tem os quatro desligados. Por isso o estado SEMPRE carrega os quatro: um bucket sem configuracao e um bucket com a configuracao toda em falso, e a regra le a diferenca.",
+    "o_efeito_no_nivel_da_conta_e_outro_dado": "A pagina avisa duas vezes: a operacao 'returns the bucket-level configuration only', e na avaliacao o S3 checa o block do bucket E o da conta, e usa a combinacao mais restritiva. A combinacao com a conta NAO esta nesta superficie e o estado nao a modela -- o efeito no compliance esta declarado no _provenance de cada artifact.",
+    "o_bloco_regional_nao_esta_no_contrato_das_duas_acoes": "Medido em 2026-10-18: 'RegionalAccessBlockConfiguration' tem ZERO ocorrencias em API_GetPublicAccessBlock.html E em API_PutPublicAccessBlock.html, e o PublicAccessBlockConfiguration que ambas documentam tem quatro membros, nenhum regional. O recurso existe na API e os SDKs o publicam, mas a referencia publica consultada nao o descreve. Por isso ele vive num conjunto IRMAO, marcado 'unverified', e NAO como um quinto membro da resposta -- um quinto membro seria uma coluna que o auditor de conjunto acusaria de inventada, e esconderia o fato que importa: ninguem conferiu a forma contra uma pagina."
+  },
+  "sets": [
+    {
+      "name": "regional-access-block-configuration",
+      "description": "O bloco de Block Public Access POR REGIAO, num conjunto IRMAO (regional-access-block.json). NAO COMPREVADO: medido em 2026-10-18, 'RegionalAccessBlockConfiguration' tem ZERO ocorrencias em API_GetPublicAccessBlock.html E em API_PutPublicAccessBlock.html, e o PublicAccessBlockConfiguration que ambas documentam tem quatro membros, nenhum regional. Fica fora da resposta por esse motivo -- um quinto membro no tipo raiz seria uma coluna inventada -- e as oito colunas abaixo ficam marcadas 'unverified'.",
+      "columns": [
+        {
+          "name": "Bucket",
+          "type": "string",
+          "required": false,
+          "description": "O bucket a que o bloco regional se aplica. Este membro NAO e de RegionalAccessBlockConfiguration: ele pertence ao artefato IRMAO, que precisa nomear o bucket porque o bloco por si so nao o diz -- e o corpo da resposta, que nao o nomeia, liga por POSICAO. Fica 'required: false' porque o conjunto inteiro e nao comprovado e o validador recusa presenca exigida em coluna nao comprovada (nenhum artefacto pode satisfazer as duas exigencias). O artefacto preenche este membro para toda entrada, e e a guarda de projecao do renderer que impede uma entrada sem ele.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "unverified",
+          "scope": "regional-access-block-configuration"
+        },
+        {
+          "name": "RegionalAccessBlockConfiguration",
+          "type": "object",
+          "required": false,
+          "description": "O bloco de Block Public Access POR REGIAO, como o nome do proprio tipo na API. Este membro e o OBJETO; os seis seguintes sao os membros DELE, com caminho. Sao os nomes que os SDKs publicam -- nenhuma das duas acoes consultadas os declara.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "unverified",
+          "scope": "regional-access-block-configuration"
+        },
+        {
+          "name": "RegionalAccessBlockConfiguration.Region",
+          "type": "string",
+          "required": false,
+          "description": "A regiao a que o bloco se aplica. Medido: nao declarado nas duas paginas consultadas; a grafia vem da forma que os SDKs publicam.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "unverified",
+          "scope": "regional-access-block-configuration"
+        },
+        {
+          "name": "RegionalAccessBlockConfiguration.RegionPrefix",
+          "type": "string",
+          "required": false,
+          "description": "O prefixo de regiao que o bloco alcanca. O artefacto emite a REGIAO DO PROPRIO BUCKET, e nao um literal: um bloco que nomeia um prefixo onde o bucket nao esta nao se aplica a ele, e um consumidor nao distinguiria 'nao configurado' de 'configurado para outra regiao'.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "unverified",
+          "scope": "regional-access-block-configuration"
+        },
+        {
+          "name": "RegionalAccessBlockConfiguration.BlockPublicAcls",
+          "type": "boolean",
+          "required": false,
+          "description": "Se o S3 bloqueia ACLs publicas no escopo regional. Mesmo membro do bloco de bucket, com o mesmo nome e a mesma grafia -- e aqui ele vale no escopo da regiao, nao no do bucket.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "unverified",
+          "scope": "regional-access-block-configuration"
+        },
+        {
+          "name": "RegionalAccessBlockConfiguration.BlockPublicPolicy",
+          "type": "boolean",
+          "required": false,
+          "description": "Se o S3 bloqueia bucket policies publicas no escopo regional.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "unverified",
+          "scope": "regional-access-block-configuration"
+        },
+        {
+          "name": "RegionalAccessBlockConfiguration.IgnorePublicAcls",
+          "type": "boolean",
+          "required": false,
+          "description": "Se o S3 ignora ACLs publicas no escopo regional.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "unverified",
+          "scope": "regional-access-block-configuration"
+        },
+        {
+          "name": "RegionalAccessBlockConfiguration.RestrictPublicBuckets",
+          "type": "boolean",
+          "required": false,
+          "description": "Se o S3 restringe o acesso no escopo regional a principals de servico e usuarios autorizados da conta.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "unverified",
+          "scope": "regional-access-block-configuration"
+        }
+      ]
+    },    {
+      "name": "get-public-access-block-response",
+      "description": "A resposta de GetPublicAccessBlock: o elemento raiz PublicAccessBlockConfiguration e os quatro membros dele. Encoding documentado: XML. Fonte: API_GetPublicAccessBlock.html e API_PublicAccessBlockConfiguration.html",
+      "columns": [
+        {
+          "name": "BlockPublicAcls",
+          "type": "boolean",
+          "description": "Especifica se o Amazon S3 deve bloquear ACLs de acesso publico para este bucket. TRUE faz PUT Bucket ACL e PUT Object ACL falharem quando a ACL especificada e publica. Habilitar nao afeta policies ou ACLs existentes.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "verified",
+          "scope": "get-public-access-block-response"
+        },
+        {
+          "name": "BlockPublicPolicy",
+          "type": "boolean",
+          "description": "Especifica se o Amazon S3 deve bloquear bucket policies publicas para este bucket. TRUE faz o servico rejeitar chamadas de PUT Bucket policy se a policy permitir acesso publico. Habilitar nao afeta policies ja existentes.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "verified",
+          "scope": "get-public-access-block-response"
+        },
+        {
+          "name": "IgnorePublicAcls",
+          "type": "boolean",
+          "description": "Especifica se o Amazon S3 deve ignorar ACLs publicas para este bucket. TRUE faz o servico ignorar TODAS as ACLs publicas do bucket. Habilitar nao afeta a persistencia de ACLs existentes e nao impede que novas ACLs publicas sejam definidas.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "verified",
+          "scope": "get-public-access-block-response"
+        },
+        {
+          "name": "RestrictPublicBuckets",
+          "type": "boolean",
+          "description": "Especifica se o Amazon S3 deve restringir bucket policies publicas para este bucket. TRUE restringe o acesso ao bucket a apenas principals de servico AWS e usuarios autorizados desta conta, se o bucket tiver policy publica.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "verified",
+          "scope": "get-public-access-block-response"
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "Os dois parametros documentados da requisicao. O estado nao modela nenhuma requisicao capturada, entao estes nomes existem com valor nulo: e a forma do documento, nao um fato sobre uma chamada que alguem fez. Fonte: API_GetPublicAccessBlock.html",
+      "columns": [
+        {
+          "name": "Bucket",
+          "type": "string",
+          "required": true,
+          "description": "O nome do bucket S3 cuja configuracao de PublicAccessBlock se quer obter. Valor null: o estado nao modela a requisicao que disparou a leitura.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "x-amz-expected-bucket-owner",
+          "type": "string",
+          "description": "O ID de conta do dono esperado do bucket; se nao bater com o dono real, a requisicao falha com 403. Valor null: o estado nao modela a requisicao.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "Boolean representation of the four members",
+      "reason": "A resposta de exemplo escreve TRUE e FALSE, que e a grafia booleana de XML. O tipo publicado e 'Boolean' sem fixar representacao textual. O artefacto emite true/false, que e o booleano correspondente em JSON, e a conversao esta declarada nesta spec."
+    },
+    {
+      "item": "Account-level PublicAccessBlock effect on these results",
+      "reason": "A pagina afirma que na avaliacao o S3 usa a combinacao MAIS RESTRITIVA entre o block do bucket e o da conta. O estado nao modela o block de nivel de conta, entao o valor efetivo da combinacao nao esta no artefacto: o que esta sao os quatro fatos do bucket, e o que a pagina diz que esta operacao devolve."
+    },
+    {
+      "item": "JSON property names/schema for GetPublicAccessBlock",
+      "reason": "E o XML que a documenta. O artefacto e JSON com os nomes de elemento do XML -- divergencia de serializacao, nao de contrato."
+    },
+    {
+      "item": "RegionalAccessBlockConfiguration (Region, RegionPrefix, BlockPublicAcls, BlockPublicPolicy, IgnorePublicAcls, RestrictPublicBuckets)",
+      "reason": "ZERO ocorrencias em API_GetPublicAccessBlock.html E em API_PutPublicAccessBlock.html (medido em 2026-10-18). Os nomes vem da forma que os SDKs publicam, e nao de uma pagina da referencia consultada. Declarado como nao comprovado em vez de declarado inexistente: o conjunto esta no artefato, separado da resposta, e com o motivo desta entrada no _provenance de cada resposta."
+    }
+  ]
+}

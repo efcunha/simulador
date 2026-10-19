@@ -1,0 +1,104 @@
+{
+  "surface": "gcp/scc-sources",
+  "provider": "gcp",
+  "reference": {
+    "title": "Security Command Center API v1 - message Source (method organizations.sources.list)",
+    "url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "sources.json",
+    "root": "sources[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "O envelope de ListSourcesResponse e 'sources' com 'nextPageToken' -- o simulador ja usava o nome correto.",
+    "O numero de organizacao no 'name' e SINTETICO na forma e nao o id de ninguem (o proprio renderer antigo registrava isso): o campo existe, o valor e um placeholder declarado."
+  ],
+  "unverified": [
+    {
+      "name": "sources[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'sources' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "sources",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListSourcesResponse declara o array 'sources' (itens Source) e 'nextPageToken'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListSourcesResponse.nextPageToken: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "source",
+      "description": "Campos de um item de 'sources', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "sources[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Source.name: 'The relative resource name of this source. See: https://cloud.google.com/apis/design/resource_names#relative_resource_name Example: organizations/{organization_id}/sources/{source_id}'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "sources[].displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Source.displayName: 'The displayed name of the source.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "sources[].description",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/security-command-center/docs/reference/rest/v1/organizations.sources/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Source.description: 'A description of the source (max of 1024 characters).' -- string.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

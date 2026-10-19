@@ -1,0 +1,190 @@
+{
+  "surface": "aws/s3-get-bucket-policy",
+  "provider": "aws",
+  "reference": {
+    "title": "GetBucketPolicy (Amazon S3 API Reference)",
+    "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+    "consulted_at": "2026-10-16",
+    "version": "S3 REST API; a resposta desta acao e documentada em JSON",
+    "member_pages": [
+      "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+    ],
+    "permission": "s3:GetBucketPolicy",
+    "permission_note": "A pagina separa o caso de uso geral do directory bucket: para bucket de uso geral a permissao e 's3:GetBucketPolicy'; para directory bucket seria 's3express:GetBucketPolicy' numa IAM identity-based policy. O estado so tem buckets de uso geral."
+  },
+  "chosen_surface": {
+    "specified": "GetBucketPolicy API response and the policy document its Policy element carries",
+    "why": "E a acao que publica a bucket policy, e a policy e a segunda das tres fontes que a regra gerenciada s3-bucket-public-read-prohibited nomeia: 'The rule checks the Block Public Access settings, the bucket policy, and the bucket access control list (ACL).' Sem esta superficie a regra nao consegue avaliar a metade do_policy.",
+    "config_alternative": "O Config avalia a policy como parte da conformidade do bucket, mas nao a publica como leitura. Quem devolve o documento e a API.",
+    "rejected": [
+      "GetBucketPolicyStatus: devolve apenas o booleano IsPublic, que e um JUIZO e nao o fato -- a regra precisa do documento para dizer POR QUE",
+      "GetBucketTagging e afins: nao tem relacao com exposicao publica"
+    ]
+  },
+  "delivery": {
+    "kind": "read_api",
+    "export_mechanism_exists": false,
+    "export_mechanism_note": "GetBucketPolicy e uma API de leitura. A AWS nao documenta exportacao desta resposta para S3 nem qualquer artefato duravel.",
+    "path_template": null,
+    "format": "json",
+    "format_note": "Esta e a unica das quatro superficies do Incremento 3 cuja resposta e documentada em JSON: o Response Syntax e '{ Policy in JSON format }' e a pagina diz 'The following data is returned in JSON format by the service'. Nao ha divergencia de serializacao aqui.",
+    "response_wrapper": null,
+    "item_element": null,
+    "compression": null,
+    "manifest": null,
+    "pagination": {
+      "supported": false,
+      "request_parameters": [],
+      "response_parameters": [],
+      "note": "A acao nao publica paginacao: uma bucket policy e um unico documento."
+    },
+    "element_order_guaranteed": false,
+    "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+    "encoding_source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html"
+  },
+  "structure": {
+    "response": "2.1",
+    "bucket_policy_document": "2.2",
+    "policy_statement": "2.3",
+    "request_parameters": "2.4"
+  },
+  "armadilhas": {
+    "esta_e_json_de_verdade": "Diferente das outras tres, a resposta aqui e JSON. O Response Syntax e literalmente '{ Policy in JSON format }'. Tratar esta superficie como XML -- por estar no mesmo capitulo do S3 API Reference -- seria errado, e o artefacto por isso entrega JSON sem conversao.",
+    "a_pagina_nao_publica_a_estrutura_do_policy": "A lista de Response Elements da acao tem UM item so: 'Policy'. Os membros do documento NAO vem dessa pagina -- vem da resposta de exemplo que a propria pagina publica, que mostra Version, Id e Statement, e dentro do statement Sid, Effect, Principal, Action e Resource. E dessa evidencia que vem o conjunto, e a restricao fica registrada aqui para que ninguem amplie a lista achando que a pagina a publica.",
+    "scalar_ou_lista_no_action_e_no_resource": "A resposta de exemplo traz 'Action': ['s3:*'] como lista e 'Resource': 'arn:aws:s3:::bucket/*' como escalar. A linguagem de policy aceita as duas formas. O estado emite sempre lista, inclusive com um elemento quando a policy seria escalar -- e a normalizacao esta na coluna, com o porque declarado aqui.",
+    "bucket_sem_policy_e_um_estado_legitimo": "Policy e Required: No, e a ausencia de policy e o estado que a API sinaliza com NoSuchBucketPolicy. O estado tem buckets sem policy, e para eles o artefacto NAO inventa um documento vazio: o elemento Policy sai nulo, que e a leitura do tipo publicado."
+  },
+  "sets": [
+    {
+      "name": "get-bucket-policy-response",
+      "description": "Elementos de topo da resposta de GetBucketPolicy. Encoding documentado: JSON. Fonte: API_GetBucketPolicy.html",
+      "columns": [
+        {
+          "name": "Policy",
+          "type": "bucket_policy_document",
+          "description": "O documento de bucket policy, em JSON. Valor null quando o bucket nao tem policy -- o estado que a API sinaliza com NoSuchBucketPolicy, e o que a lista de Response Elements permite ao marcar Policy como sem obrigatoriedade.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "get-bucket-policy-response"
+        }
+      ]
+    },
+    {
+      "name": "bucket-policy-document",
+      "description": "Os membros de topo do documento de bucket policy, conforme a resposta de exemplo da propria pagina da acao. A lista de Response Elements da acao publica apenas Policy; estes nomes vem do exemplo. Fonte: API_GetBucketPolicy.html (Sample Response)",
+      "columns": [
+        {
+          "name": "Id",
+          "type": "string",
+          "description": "O identificador do documento de policy.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "bucket-policy-document"
+        },
+        {
+          "name": "Statement",
+          "type": "array",
+          "description": "Os statements do documento.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "bucket-policy-document"
+        },
+        {
+          "name": "Version",
+          "type": "string",
+          "description": "A versao da linguagem de policy. A resposta de exemplo traz '2008-10-17'.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "bucket-policy-document"
+        }
+      ]
+    },
+    {
+      "name": "policy-statement",
+      "description": "Os membros de um statement do documento, conforme a resposta de exemplo da propria pagina da acao. Fonte: API_GetBucketPolicy.html (Sample Response)",
+      "columns": [
+        {
+          "name": "Action",
+          "type": "array",
+          "description": "As acoes que o statement permite ou nega. A resposta de exemplo traz uma lista ('s3:*'); a linguagem aceita tambem um escalar. O estado emite sempre lista.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "policy-statement"
+        },
+        {
+          "name": "Effect",
+          "type": "string",
+          "description": "Se o statement permite ou nega. A resposta de exemplo traz 'Deny' e 'Allow'.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "policy-statement"
+        },
+        {
+          "name": "Principal",
+          "type": "array",
+          "description": "Quem o statement alcanca. A resposta de exemplo traz um objeto com a chave AWS e uma lista de IDs de conta. O estado achata em lista de strings, e a chave de tipo fica registrada na descricao da coluna do _provenance.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "policy-statement"
+        },
+        {
+          "name": "Resource",
+          "type": "array",
+          "description": "Os recursos que o statement alcanca. A resposta de exemplo traz um ARN escalar. O estado emite sempre lista.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "policy-statement"
+        },
+        {
+          "name": "Sid",
+          "type": "string",
+          "description": "O identificador do statement. Valor null quando o statement nao o declara.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "policy-statement"
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "Os dois parametros documentados da requisicao. O estado nao modela nenhuma requisicao capturada, entao estes nomes existem com valor nulo: e a forma do documento, nao um fato sobre uma chamada que alguem fez. Fonte: API_GetBucketPolicy.html",
+      "columns": [
+        {
+          "name": "Bucket",
+          "type": "string",
+          "required": true,
+          "description": "O nome do bucket para o qual se quer a bucket policy. Valor null: o estado nao modela a requisicao que disparou a leitura.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "x-amz-expected-bucket-owner",
+          "type": "string",
+          "description": "O ID de conta do dono esperado do bucket; se nao bater com o dono real, a requisicao falha com 403. Valor null: o estado nao modela a requisicao.",
+          "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html",
+          "status": "verified",
+          "scope": "request-parameters"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "Condition element of a policy statement",
+      "reason": "A linguagem de policy aceita Condition, e a resposta de exemplo da acao NAO mostra nenhum. O estado nao gera condition, entao o membro nao entra no artefacto: um nome que a evidencia desta superficie nao mostra seria contrato inventado. Ele entra no estado se a fonte passar a publicalo."
+    },
+    {
+      "item": "NotPrincipal, NotAction and NotResource",
+      "reason": "Sao variantes negadas aceitas pela linguagem de policy e nao aparecem na resposta de exemplo. O estado nao os gera e eles nao entram no artefacto."
+    },
+    {
+      "item": "Type qualifier inside Principal",
+      "reason": "A resposta de exemplo mostra 'Principal': {'AWS': [...]} -- um objeto com chave de TIPO de principal. O estado achata o conteudo em lista de strings e nao modela a chave (AWS, Service, Federated). Um consumidor que precise do tipo do principal nao o encontra no artefacto, e o motivo esta na coluna."
+    },
+    {
+      "item": "Return shape when the bucket has no policy",
+      "reason": "A acao sinaliza bucket sem policy com o erro NoSuchBucketPolicy (404), mas a lista de Response Elements marca Policy como sem obrigatoriedade e o estado nao modela codigos de erro. O artefacto representa a ausencia como Policy nulo, que e a leitura do tipo publicado, e nao como um envelope de erro."
+    }
+  ]
+}

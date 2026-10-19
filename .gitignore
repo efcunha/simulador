@@ -1,0 +1,35 @@
+# Ambiente
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+htmlcov/
+
+# Saídas do gerador (regeneráveis, nunca versionadas)
+out/
+*.parquet
+*.parquet.snappy
+
+# Artefatos de execução local
+.artifacts/
+.tmp/
+
+# "Gabarito" do catálogo de cenários: o gerador o reescreve a cada rodada, com a
+# janela temporal do perfil que rodou. É saída regenerável, não fonte — e é por
+# isso que as duas/azure não concordam quando cada plano roda com a sua janela.
+docs/synthetic-clouds/scenarios.json
+
+# Sistema
+Thumbs.db
+desktop.ini
+
+# Manifesto de build (artefato, nao fonte)
+.publish-manifest.json

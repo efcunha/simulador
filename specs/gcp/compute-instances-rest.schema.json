@@ -1,0 +1,88 @@
+{
+  "surface": "gcp/compute-instances-rest",
+  "provider": "gcp",
+  "reference": {
+    "title": "Compute Engine API — Method: instances.get (Instances resource)",
+    "url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://compute.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}",
+    "format": "json",
+    "compression": "none"
+  },
+  "notes": [
+    "Surface is an API resource representation, NOT an official export. Included as the canonical field set of a Compute Engine instance.",
+    "The document marks no field as Required.; only 'Output only.' / 'Input only.' annotations exist, so 'required' mirrors that documented distinction.",
+    "Companion list method: https://cloud.google.com/compute/docs/reference/rest/v1/instances/list returns InstanceList whose items[] is this same Instances resource.",
+    "Nested fields are not enumerated here; see the .md spec sections 3.2/3.3."
+  ],
+  "columns": [
+    { "name": "kind", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#kind", "status": "verified" },
+    { "name": "id", "type": "string (uint64 format)", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#id", "status": "verified" },
+    { "name": "creationTimestamp", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#creationTimestamp", "status": "verified" },
+    { "name": "name", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#name", "status": "verified" },
+    { "name": "description", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#description", "status": "verified" },
+    { "name": "tags", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#tags", "status": "verified" },
+    { "name": "machineType", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#machineType", "status": "verified" },
+    { "name": "status", "type": "enum", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#status", "status": "verified" },
+    { "name": "statusMessage", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#statusMessage", "status": "verified" },
+    { "name": "zone", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#zone", "status": "verified" },
+    { "name": "canIpForward", "type": "boolean", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#canIpForward", "status": "verified" },
+    { "name": "networkInterfaces[]", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#networkInterfaces", "status": "verified" },
+    { "name": "disks[]", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#disks", "status": "verified" },
+    { "name": "metadata", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#metadata", "status": "verified" },
+    { "name": "serviceAccounts[]", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#serviceAccounts", "status": "verified" },
+    { "name": "selfLink", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#selfLink", "status": "verified" },
+    { "name": "scheduling", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#scheduling", "status": "verified" },
+    { "name": "cpuPlatform", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#cpuPlatform", "status": "verified" },
+    { "name": "labels", "type": "map (key: string, value: string)", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#labels", "status": "verified" },
+    { "name": "params", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#params", "status": "verified" },
+    { "name": "labelFingerprint", "type": "string (bytes format)", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#labelFingerprint", "status": "verified" },
+    { "name": "instanceEncryptionKey", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#instanceEncryptionKey", "status": "verified" },
+    { "name": "minCpuPlatform", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#minCpuPlatform", "status": "verified" },
+    { "name": "guestAccelerators[]", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#guestAccelerators", "status": "verified" },
+    { "name": "startRestricted", "type": "boolean", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#startRestricted", "status": "verified" },
+    { "name": "deletionProtection", "type": "boolean", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#deletionProtection", "status": "verified" },
+    { "name": "resourcePolicies[]", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#resourcePolicies", "status": "verified" },
+    { "name": "sourceMachineImage", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#sourceMachineImage", "status": "verified" },
+    { "name": "reservationAffinity", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#reservationAffinity", "status": "verified" },
+    { "name": "hostname", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#hostname", "status": "verified" },
+    { "name": "displayDevice", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#displayDevice", "status": "verified" },
+    { "name": "shieldedInstanceConfig", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#shieldedInstanceConfig", "status": "verified" },
+    { "name": "shieldedInstanceIntegrityPolicy", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#shieldedInstanceIntegrityPolicy", "status": "verified" },
+    { "name": "sourceMachineImageEncryptionKey", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#sourceMachineImageEncryptionKey", "status": "verified" },
+    { "name": "confidentialInstanceConfig", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#confidentialInstanceConfig", "status": "verified" },
+    { "name": "fingerprint", "type": "string (bytes format)", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#fingerprint", "status": "verified" },
+    { "name": "privateIpv6GoogleAccess", "type": "enum", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#privateIpv6GoogleAccess", "status": "verified" },
+    { "name": "advancedMachineFeatures", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#advancedMachineFeatures", "status": "verified" },
+    { "name": "lastStartTimestamp", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#lastStartTimestamp", "status": "verified" },
+    { "name": "lastStopTimestamp", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#lastStopTimestamp", "status": "verified" },
+    { "name": "lastSuspendedTimestamp", "type": "string", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#lastSuspendedTimestamp", "status": "verified" },
+    { "name": "satisfiesPzs", "type": "boolean", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#satisfiesPzs", "status": "verified" },
+    { "name": "satisfiesPzi", "type": "boolean", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#satisfiesPzi", "status": "verified" },
+    { "name": "resourceStatus", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#resourceStatus", "status": "verified" },
+    { "name": "networkPerformanceConfig", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#networkPerformanceConfig", "status": "verified" },
+    { "name": "keyRevocationActionType", "type": "enum", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#keyRevocationActionType", "status": "verified" },
+    { "name": "localSsdEncryptionMode", "type": "enum", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#localSsdEncryptionMode", "status": "verified" },
+    { "name": "workloadIdentityConfig", "type": "object", "required": false, "unit": null, "source_url": "https://cloud.google.com/compute/docs/reference/rest/v1/instances/get#workloadIdentityConfig", "status": "verified" }
+  ],
+  "unverified": [
+    {
+      "name": "enum constants (all top-level enums except the ones listed in the .md)",
+      "reason": "The instances.get page prints the type 'enum' but does not enumerate the constants in the field table.",
+      "status": "unverified"
+    },
+    {
+      "name": "per-field Required. marking",
+      "reason": "The page marks no field as Required.; only 'Output only.' / 'Input only.' annotations are documented.",
+      "status": "unverified"
+    },
+    {
+      "name": "all nested fields not transcribed in the .md (disks[].initializeParams.*, networkInterfaces[].accessConfigs.*, scheduling.*, resourceStatus.upcomingMaintenance.*, resourceStatus.physicalHostTopology.*)",
+      "reason": "RECLASSIFICADO em 2026-10-15: deixa de ser 'falta transcrever' e passa a ser TRABALHO DE MODELO. A fonte publica os filhos (disks[].initializeParams.*, networkInterfaces[].accessConfigs[], e afins) e eles podem ser transcritos hoje. O que impede e o ESTADO: o renderer emite 'disks[]' e 'guestAccelerators[]' como listas VAZIAS ([]) -- sem o initializeParams, sem o accessConfigs -- porque o modelo nao carrega esses valores. Como no caso do SCC, declarar as colunas sem emiti-las faria o teste golden acusar, e emiti-las exige modelar os parametros de disco e de rede de cada instancia. E uma decisao sobre o que o simulador representa, nao uma leitura faltando.",
+      "status": "unverified"
+    }
+  ]
+}

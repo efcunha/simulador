@@ -1,0 +1,145 @@
+{
+  "surface": "gcp/catalog-skus",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Billing API v1 - message Sku (method services.skus.list)",
+    "url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "skus.json",
+    "root": "skus[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "Nenhum campo desconhecido: o artefato antigo usava exatamente estes campos, incluindo a categoria aninhada.",
+    "Os VALORES de 'name'/'skuId' e de 'category.resourceFamily' vem do estado (o id do SKU e do servico, e a categoria do recurso)."
+  ],
+  "unverified": [
+    {
+      "name": "skus[].skuId value shape",
+      "reason": "O campo e o formato sao publicados (o exemplo e 'D041-B8A1-6E0B'); o valor e o sku_id do estado, que o gerador cunha internamente.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "skus[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'skus' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "skus",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListSkusResponse declara o array 'skus' (itens Sku) e 'nextPageToken'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListSkusResponse.nextPageToken: 'A token to retrieve the next page of results.' -- string.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "sku",
+      "description": "Campos de um item de 'skus', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "skus[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Sku.name: 'The resource name for the SKU. Example: services/6F81-5844-456A/skus/D041-B8A1-6E0B' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "skus[].skuId",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Sku.skuId: 'The identifier for the SKU. Example: D041-B8A1-6E0B' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "skus[].description",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Sku.description: 'A human readable description of the SKU, has a maximum length of 256 characters.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "skus[].category",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Sku.category: 'The category hierarchy of this SKU, purely for organizational purpose.' -- objeto Category.",
+          "type_source": "documented"
+        },
+        {
+          "name": "skus[].category.serviceDisplayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Category.serviceDisplayName: 'The display name of the service this SKU belongs to.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "skus[].category.resourceFamily",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/billing/docs/reference/rest/v1/services.skus/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Category.resourceFamily: 'The type of product the SKU refers to. Example: Compute, Storage, Network, ApplicationServices etc.' -- string.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

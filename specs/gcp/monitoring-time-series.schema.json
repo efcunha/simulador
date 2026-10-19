@@ -1,0 +1,281 @@
+{
+  "surface": "gcp/monitoring-time-series",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Monitoring API v3 - message TimeSeries (method projects.timeSeries.list)",
+    "url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "time_series.json",
+    "root": "timeSeries[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "O envelope de ListTimeSeriesResponse e 'timeSeries' com 'nextPageToken' e 'executionErrors' (os dois primeiros sao emitidos).",
+    "Os LABELS sao os declarados para o tipo de recurso monitorado: 'gce_instance' declara project_id/instance_id/zone e 'cloudsql_database' declara project_id/database_id/region. O artefato antigo punha ali 'resourcePath' e 'resourceUuid' -- chaves que o mapa ACEITA e que o contrato nao declara como labels do tipo.",
+    "O valor de 'metric.type' e '<namespace publico>/<nome da metrica do estado>'. O namespace e publicado; o nome curto da metrica nao foi verificavel nas fontes buscadas, e esta registrado como nao comprovado."
+  ],
+  "unverified": [
+    {
+      "name": "timeSeries[].resource.labels.resourcePath",
+      "reason": "Chave de juncao emitida pelo artefato antigo. O mapa 'labels' aceita a chave, mas o contrato diz que os labels sao os DECLARADOS no descritor do tipo monitorado, e 'resourcePath' nao consta de gce_instance nem de cloudsql_database.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "timeSeries[].resource.labels.resourceUuid",
+      "reason": "Idem: chave de juncao, nao declarada entre os labels do tipo.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "item": "labels condicionais ao tipo monitorado (instance_id, zone, database_id, region)",
+      "reason": "O catalogo publica os labels POR TIPO: gce_instance tem project_id/instance_id/zone e cloudsql_database tem project_id/database_id/region. Eles sao emitidos, e a CONDICIONALIDADE e expressa por conjuntos nomeados (gce_instance_labels, cloudsql_database_labels) em vez de prosa: nenhum registro carrega os cinco, e um conjunto por tipo e o que permite conferir cada um sem exigir a uniao numa linha so.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "timeSeries[].metric.type value shape",
+      "reason": "O namespace publicado e usado (compute.googleapis.com / cloudsql.googleapis.com) e o ultimo segmento e o nome da metrica do estado. O nome curto nao foi verificavel nas fontes consultadas -- declarado nao comprovado em vez de afirmado inexistente.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "name": "timeSeries[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'timeSeries' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "timeSeries",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListTimeSeriesResponse declara o array 'timeSeries' (itens TimeSeries), 'nextPageToken' e 'executionErrors'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListTimeSeriesResponse.nextPageToken: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "timeSeries",
+      "description": "Campos de um item de 'timeSeries', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "timeSeries[].metric",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeSeries.metric: 'The associated metric. A fully-specified metric used to identify the time series.' -- objeto Metric.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].metric.type",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Metric.type: 'An existing metric type, see google.api.MetricDescriptor. For example, custom.googleapis.com/invoice/paid/amount.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeSeries.resource: 'The associated monitored resource.' -- objeto MonitoredResource.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.type",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MonitoredResource.type: 'Required. The monitored resource type. This field must match the type field of a MonitoredResourceDescriptor object.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.labels",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MonitoredResource.labels: 'Required. Values for all of the labels listed in the associated monitored resource descriptor.' -- map<string,string>.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.labels.project_id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo de recursos monitorados declara 'project_id' entre os labels de gce_instance E de cloudsql_database -- o unico label comum aos dois tipos que este estado reporta, e por isso o unico declarado nesta spec. Os labels proprios de cada tipo (instance_id/zone, database_id/region) ficam registrados como tema: eles sao CONDICIONAIS ao tipo monitorado, e declarar os cinco tornaria o contrato impossivel de satisfazer numa linha so.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeSeries.points: 'The data points of this time series.' -- repeated Point.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points[].interval",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Point.interval: 'The time interval to which the data point applies.' -- objeto TimeInterval.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points[].interval.endTime",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TimeInterval.endTime: 'Required. The end of the time interval.' -- string com formato google-datetime.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points[].value",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "Point.value: 'The value of the data point.' -- objeto TypedValue.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].points[].value.doubleValue",
+          "type": "number",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "TypedValue.doubleValue: 'A 64-bit double-precision floating-point number.' -- number.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "gce_instance_labels",
+      "description": "Os labels que o catalogo de recursos monitorados declara para 'gce_instance'. Eles NAO coexistem com os de 'cloudsql_database' no mesmo registro: um conjunto por tipo e o que permite conferir cada um sem exigir a uniao numa linha so.",
+      "columns": [
+        {
+          "name": "timeSeries[].resource.labels.instance_id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo declara 'instance_id' entre os labels de gce_instance: o identificador da instancia atribuido pelo Compute Engine.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.labels.zone",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo declara 'zone' entre os labels de gce_instance: a zona do Compute Engine em que a instancia reside.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "cloudsql_database_labels",
+      "description": "Os labels que o catalogo declara para 'cloudsql_database' (Cloud SQL). Idem: um conjunto por tipo monitorado.",
+      "columns": [
+        {
+          "name": "timeSeries[].resource.labels.database_id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo declara 'database_id' entre os labels de cloudsql_database: o identificador do banco da instancia Cloud SQL.",
+          "type_source": "documented"
+        },
+        {
+          "name": "timeSeries[].resource.labels.region",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://cloud.google.com/monitoring/api/resources",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "O catalogo declara 'region' entre os labels de cloudsql_database: a regiao da instancia Cloud SQL.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

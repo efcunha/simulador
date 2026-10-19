@@ -1,0 +1,141 @@
+{
+  "surface": "gcp/monitoring-metric-descriptors",
+  "provider": "gcp",
+  "reference": {
+    "title": "Cloud Monitoring API v3 - message MetricDescriptor (method projects.metricDescriptors.list)",
+    "url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+    "consulted_at": "2026-10-14"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+    "format": "json",
+    "compression": "none",
+    "file_name": "metric_descriptors.json",
+    "root": "metricDescriptors[]",
+    "cadence": "",
+    "partitioning": ""
+  },
+  "notes": [
+    "O envelope de ListMetricDescriptorsResponse e 'metricDescriptors' com 'nextPageToken'.",
+    "Um descritor por TIPO de metrica que o estado realmente reporta, e nada mais: o descritor descreve uma serie que a superficie irma publica.",
+    "'metricKind' GAUGE e 'valueType' DOUBLE sao os valores que o payload emitido satisfaz (um valor por instante, do tipo double)."
+  ],
+  "unverified": [
+    {
+      "name": "metricDescriptors[].resourceUuid",
+      "reason": "Chave de juncao entre planos que o renderer antigo emitia e que NENHUM dos seis contratos oficiais declara (zero ocorrencias nos documentos completos). Registrada aqui porque a afirmacao vale para esta superficie tambem: o auditor tem de acusar o campo se ele aparecer. Ver docs/CONTRATO-APIS-GCP.md para o risco por transporte.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "sets": [
+    {
+      "name": "response",
+      "description": "Envelope da resposta: o array 'metricDescriptors' que hospeda os itens e o token de paginacao.",
+      "columns": [
+        {
+          "name": "metricDescriptors",
+          "type": "object[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListMetricDescriptorsResponse declara o array 'metricDescriptors' (itens MetricDescriptor) e 'nextPageToken'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "ListMetricDescriptorsResponse.nextPageToken: o token da proxima pagina.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "metricDescriptor",
+      "description": "Campos de um item de 'metricDescriptors', no nivel do ITEM.",
+      "columns": [
+        {
+          "name": "metricDescriptors[].name",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MetricDescriptor.name: 'The resource name of the metric descriptor.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "metricDescriptors[].type",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MetricDescriptor.type: 'The metric type, including its DNS name prefix.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "metricDescriptors[].displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MetricDescriptor.displayName: 'A concise name for the metric, which can be displayed in user interfaces.' -- string.",
+          "type_source": "documented"
+        },
+        {
+          "name": "metricDescriptors[].metricKind",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MetricDescriptor.metricKind: 'Whether the metric records instantaneous values, changes to a value, etc.' -- enum MetricKind, que inclui GAUGE.",
+          "type_source": "documented"
+        },
+        {
+          "name": "metricDescriptors[].valueType",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MetricDescriptor.valueType: 'Whether the measurement is an integer, a floating-point number, etc.' -- enum ValueType, que inclui DOUBLE.",
+          "type_source": "documented"
+        },
+        {
+          "name": "metricDescriptors[].monitoredResourceTypes",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "MetricDescriptor.monitoredResourceTypes: 'If present, then a time series ... can only be associated with one of the monitored resource types listed here.' -- repeated string.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ]
+}

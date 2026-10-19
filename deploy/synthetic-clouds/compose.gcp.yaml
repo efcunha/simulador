@@ -1,0 +1,131 @@
+# compose.gcp.yaml -- GCP side of the synthetic-clouds simulator (Phase 3).
+#
+# Podman-compatible (podman compose / podman-compose). GCP services live in THIS
+# file (not a shared compose) so Phase 2's azure-sim additions cannot collide on
+# merge; a later integration step merges azure + gcp compose.
+#
+# HARD CONSTRAINTS (design sec. 2, sec. 6; DISCOVERY Spike):
+#   * bigquery-emulator starts with NO --data-from-yaml. The YAML loader
+#     materializes mode:REPEATED as plain STRUCT and breaks every UNNEST query.
+#     Tables are provisioned via DDL CREATE TABLE ... ARRAY<STRUCT<...>> + INSERT
+#     by the one-shot gcp-bq-provision container (python -m gcp_sim.provision).
+#   * NO Windows drive bind-mount (the spike's statfs ... input/output error):
+#     all state lives in NAMED VOLUMES; rendered scripts/fixtures arrive via
+#     `podman cp` from scripts/synthetic-clouds/gcp-up.ps1, never a drive mount.
+services:
+  bigquery-emulator:
+    image: ghcr.io/goccy/bigquery-emulator:latest
+    command:
+      - "--project=${GCP_PROJECT:-synthetic}"
+      - "--port=9050"
+      - "--grpc-port=9060"
+      # NO --data-from-yaml (hard constraint; see header).
+    ports:
+      - "${GCP_BQ_REST_PORT:-9050}:9050"
+      - "${GCP_BQ_GRPC_PORT:-9060}:9060"
+    volumes:
+      - "gcp_bq_data:/work"
+    networks:
+      synthclouds_gcp:
+      synthclouds_net:
+        aliases:
+          - bigquery-emulator
+    healthcheck:
+      # This image is Debian-based and ships NO wget/curl (verified in-container:
+      # `command -v wget curl` returns nothing), so the original wget probe could
+      # never pass — the emulator served all five query shapes while reporting
+      # `unhealthy` with FailingStreak 48. bash IS present, so probe the listening
+      # socket via /dev/tcp (exit 0 on connect, 1 on a closed port — verified with a
+      # negative control). HTTP-level readiness is still proven by gcp-up.ps1's
+      # host-side `datasets.list == 200` poll before anything is provisioned, and by
+      # the provisioner's own row-count assertions.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9050"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  gcp-bq-provision:
+    build:
+      # Build context = worktree root (contains tools/ and deploy/), one level up from
+      # this deploy/ dir, so tools.synthetic_clouds can be baked in (mirrors aws-sim).
+      context: ../..
+      dockerfile: emulators/gcp-sim/Dockerfile
+    command:
+      - "python"
+      - "-m"
+      - "gcp_sim.provision"
+      - "--manifest"
+      - "/provision/gcp_bigquery_topology/_provenance.json"
+      - "--endpoint"
+      - "http://bigquery-emulator:9050"
+      - "--project"
+      - "${GCP_PROJECT:-synthetic}"
+    depends_on:
+      bigquery-emulator:
+        condition: service_healthy
+    volumes:
+      # Rendered DDL/INSERT scripts land here via `podman cp` (gcp-up.ps1), never
+      # a drive bind-mount.
+      - "gcp_provision:/provision"
+    networks:
+      - synthclouds_gcp
+    restart: "no"
+
+  gcp-sim:
+    build:
+      # Build context = worktree root, so tools.synthetic_clouds is baked in (mirrors aws-sim).
+      context: ../..
+      dockerfile: emulators/gcp-sim/Dockerfile
+    command:
+      - "uvicorn"
+      - "gcp_sim.app:app"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8085"
+    ports:
+      - "${GCP_SIM_PORT:-8085}:8085"
+      # The Cloud Monitoring gRPC plane (FR-25). monitoring_v3 ships NO REST transport in any
+      # released version, so the sim serves ListTimeSeries / ListMetricDescriptors /
+      # ListAlertPolicies over gRPC from the client's own proto descriptors; the client reaches
+      # it via GCP_MONITORING_API_ENDPOINT (see .env.example).
+      - "${GCP_SIM_GRPC_PORT:-8087}:8087"
+    environment:
+      # gcp-up.ps1 copies the rendered `gcp_rest_fixtures/` dir into the volume via
+      # `podman cp`, so the JSON files live under /fixtures/gcp_rest_fixtures/.
+      - "GCP_SIM_FIXTURES_DIR=/fixtures/gcp_rest_fixtures"
+    volumes:
+      # Rendered REST fixtures land here via `podman cp` (gcp-up.ps1).
+      - "gcp_sim_fixtures:/fixtures"
+    networks:
+      synthclouds_gcp:
+      synthclouds_net:
+        aliases:
+          - gcp-sim
+    healthcheck:
+      test:
+        - "CMD"
+        - "wget"
+        - "-qO-"
+        - "http://localhost:8085/healthz"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  gcp_bq_data: {}
+  gcp_provision: {}
+  gcp_sim_fixtures: {}
+
+networks:
+  synthclouds_gcp: {}
+
+  # Shared network for the simulators. In this tree it is compose-OWNED (not
+  # `external: true`), so `podman compose up` creates it and the stack comes
+  # up standalone -- no other stack has to exist first.
+  #
+  # The per-service `aliases:` below is what registers the name the clients
+  # resolve (for example `aws-sim`). The service name alone is NOT enough on
+  # an external network: it is registered on the compose-owned network only.
+  synthclouds_net:
+    driver: bridge

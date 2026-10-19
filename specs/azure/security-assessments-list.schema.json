@@ -1,0 +1,533 @@
+{
+  "surface": "azure/security-assessments-list",
+  "provider": "azure",
+  "reference": {
+    "title": "Assessments - List (Defender for Cloud composite, api-version 2021-06-01) - SecurityAssessmentList / SecurityAssessmentResponse / AssessmentStatusResponse / SecurityAssessmentMetadataProperties",
+    "url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+    "consulted_at": "2026-10-18",
+    "secondary_references": [
+      {
+        "title": "Assessments - List na visao 'latest' do mesmo serviço, que publica a MESMA api-version (2021-06-01) e as mesmas tabelas de Definitions",
+        "url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-latest",
+        "consulted_at": "2026-10-18",
+        "why": "A pagina 'stable' e a fonte normativa (e a que o SDK resolve); a 'latest' foi lida para confirmar que a api-version 2021-06-01 nao diverge entre as duas visoes e que nenhum membro foi publicado so em uma delas."
+      }
+    ]
+  },
+  "delivery": {
+    "kind": "arm-rest-api",
+    "format": "json",
+    "compression": "",
+    "file_name": "assessments.json",
+    "root": "value",
+    "cadence": "",
+    "partitioning": "subscriptions/{subscriptionId}/providers/Microsoft.Security/assessments/",
+    "path_template": "subscriptions/{subscriptionId}/providers/Microsoft.Security/assessments/assessments.json",
+    "endpoint": "GET https://management.azure.com/{scope}/providers/Microsoft.Security/assessments?api-version=2021-06-01",
+    "api_version": "2021-06-01",
+    "responses": {
+      "200": "SecurityAssessmentList",
+      "other": "CloudError"
+    },
+    "note": "E o corpo de resposta de um GET do plano de controle ARM, NAO um export: a pagina publica o endpoint e o envelope SecurityAssessmentList e nada mais -- nao ha caminho de blob, particionamento, compactacao nem manifest para esta superficie. Um envelope por ESCOPO DE ASSINATURA, porque a resposta e uma pagina unica de assessments do escopo inteiro (a URI e por assinatura ou por grupo de gerenciamento, e nao por recurso). O escopo por grupo de gerenciamento tambem esta documentado, mas nao e entregado: o consumidor do FinOps consulta a assinatura, e um envelope por grupo de gerenciamento seria um recorte que o modelo nao tem."
+  },
+  "notes": [
+    "Esta superficie existe porque o consumidor do FinOps varre os ASSESSMENTS da assinatura e filtra por properties.status.code (security.py (modulo do consumidor), AzureSecurityScanner._list_defender_findings), e o simulador nao tinha NENHUMA superficie que publicasse essa forma: o azure-sim devolvia lista vazia e o renderer de continuous export so entrega tabelas SecurityAlert/SecurityRecommendation, que sao outro objeto.",
+    "O envelope e o de LISTAGEM (SecurityAssessmentList = {nextLink, value[]}), e nao o corpo de um assessment: a pagina publica SecurityAssessmentList como resposta 200 da operacao, e o SDK desembrulha 'value' entregando um SecurityAssessmentResponse por iteracao -- que e o que o consumidor recebe e percorre.",
+    "'nextLink' e a PAGINACAO da colecao, nao um campo do assessment: ele existe no envelope e sai vazio porque nenhuma pagina consultada publica o tamanho de pagina, e inventar um cursor seria inventar um valor de transporte. O mesmo tratamento que o envelope NetworkSecurityGroupListResult recebe em azure/arm-network-security-group-rules.",
+    "O caminho de cada coluna segue o nome pelo CAMINHO em que a pagina o publica ('properties.status.code', e nao 'statusCode'), a mesma convencao das superficies ARM deste repositorio.",
+    "A FORMA do 'id' vem do exemplo de resposta da propria pagina: '<id-do-recurso-avaliado>/providers/Microsoft.Security/assessments/<guid>', com 'name' = o guid e 'type' = 'Microsoft.Security/assessments'. A pagina nao publica a forma em prosa -- quem fixa a forma e o exemplo.",
+    "properties.severity NAO existe nesta resposta. A severidade e publicada em properties.METADATA.severity (SecurityAssessmentMetadataProperties), e essa e a posicao que o renderer escreve. Um consumidor que leia properties.severity le um caminho que a documentacao nao publica.",
+    "O consumidor do FinOps le a severidade em 'assessment.properties.severity'. Medido em 2026-10-18 contra o SDK que o consumidor usa (azure-mgmt-security 7.0.0, lockado em FinOps/consumidor/requirements.lock): 'SecurityCenter(cred, sub).assessments' resolve para a api 2021-06-01 e devolve 'SecurityAssessmentResponse', que ACHATA 'properties.*' em atributos de topo -- 'display_name' vem de properties.displayName, 'status' de properties.status, 'metadata' de properties.metadata. Esse modelo NAO tem atributo 'properties', entao 'assessment.properties.severity' levanta AttributeError ('SecurityAssessmentResponse' object has no attribute 'properties') e o fallback 'MEDIUM' do consumidor e codigo morto. A severidade correta por SDK e 'assessment.metadata.severity'. O artefato escreve a severidade no caminho DOCUMENTADO (properties.metadata.severity); a divergencia e do lado do consumidor e nao se corrige aqui -- ver docs/INGESTAO-D3-SEGURANCA.md.",
+    "'NotApplicable' NAO e o ramo descartado. O filtro do consumidor descarta apenas status.code == 'Healthy', entao um assessment NotApplicable vira achado DEFENDER do mesmo jeito que um Unhealthy. A pagina descreve NotApplicable como 'Assessment for this resource did not happen', ou seja, uma verificacao que nao rodou -- e ela entra na fila de achados. O unico codigo que exercita o descarte e 'Healthy'.",
+    "properties.status.cause e properties.status.description saem VAZIOS: a pagina publica os dois como 'string' sem dominio fechado, e o unico valor que ela exemplifica para 'cause' ('OffByPolicy', no exemplo do assessment NotApplicable) e um exemplo de payload, nao um vocabulario. Ver 'unverified'."
+  ],
+  "sets": [
+    {
+      "name": "assessment",
+      "description": "Campos de um SecurityAssessmentResponse (um assessment sobre um recurso) e dos objetos que ele publica: properties.status, properties.resourceDetails, properties.metadata e properties.links. Os caminhos sao prefixados por value[] porque e ONDE o registro mora no corpo entregue: o envelope SecurityAssessmentList tem uma colecao value[], e um caminho relativo ao assessment sozinho nao seria resolvivel contra o artefato que o consumidor le (a mesma convencao de properties.securityRules[].name em azure/arm-network-security-group-rules).",
+      "columns": [
+        {
+          "name": "value[].id",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'id | string | Resource Id'. O exemplo de resposta fixa a forma como '<id-do-recurso>/providers/Microsoft.Security/assessments/<guid>'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].name",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'name | string | Resource name'; no exemplo de resposta e o mesmo guid que fecha o 'id'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].type",
+          "type": "string",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'type | string | Resource type'. O valor 'Microsoft.Security/assessments' vem do exemplo de resposta; a pagina nao publica um dominio fechado para este membro, entao ele entra no contrato como tipo e nao como vocabulario. Ver 'unverified'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "A tabela de SecurityAssessmentResponse publica cada membro com o prefixo 'properties.'; 'properties' e o continente que os hospeda, com o mesmo tratamento que a spec de arm-resource-representation da a properties.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'properties.displayName | string | User friendly display name of the assessment'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.additionalData",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'properties.additionalData | object | Additional data regarding the assessment'. A pagina publica o TIPO (object) e nunca enumera os membros; o exemplo mostra um 'linkedWorkspaceId', o que nao autoriza tratar esse nome como vocabulario. Ver 'unverified'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.links",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'properties.links | AssessmentLinks | Links relevant to the assessment'. Continente documentado do objeto AssessmentLinks.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.links.azurePortalUri",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AssessmentLinks: 'azurePortalUri | string | Link to assessment in Azure Portal'. O tipo esta publicado; o TEMPLATE da URI nao aparece em nenhuma pagina consultada, entao o campo sai vazio em vez de receber uma URL montada por regra. Ver 'unverified'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'properties.metadata | SecurityAssessmentMetadataProperties | Describes properties of an assessment metadata.'",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.severity",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'severity | severity | The severity level of the assessment'; a enumeracao 'severity' publica o dominio FECHADO 'Low | Medium | High' (tabela '### severity'). E o UNICO lugar da resposta onde a severidade e publicada -- 'properties.severity' nao existe nesta pagina.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.assessmentType",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'assessmentType | assessmentType | BuiltIn if the assessment based on built-in Azure Policy definition...'; a enumeracao publica 'BuiltIn | CustomPolicy | CustomerManaged | VerifiedPartner'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.categories",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'categories | categories[] | The categories of resource that is at risk when the assessment is unhealthy'; a enumeracao publica 'Compute | Networking | Data | IdentityAndAccess | IoT'. O DOMINIO esta publicado, mas a pagina nao diz a qual categoria cada avaliacao pertence -- e o estado nao modela o catalogo de avaliacoes. Ver 'unverified'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.description",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'description | string | Human readable description of the assessment'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.displayName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'displayName | string | User friendly display name of the assessment' -- a mesma descricao que 'properties.displayName' publica, em outro objeto.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.implementationEffort",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'implementationEffort | implementationEffort | The implementation effort required to remediate this assessment'; a enumeracao publica 'Low | Moderate | High', com as TRES descricoes vazias.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.partnerData",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'partnerData | SecurityAssessmentMetadataPartnerData | Describes the partner that created the assessment'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.partnerData.partnerName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataPartnerData: 'partnerName | string | Name of the company of the partner'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.partnerData.productName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataPartnerData: 'productName | string | Name of the product of the partner that created the assessment'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.policyDefinitionId",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'policyDefinitionId | string | Azure resource ID of the policy definition that turns this assessment calculation on'. O tipo esta publicado; nenhuma pagina consultada exemplifica o valor, e uma avaliacao embutida do Defender nao tem uma definicao de politica ARM para apontar. Ver 'unverified'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.preview",
+          "type": "boolean",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'preview | boolean | True if this assessment is in preview release status'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.remediationDescription",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'remediationDescription | string | Human readable description of what you should do to mitigate this security issue'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.threats",
+          "type": "string[]",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'threats | threats[] | Threats impact of the assessment'; a enumeracao publica oito valores ('accountBreach', 'dataExfiltration', 'dataSpillage', 'maliciousInsider', 'elevationOfPrivilege', 'threatResistance', 'missingCoverage', 'denialOfService'), todos com descricao vazia.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.metadata.userImpact",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentMetadataProperties: 'userImpact | userImpact | The user impact of the assessment'; a enumeracao publica 'Low | Moderate | High', com as TRES descricoes vazias.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.partnersData",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'properties.partnersData | SecurityAssessmentPartnerData | Data regarding 3rd party partner integration'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.partnersData.partnerName",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentPartnerData: 'partnerName | string | Name of the company of the partner'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.resourceDetails",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'properties.resourceDetails | ResourceDetails (AzureResourceDetails | OnPremiseResourceDetails | OnPremiseSqlResourceDetails) | Details of the resource that was assessed'. A UNICA das tres variantes que o estado tem como produzir e a Azure: as duas OnPremise descrevem maquinasHybrid sob um agente de Log Analytics, que este repositorio nao modela. Ver 'unverified'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.resourceDetails.id",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AzureResourceDetails: 'id | string | Azure resource Id of the assessed resource'; o exemplo de resposta traz '/subscriptions/20ff7fc3-e762-44dd-bd96-b71116dcdc23/resourceGroups/.../providers/Microsoft.Compute/virtualMachineScaleSets/vmss1'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.resourceDetails.source",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AzureResourceDetails: 'source | string: Azure | The platform where the assessed resource resides' -- o proprio tipo declara o literal 'Azure' como dominio de uma posicao, e o exemplo de resposta traz '\"source\": \"Azure\"'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.status",
+          "type": "object",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentResponse: 'properties.status | AssessmentStatusResponse | The result of the assessment'. E o objeto que o consumidor do FinOps le para decidir o que descartar.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.status.code",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AssessmentStatusResponse: 'code | AssessmentStatusCode | Programmatic code for the status of the assessment'; a enumeracao AssessmentStatusCode publica o dominio FECHADO 'Healthy' ('The resource is healthy'), 'Unhealthy' ('The resource has a security issue that needs to be addressed') e 'NotApplicable' ('Assessment for this resource did not happen'). E o campo que decide o descarte do consumidor.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.status.cause",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AssessmentStatusResponse: 'cause | string | Programmatic code for the cause of the assessment status'. O tipo e a descricao estao publicados, mas nao ha dominio fechado: o unico valor que a pagina EXEMPLIFICA e 'OffByPolicy', no exemplo do assessment NotApplicable. Um exemplo de payload nao autoriza publicar um vocabulario, entao o campo sai vazio. Ver 'unverified'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.status.description",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AssessmentStatusResponse: 'description | string | Human readable description of the assessment status'. Texto humano sobre o estado, que o estado canonico nao tem de onde tirar.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.status.firstEvaluationDate",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "date-time",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AssessmentStatusResponse: 'firstEvaluationDate | string (date-time) | The time that the assessment was created and first evaluated. Returned as UTC time in ISO 8601 format'.",
+          "type_source": "documented"
+        },
+        {
+          "name": "value[].properties.status.statusChangeDate",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "date-time",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "AssessmentStatusResponse: 'statusChangeDate | string (date-time) | The time that the status of the assessment last changed. Returned as UTC time in ISO 8601 format'.",
+          "type_source": "documented"
+        }
+      ]
+    },
+    {
+      "name": "assessmentList",
+      "description": "O envelope SecurityAssessmentList, que e a resposta 200 da operacao Assessments - List. Sao dois membros e eles ficam num conjunto PROPRIO porque sao disjuntos do assessment: um 'value' dentro de cada assessment seria inventar um campo que o recurso nao tem.",
+      "columns": [
+        {
+          "name": "value",
+          "type": "object[]",
+          "required": true,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentList: 'value | SecurityAssessmentResponse[] | Collection of security assessments in this page'. E a colecao que o consumidor itera.",
+          "type_source": "documented"
+        },
+        {
+          "name": "nextLink",
+          "type": "string",
+          "required": false,
+          "unit": "",
+          "datetime_format": "",
+          "source_url": "https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable",
+          "status": "verified",
+          "evidence": "declared",
+          "type_note": "SecurityAssessmentList: 'nextLink | string | The URI to fetch the next page.'. A pagina publica o membro da PAGINACAO e nao publica o tamanho de pagina nem um exemplo de cursor, entao o valor sai vazio em vez de um nextLink inventado. Ver 'unverified'.",
+          "type_source": "documented"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "topic": "valor de 'properties.status.cause' (ex.: 'OffByPolicy')",
+      "reason": "A pagina publica o TIPO ('string') e a descricao ('Programmatic code for the cause of the assessment status'), mas nao publica dominio fechado. O unico valor observavel e o do exemplo de resposta ('\"cause\": \"OffByPolicy\"', no assessment NotApplicable). Um exemplo de payload fixa a FORMA do campo, nao o seu vocabulario: o membro e emitido VAZIO."
+    },
+    {
+      "topic": "membros de 'properties.additionalData'",
+      "reason": "A pagina publica o tipo 'object' e o exemplo de resposta mostra um 'linkedWorkspaceId'. Ela nao publica a lista de membros, entao nao ha o que enumerar: o membro sai como objeto VAZIO, sem a chave inventada."
+    },
+    {
+      "topic": "template de 'properties.links.azurePortalUri'",
+      "reason": "O tipo e o significado estao publicados ('Link to assessment in Azure Portal'), mas nenhuma pagina consultada publica o formato da URI nem da um exemplo. Montar uma URL de portal por regra seria inventar o transporte."
+    },
+    {
+      "topic": "'properties.metadata.policyDefinitionId' na avaliacao embutida",
+      "reason": "A pagina publica o membro e o descreve como 'Azure resource ID of the policy definition that turns this assessment calculation on', mas nao exemplifica o valor e o exemplo de resposta nao traz 'metadata'. Um id de definicao de politica ARM seria um id que nenhuma pagina consultada publica, entao o membro sai vazio."
+    },
+    {
+      "topic": "categorias, ameacas, esforco de implementacao e impacto por avaliacao",
+      "reason": "Os DOMINIOS estao publicados ('categories', 'threats', 'implementationEffort', 'userImpact' tem as tabelas de enumeracao), mas a pagina nao afirma a qual valor CADA avaliacao pertence, e o estado canonico nao modela o catalogo de avaliacoes do Defender. Escolher um valor seria inventar a associacao; os membros saem como colecao/string vazia."
+    },
+    {
+      "topic": "'properties.partnersData.partnerName', 'properties.metadata.partnerData.partnerName' e '...productName'",
+      "reason": "Os tres membros tem tipo e descricao publicados, mas o estado nao tem parceiro: nenhuma verificacao deste estado e de terceiro. Saem vazios em vez de receberem um nome de empresa inventado."
+    },
+    {
+      "topic": "'properties.partnersData.secret' e 'properties.metadata.partnerData.secret'",
+      "reason": "A pagina marca os dois como 'write only' ('Secret to authenticate the partner - write only'). Um membro explicitamente de ESCRITA nao pertence a uma resposta de leitura, entao ele nao entra em 'sets': emiti-lo seria publicar um campo que a propria documentacao diz que nao volta."
+    },
+    {
+      "topic": "variantes OnPremise de 'properties.resourceDetails'",
+      "reason": "A pagina publica tres variantes (AzureResourceDetails, OnPremiseResourceDetails, OnPremiseSqlResourceDetails) e o estado so produz a Azure: as duas OnPremise descrevem maquinas sob um agente de Log Analytics, que este repositorio nao modela. A escolha da variante e um FATO do recurso avaliado, e o recurso avaliado aqui e uma VNet na Azure."
+    },
+    {
+      "topic": "pagina de 'nextLink'",
+      "reason": "A resposta e uma pagina de uma colecao e a pagina nao publica o tamanho de pagina nem um cursor de exemplo. O envelope e entregue como pagina unica (todos os assessments do escopo cabem nela), com o membro presente e vazio."
+    },
+    {
+      "topic": "escopo por grupo de gerenciamento",
+      "reason": "A pagina publica que 'scope' pode ser uma assinatura OU um grupo de gerenciamento. O consumidor do FinOps consulta a assinatura, e o estado canonico nao modela grupo de gerenciamento da Azure; um envelope por grupo seria um recorte que o modelo nao tem."
+    }
+  ]
+}

@@ -1,0 +1,408 @@
+{
+  "surface": "gcp/compute-firewalls",
+  "provider": "gcp",
+  "reference": {
+    "title": "Firewall / FirewallList / FirewallLogConfig / firewalls.list (Compute Engine v1 REST Reference)",
+    "url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+    "consulted_at": "2026-10-18",
+    "version": "Compute Engine API v1",
+    "member_pages": [
+      "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+      "https://compute.googleapis.com/$discovery/rest?version=v1"
+    ],
+    "semantics_page": "https://docs.cloud.google.com/firewall/docs/using-firewalls",
+    "machine_source_note": "A coluna foi transcrita do documento de discovery da Compute v1 (https://compute.googleapis.com/$discovery/rest?version=v1), que e a fonte de maquina da MESMA API v1 cuja tabela de propriedades a pagina de Firewall renderiza: as duas paginas trazem os 20 membros de Firewall e os 6 de FirewallList com os mesmos nomes, e a tabela da pagina vem do JSON de discovery embutido nela."
+  },
+  "chosen_surface": {
+    "specified": "Resposta de compute.firewalls.list: o envelope FirewallList, o recurso Firewall, o objeto inline que forma as DUAS listas de protocolo (allowed[] e denied[]) e o tipo FirewallLogConfig.",
+    "why": "Esta e a unica superficie da GCP que publica a REGRA DE FIREWALL como subclasse de recurso: cada regra, com direcao, prioridade, origem, destino, alvo e as tuplas de protocolo e porta. O consumidor de seguranca le exatamente isso -- direction, disabled, source_ranges e allowed[].IPProtocol/ports -- e a pagina de Firewall e exaustiva campo a campo.",
+    "config_alternative": "A GCP nao publica um schema de CONFIGURACAO de firewall equivalente ao AWS Config: o que existe do lado de conformidade sao ACHADOS (Security Command Center e os benchmarks CIS), que descrevem a violacao e nao a regra. O Cloud Asset Inventory publica a regra de firewall como ATIVO (esta superficie, gcp/asset-search-all-resources, ja existe aqui), mas so o nome e os rotulos do asset -- nenhuma forma de regra. Gerar a forma de regra a partir do asset seria inventar contrato.",
+    "config_evidence_url": "https://docs.cloud.google.com/firewall/docs/firewalls"
+  },
+  "delivery": {
+    "kind": "read_api",
+    "export_mechanism_exists": false,
+    "export_mechanism_note": "compute.firewalls.list e uma API de leitura paginada. A GCP nao documenta exportacao duravel dela para Cloud Storage nem qualquer artefato consultavel fora da API; o que existe e o console/gcloud imprimindo o recurso, que nao e um mecanismo de exportacao.",
+    "path_template": "projects/{project}/global/firewalls",
+    "format": "json",
+    "response_wrapper": "FirewallList",
+    "item_element": "items[]",
+    "compression": null,
+    "manifest": null,
+    "pagination": "maxResults, pageToken (in), nextPageToken (out)",
+    "element_order_guaranteed": false,
+    "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+    "encoding_source_url": "https://compute.googleapis.com/$discovery/rest?version=v1"
+  },
+  "structure": {
+    "firewall_list": "Envelope da resposta de compute.firewalls.list (6 membros)",
+    "firewall": "O recurso Firewall (20 membros)",
+    "protocol_entry": "O objeto inline de allowed[] e de denied[] (2 membros, a mesma forma nos dois)",
+    "log_config": "O tipo FirewallLogConfig (2 membros)",
+    "request_parameters": "Os seis parametros de consulta de firewalls.list"
+  },
+  "armadilhas": {
+    "ipprotocol_e_o_nome_do_campo": "O nome do campo e IPProtocol, com I e P maiusculos e sem separador -- nao 'protocol', nao 'ip_protocol'. E o mesmo nome que a amostra oficial publica dentro de allowed[] (\"IPProtocol = \\\"tcp\\\"\"). Um consumidor googleapiclient le o ATRIBUTO allowed.I_p_protocol da classe dinamica, que e o nome que essa biblioteca gera a partir do nome JSON IPProtocol; o artefato carrega o nome oficial.",
+    "duas_listas_e_nao_um_campo_de_decisao": "A GCP publica DUAS listas -- allowed[] e denied[] -- e nao um campo de decisao por regra. E o oposto dos dois vizinhos: o security group da AWS e so de PERMISSAO ('You can specify allow rules, but not deny rules') e o NSG da Azure tem UMA regra com 'access' (allowed/denied) e 'priority'. Reusar qualquer um dos dois fabricaria um membro que a GCP nao publica.",
+    "as_regras_implicitas_nao_sao_listaveis": "Toda rede VPC tem DUAS regras IMPLICITAS que firewalls.list NAO devolve: uma de ingress que nega tudo (prioridade 65535) e uma de egress que libera tudo (prioridade 65535). Elas sao o comportamento padrao da rede, nao recursos. Um consumidor que conclua 'sem regra = fechado' a partir de uma lista vazia estaria lendo a implicacao como ausencia de fato -- e o mesmo consumidor que itera a lista nunca vera a regra de negacao que protege a rede.",
+    "a_lista_e_global_do_projeto": "O caminho e projects/{project}/global/firewalls: a resposta e POR PROJETO e nao tem regiao nenhuma. A regiao e o que existe em subnetworks (projects/<p>/regions/<r>/subnetworks/<n>), nao em firewall. Um envelope por (projeto, regiao) seria um recorte que a API nao Faz.",
+    "portas_sao_strings_e_aceitam_faixa": "ports e uma lista de STRING e cada entrada e 'either an integer or a range' -- a propria pagina exemplifica [\"12345-12349\"]. Nao existe fromPort/toPort (que e a forma da AWS) e nao existe par de portas: quem quiser testar uma porta critica tem de interpretar a faixa ele mesmo.",
+    "direcao_e_membro_aqui": "A GCP publica direction como membro real, com INGRESS ou EGRESS ('The default is INGRESS'). Na AWS a direcao e o NOME da lista que contem a regra (IpPermissions / IpPermissionsEgress) e nao ha membro nenhum. Alem disso a pagina fecha: 'For EGRESS traffic, you cannot specify the sourceTags fields'.",
+    "origem_e_destino_mudam_com_a_direcao": "sourceRanges e destinationRanges sao dois membros distintos, e cada um vale para uma direcao: a origem e lida na entrada e o destino na saida. As duas listas sao CIDR ('expressed in CIDR format. Both IPv4 and IPv6 are supported').",
+    "target_e_service_account_sao_exclusivos": "A pagina de targetTags diz que targetServiceAccounts 'cannot be used at the same time as targetTags or sourceTags', e a de targetServiceAccounts repete a exclusividade. Uma regra que preencha os dois containers ao mesmo tempo estaria publicando uma combinacao que a fonte declara impossivel.",
+    "o_protocolo_tem_nome_ou_numero": "IPProtocol e String e a pagina aceita um nome conhecido (tcp, udp, icmp, esp, ah, ipip, sctp) OU o numero do protocolo. Nao e lista fechada: e nome-ou-numero, como o ipProtocol da AWS.",
+    "o_default_network_tem_regras_pre_populadas": "A rede DEFAULT -- e so ela -- nasce com quatro regras de ingress em prioridade 65534 (default-allow-internal, default-allow-ssh, default-allow-rdp, default-allow-icmp). E a saida de 'gcloud compute firewall-rules list' de um projeto recem-criado que traz esses nomes, com ALLOW = 'all' em default-allow-internal. Uma rede que nao seja a default nao tem nenhuma delas.",
+    "prioridade_vence_e_empate_nega": "A pagina de priority publica o intervalo 0..65535, o default 1000, que o MENOR numero tem a maior precedencia e que 'if two rules have the same priority the rule with a deny action overrides a rule with an allow action'. Entao a ordem de um conjunto de regras e uma afirmacao do provedor, e nao uma convencao de iteracao.",
+    "params_e_input_only": "params e '[Input Only]': faz parte da estrutura documentada do recurso mas nunca aparece numa resposta. Sai vazio.",
+    "saida_de_servidor_nao_e_fato_do_modelo": "id, selfLink e creationTimestamp sao '[Output Only]' e definidos pelo servidor. O estado nao carrega o id numerico do servidor, a URL do recurso nem o instante de criacao da regra, entao os tres vao vazios."
+  },
+  "sets": [
+    {
+      "name": "firewall-list-response",
+      "description": "Os seis membros de topo de FirewallList, o envelope de compute.firewalls.list. Todos sao '[Output Only]'. Fonte: firewalls/list + FirewallList no discovery",
+      "columns": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "[Output Only] Unique identifier for the resource; defined by the server. O discovery declara format uint64, que em JSON e string. Vazio: o id do servidor nao e fato do modelo.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "firewall-list-response"
+        },
+        {
+          "name": "items",
+          "type": "array",
+          "description": "A list of Firewall resources. E o container que carrega cada regra da pagina.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "firewall-list-response"
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "description": "[Output Only] Type of resource. Sempre 'compute#firewallList' para listas de firewall.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "firewall-list-response"
+        },
+        {
+          "name": "nextPageToken",
+          "type": "string",
+          "description": "[Output Only] This token allows you to get the next page of results for list requests. If the number of results is larger than maxResults, use the nextPageToken as a pageToken value to retrieve the next page of results.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "firewall-list-response"
+        },
+        {
+          "name": "selfLink",
+          "type": "string",
+          "description": "[Output Only] Server-defined URL for this resource. Vazio: a URL do envelope nao e fato do modelo.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "firewall-list-response"
+        },
+        {
+          "name": "warning",
+          "type": "object",
+          "description": "[Output Only] Informational warning message. O discovery declara o tipo como object e nao publica os membros dele, entao sai {} -- um objeto sem campos publicados nao vira estrutura inventada.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "firewall-list-response"
+        }
+      ]
+    },
+    {
+      "name": "firewall",
+      "description": "Os vinte membros do recurso Firewall. Fonte: Firewall no discovery e a tabela de propriedades da pagina de firewalls",
+      "columns": [
+        {
+          "name": "allowed",
+          "type": "array",
+          "description": "The list of ALLOW rules specified by this firewall. Cada regra especifica uma tupla de protocolo e faixa de porta que descreve uma conexao permitida. Os membros do objeto inline estao no conjunto protocol-entry.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "creationTimestamp",
+          "type": "string",
+          "description": "[Output Only] Creation timestamp in RFC3339 text format. Vazio: o estado nao carrega o instante de criacao da regra.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "denied",
+          "type": "array",
+          "description": "The list of DENY rules specified by this firewall. Cada regra especifica uma tupla de protocolo e faixa de porta que descreve uma conexao negada. Membros no conjunto protocol-entry.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "description": "An optional description of this resource. Texto livre na GCP.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "destinationRanges",
+          "type": "array",
+          "description": "Se destination ranges forem especificados, a regra se aplica apenas a trafego cujo endereco de destino esteja nestas faixas. Expressas em formato CIDR; IPv4 e IPv6 sao suportados. E o membro de DESTINO (vale para EGRESS).",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "direction",
+          "type": "string",
+          "description": "Direction of traffic to which this firewall applies, either INGRESS or EGRESS. O default e INGRESS. A pagina fecha que para EGRESS nao se pode especificar sourceTags.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall",
+          "type_note": "documented"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "description": "Denotes whether the firewall rule is disabled. Quando true a regra nao e aplicada e a rede se comporta como se ela nao existisse. Quando nao especificada, a regra fica habilitada.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "description": "[Output Only] The unique identifier for the resource. This identifier is defined by the server. O discovery declara format uint64. Vazio: o id do servidor nao e fato do modelo.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "description": "[Output Only] Type of the resource. Sempre 'compute#firewall' para regras de firewall.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "logConfig",
+          "type": "object",
+          "description": "This field denotes the logging options for a particular firewall rule. Se o log estiver habilitado, os logs sao exportados para o Cloud Logging. Os membros estao no conjunto firewall-log-config.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Name of the resource; provided by the client when the resource is created. De 1 a 63 caracteres, casando com [a-z]([-a-z0-9]*[a-z0-9])?.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "network",
+          "type": "string",
+          "description": "URL of the network resource for this firewall rule. Se nao especificada na criacao, usa-se a rede default: global/networks/default. Aceita URL completa ou parcial.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "params",
+          "type": "object",
+          "description": "[Input Only] Additional params passed with the request, but not persisted as part of resource payload. Faz parte da estrutura documentada do recurso mas nunca aparece numa resposta; sai vazio.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "description": "Priority for this rule. Inteiro entre 0 e 65535, default 1000. Menor numero tem maior precedencia; quando duas regras tem a mesma prioridade, a de acao deny prevalece sobre a de acao allow.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "selfLink",
+          "type": "string",
+          "description": "[Output Only] Server-defined URL for this resource. Vazio: a URL do recurso nao e fato do modelo.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "sourceRanges",
+          "type": "array",
+          "description": "Se source ranges forem especificados, a regra se aplica apenas a trafego cujo endereco de origem esteja nestas faixas. Expressas em formato CIDR. Um ou ambos de sourceRanges e sourceTags podem ser definidos. E o membro de ORIGEM (vale para INGRESS).",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "sourceServiceAccounts",
+          "type": "array",
+          "description": "Se source service accounts forem especificadas, as regras se aplicam apenas a trafego originado de uma instancia com uma destas contas de servico.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "sourceTags",
+          "type": "array",
+          "description": "Se source tags forem especificadas, a regra se aplica apenas a trafego com IPs de origem que casem com as interfaces primarias de instancias que tenham a tag e estejam na mesma rede VPC.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "targetServiceAccounts",
+          "type": "array",
+          "description": "Lista de contas de servico que indica o conjunto de instancias da rede que podem fazer as conexoes especificadas em allowed[]. Nao pode ser usada ao mesmo tempo que targetTags ou sourceTags.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        },
+        {
+          "name": "targetTags",
+          "type": "array",
+          "description": "Lista de tags que controla a quais instancias a regra se aplica. Sem targetTags, a regra se aplica a todas as instancias da rede especificada.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall"
+        }
+      ]
+    },
+    {
+      "name": "protocol-entry",
+      "description": "O objeto inline que forma as DUAS listas de protocolo: allowed[] e denied[] tem a MESMA forma (IPProtocol e ports). A GCP nao publica um tipo nomeado para ele -- no discovery os dois sao um objeto inline, e a propria GCP nao tem pagina de tipo separada. Os dois membros estao sempre juntos: ports so se aplica a UDP ou TCP.",
+      "columns": [
+        {
+          "name": "IPProtocol",
+          "type": "string",
+          "description": "The IP protocol to which this rule applies. Obrigatorio na criacao da regra. Aceita um nome conhecido (tcp, udp, icmp, esp, ah, ipip, sctp) OU o numero do protocolo. E nome-ou-numero, nao lista fechada.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "protocol-entry",
+          "type_note": "documented"
+        },
+        {
+          "name": "ports",
+          "type": "array",
+          "description": "Lista opcional de portas as quais a regra se aplica. So aplicavel para o protocolo UDP ou TCP. Cada entrada e um inteiro ou uma FAIXA, e a pagina exemplifica [\"22\"], [\"80\",\"443\"] e [\"12345-12349\"]. Se nao especificada, a regra se aplica a conexoes por QUALQUER porta.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "protocol-entry"
+        }
+      ]
+    },
+    {
+      "name": "firewall-log-config",
+      "description": "As opcoes de log de uma regra de firewall (FirewallLogConfig). Os dois membros. Fonte: FirewallLogConfig no discovery",
+      "columns": [
+        {
+          "name": "enable",
+          "type": "boolean",
+          "description": "This field denotes whether to enable logging for a particular firewall rule.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall-log-config"
+        },
+        {
+          "name": "metadata",
+          "type": "string",
+          "description": "So pode ser especificado para uma regra cujo log esteja habilitado. Indica se os logs de firewall incluem ou excluem os metadados. Enumeracao publicada: EXCLUDE_ALL_METADATA | INCLUDE_ALL_METADATA.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls",
+          "status": "verified",
+          "scope": "firewall-log-config",
+          "type_note": "documented"
+        }
+      ]
+    },
+    {
+      "name": "request-parameters",
+      "description": "Os seis parametros de consulta documentados de firewalls.list. O estado nao modela nenhuma requisicao capturada, entao estes nomes existem com valor nulo: e a forma do documento, nao um fato sobre uma chamada que alguem fez. Fonte: firewalls/list",
+      "columns": [
+        {
+          "name": "filter",
+          "type": "string",
+          "description": "Uma expressao de filtro que filtra os recursos listados na resposta. Valor null: o artefato nao e a resposta a um filtro especifico.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "description": "O numero maximo de resultados por pagina. Valor null: cada projeto cabe em uma pagina.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "orderBy",
+          "type": "string",
+          "description": "Ordena os resultados da lista por um certo criterio. Por padrao os resultados vem em ordem alfabetica. Valor null: o artefato nao declara ordenacao de requisicao.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "description": "Especifica um page token a usar. Defina pageToken com o nextPageToken devolvido por uma chamada anterior. Valor null: a resposta traz o token de continuacao.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Project ID for this request. Valor null pelo mesmo motivo de pageToken: o artefato e a resposta, nao a requisicao.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "request-parameters"
+        },
+        {
+          "name": "returnPartialSuccess",
+          "type": "boolean",
+          "description": "Opt-in para o comportamento de sucesso parcial, que entrega resultados parciais em caso de falha. Valor null: nenhuma requisicao foi capturada.",
+          "source_url": "https://docs.cloud.google.com/compute/docs/reference/rest/v1/firewalls/list",
+          "status": "verified",
+          "scope": "request-parameters"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "allowed[].IPProtocol = \"all\"",
+      "reason": "A pagina de Firewall diz que IPProtocol 'can either be one of the following well known protocol strings (tcp, udp, icmp, esp, ah, ipip, sctp) or the IP protocol number' -- e 'all' NAO esta nessa lista. Mas 'all' e o valor que a API de fato devolve: a saida oficial de 'gcloud compute firewall-rules list' de um projeto recem-criado traz default-allow-internal com a coluna ALLOW igual a 'all', e o guia de VPC firewall diz que 'If you omit both protocols and ports, the firewall rule is applicable for all traffic on any protocol and any destination port' e oferece 'Allow all' na criacao. O valor e real na resposta e esta nesta superficie justamente por causa disso; a divergencia e entre a prosa do campo e a API, e ela esta registrada aqui para que ninguem leia a prosa como lista fechada."
+    },
+    {
+      "item": "JSON property names da resposta de firewalls.list",
+      "reason": "A GCP publica a forma JSON desta superficie -- e e o que o documento de discovery da Compute v1 e, ele proprio, a fonte de maquina que a pagina de Firewall usa para renderizar a tabela de propriedades. Nao ha divergencia de encoding como na AWS (que publica so XML): aqui os nomes JSON E os de tipo sao os documentados."
+    },
+    {
+      "item": "rede VPC global vs. uma rede por regiao no modelo",
+      "reason": "Na GCP uma rede VPC e GLOBAL e tem sub-redes em varias regioes; o unico membro regional do par e subnetworks. O modelo canonico, ao contrario, da a este estate uma rede por (projeto, regiao) -- segment_id muda com a regiao, como se fosse a VPC da AWS. O valor de Firewall.network escrito aqui e o segment_id real do modelo, entao ele e um FATO do modelo e nao uma derivacao, mas nao e a forma que a GCP produz. A verificacao pendente e a relacao rede-VPC<->projeto de um projeto real, que so se resolve quando o modelo passar a carregar uma rede por projeto."
+    },
+    {
+      "item": "nomes de regra pre-populados da rede default como contrato",
+      "reason": "Os quatro nomes (default-allow-internal, default-allow-ssh, default-allow-rdp, default-allow-icmp), a prioridade 65534 e os pares protocolo:porta vem da tabela de 'Pre-populated rules in the default network' do guia de VPC firewall e da saida de 'gcloud compute firewall-rules list' que a propria Google publica no material de treinamento. Nao ha pagina de tipo que os declare: sao o estado de um projeto recem-criado, nao um contrato de schema. Eles entram como postura DECLARADA, com a fonte citada, e nao como coluna."
+    },
+    {
+      "item": "as duas regras implicitas de toda rede VPC",
+      "reason": "A GCP documenta que toda rede tem uma regra implicita de ingress que nega tudo e uma de egress que libera tudo, ambas em prioridade 65535. Elas NAO sao recursos e firewalls.list nao as devolve, entao nao ha coluna para elas e o artefato nao as carrega. Registrado aqui porque e o ponto em que um consumidor que varre a lista nao consegue ver a regra que protege a rede."
+    },
+    {
+      "item": "membros do objeto FirewallList.warning",
+      "reason": "O discovery declara warning como 'Informational warning message' com tipo object e NAO publica os membros dele. Sai {}: um objeto sem campos publicados nao vira estrutura inventada."
+    }
+  ]
+}

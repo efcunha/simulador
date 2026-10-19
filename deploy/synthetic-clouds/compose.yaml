@@ -1,0 +1,110 @@
+# Podman-compatible compose for the synthetic-clouds azure-sim stack (design §6.2).
+#
+# Two services on a dedicated bridge network:
+#   * azurite  — the blob simulator; persists /data on a NAMED VOLUME. NO D:\
+#                bind mount (design §6.4: hyperv bind mounts fail statfs i/o).
+#   * azure-sim — the control-plane API + exporter, built from the Containerfile
+#                 whose build context is the worktree root (one level up from
+#                 this deploy/ dir -> ../.. ).
+#
+# Everything configurable is driven from .env (see .env.example). Run from this
+# directory:  podman compose -f compose.yaml up -d
+# Validate the schema without running:  podman compose -f compose.yaml config
+#
+# Seeding/extracting blobs is done with ``podman cp`` (scripts/synthetic-clouds),
+# never a host bind mount.
+
+name: synthetic-clouds
+
+networks:
+  synthetic-clouds-net:
+    driver: bridge
+
+  # Shared network for the simulators. In this tree it is compose-OWNED (not
+  # `external: true`), so `podman compose up` creates it and the stack comes
+  # up standalone -- no other stack has to exist first.
+  #
+  # The per-service `aliases:` below is what registers the name the clients
+  # resolve (for example `aws-sim`). The service name alone is NOT enough on
+  # an external network: it is registered on the compose-owned network only.
+  synthclouds_net:
+    driver: bridge
+
+volumes:
+  # Named volume for Azurite persistence (design §6.4). Never a D:\ bind mount.
+  azurite-data:
+
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    # Bind the blob service to all interfaces inside the container so azure-sim
+    # can reach it over the network at http://azurite:10000.
+    #
+    # --skipApiVersionCheck: the `azure-storage-blob` SDK installed in the
+    # azure-sim image sends an x-ms-version newer than this pinned Azurite image
+    # accepts ("The API version 2026-10-06 is not supported by Azurite" ->
+    # InvalidHeaderValue). Azurite itself documents this flag for exactly this
+    # case. It is dev/local-only and affects no other caller; the alternative
+    # (pinning an older azure-storage-blob) would diverge the sim from the SDK
+    # version the production reader uses.
+    command: ["azurite-blob", "--blobHost", "0.0.0.0", "--blobPort", "10000", "--location", "/data", "--skipApiVersionCheck"]
+    networks:
+      synthetic-clouds-net:
+      synthclouds_net:
+        aliases:
+          - azurite
+    ports:
+      # Host port is configurable; container port is the fixed Azurite blob port.
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - azurite-data:/data
+    healthcheck:
+      # Azurite has no shell tool guaranteed; use node (present in the image) to
+      # probe the blob endpoint. A 400 (missing params) still proves it listens.
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:10000/devstoreaccount1?comp=list',r=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  azure-sim:
+    build:
+      # Build context = worktree root (contains tools/ and services/).
+      context: ../..
+      dockerfile: emulators/azure-sim/Containerfile
+    networks:
+      synthetic-clouds-net:
+      synthclouds_net:
+        aliases:
+          - azure-sim
+    depends_on:
+      azurite:
+        condition: service_healthy
+    ports:
+      # Host port configurable; container API port fixed at 8080 (Containerfile).
+      - "${API_PORT:-8080}:8080"
+    environment:
+      # --- simulator settings (config.py) ---
+      SEED: "${SEED:-42}"
+      PROFILE: "${PROFILE:-small}"
+      # Length of the simulated window in days; empty keeps the profile's own window.
+      WINDOW_DAYS: "${WINDOW_DAYS:-}"
+      CURRENCY: "${CURRENCY:-USD}"
+      AGREEMENT: "${AGREEMENT:-mca}"
+      EXPORTS: "${EXPORTS:-focus}"
+      FORMAT: "${FORMAT:-csv,parquet}"
+      SCHEDULE: "${SCHEDULE:-one-time}"
+      LATENCY_HOURS: "${LATENCY_HOURS:-4}"
+      MAX_ROWS_PER_PART: "${MAX_ROWS_PER_PART:-1000000}"
+      BLOB_CONTAINER: "${BLOB_CONTAINER:-exports}"
+      ROOT_DIRECTORY: "${ROOT_DIRECTORY:-cost-exports}"
+      API_PAGE_SIZE: "${API_PAGE_SIZE:-1000}"
+      # Azurite blob endpoint as seen from INSIDE the network (service name).
+      AZURE_BLOB_ENDPOINT: "${AZURE_BLOB_ENDPOINT:-http://azurite:10000/devstoreaccount1}"
+      API_PORT: "8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

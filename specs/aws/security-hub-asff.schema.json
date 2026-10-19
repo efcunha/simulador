@@ -1,0 +1,884 @@
+{
+  "surface": "aws/security-hub-asff",
+  "provider": "aws",
+  "reference": {
+    "title": "AWS Security Finding Format (ASFF) / Required and Optional top-level ASFF attributes / AwsSecurityFinding API",
+    "url": "https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-findings-format.html",
+    "consulted_at": "2026-10-14",
+    "version": "SchemaVersion 2018-10-08"
+  },
+  "delivery": {
+    "kind": "s3",
+    "export_mechanism_exists": true,
+    "export_mechanism": "StartExportJobV2 - ad hoc async export of Security Hub findings to an S3 bucket you own. A separate, older User Guide path uses an EventBridge custom action.",
+    "path_template": null,
+    "path_template_note": "NOT DOCUMENTED: only ObjectPrefix (max 512 chars) is published as a prefix prepended to object keys",
+    "format": "CSV|OCSF_JSON",
+    "format_note": "ASFF is NOT an available export format. SelectedFields accepts OCSF field paths only, so ASFF and the S3 export are two different formats of the same source.",
+    "compression": null,
+    "encoding": null,
+    "manifest": null,
+    "destination_type": "S3 (only supported type)",
+    "service_principal": "exportv2.securityhub.amazonaws.com",
+    "job_status_values": "RUNNING|SUCCEEDED|FAILED|CANCELLED",
+    "failure_codes": "ACCESS_DENIED|RESOURCE_NOT_FOUND|INTERNAL_ERROR",
+    "data_type": "FINDINGS",
+    "selected_fields_min": 1,
+    "selected_fields_max": 50,
+    "active_finding_retention_days": 90,
+    "archived_finding_retention_days": 30,
+    "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_StartExportJobV2.html"
+  },
+  "structure": {
+    "top_level": "3.1 Campos de topo do ASFF",
+    "resources": "3.2 Campos do objeto Resources[]",
+    "nested": "3.3 Objetos aninhados conhecidos (nao exaustivo)"
+  },
+  "sets": [
+    {
+      "name": "asff-top-level",
+      "description": "Atributos de topo do AWS Security Finding Format, SchemaVersion 2018-10-08. Mistura atributos obrigatorios (asff-required-attributes.html) e opcionais (asff-top-level-attributes.html). Contem Id e Region proprios.",
+      "columns": [
+        {
+          "name": "AwsAccountId",
+          "type": "string",
+          "required": true,
+          "allowed_values": "12 dígitos (Length Constraints: 12)",
+          "description": "O ID da conta AWS à qual a finding se aplica",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "CreatedAt",
+          "type": "string",
+          "required": true,
+          "datetime_format": "ISO 8601 UTC com milissegundos, ex.: `2017-03-22T13:22:13.933Z`",
+          "description": "Indica quando o problema/evento de segurança foi criado",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "required": true,
+          "allowed_values": "comprimento 1–1024",
+          "description": "Descrição da finding. Pode ser boilerplate ou específica da instância",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "GeneratorId",
+          "type": "string",
+          "required": true,
+          "allowed_values": "comprimento 1–512",
+          "description": "O identificador do componente específico da solução que gerou a finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Id",
+          "type": "string",
+          "required": true,
+          "allowed_values": "comprimento 1–512",
+          "description": "O identificador específico do produto para a finding. Para control findings, é o ARN da finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "ProductArn",
+          "type": "string",
+          "required": true,
+          "allowed_values": "comprimento 12–2048; formato `arn:partition:securityhub:region:account-id:product/company-id/product-id`",
+          "description": "ARN gerado pelo Security Hub que identifica unicamente o produto gerador",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Resources",
+          "type": "array",
+          "required": true,
+          "allowed_values": "mínimo 1, máximo 32 itens",
+          "description": "Conjunto de tipos de dados de recursos que descrevem os recursos referidos pela finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "SchemaVersion",
+          "type": "string",
+          "required": true,
+          "allowed_values": "`2018-10-08`",
+          "description": "A versão de schema para a qual a finding está formatada",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Severity",
+          "type": "object",
+          "required": true,
+          "description": "Define a importância de uma finding. Objeto de topo **e** aninhado sob `FindingProviderFields`. Só deve ser atualizado com `BatchUpdateFindings`",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Title",
+          "type": "string",
+          "required": true,
+          "allowed_values": "comprimento 1–256",
+          "description": "O título da finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Types",
+          "type": "array",
+          "required": true,
+          "allowed_values": "`namespace/category/classifier`. Namespaces: `Software and Configuration Checks` \\| `TTPs` \\| `Effects` \\| `Unusual Behaviors` \\| `Sensitive Data Identifications`. Máximo 50 itens",
+          "description": "Um ou mais tipos de finding que classificam a finding. Só deve ser atualizado com `BatchUpdateFindings`",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "string",
+          "required": true,
+          "datetime_format": "ISO 8601 UTC com milissegundos, ex.: `2017-04-22T13:22:13.933Z`",
+          "description": "Indica quando o provedor atualizou pela última vez o registo da finding. Não pode ser atualizado com `BatchUpdateFindings`, apenas `BatchImportFindings`",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Action",
+          "type": "object",
+          "description": "Detalhes sobre uma ação que afeta ou foi tomada sobre um recurso",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "AwsAccountName",
+          "type": "string",
+          "allowed_values": "comprimento 1–50",
+          "description": "O nome da conta AWS à qual a finding se aplica",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "CompanyName",
+          "type": "string",
+          "allowed_values": "comprimento 1–128",
+          "description": "O nome da empresa do produto que gerou a finding. Preenchido automaticamente pelo Security Hub",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Compliance",
+          "type": "object",
+          "description": "Detalhes sobre uma control finding: standards aplicáveis e status da verificação",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Confidence",
+          "type": "integer",
+          "unit": "escala 0–100",
+          "allowed_values": "0–100",
+          "description": "A probabilidade de a finding identificar corretamente o comportamento ou problema",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Criticality",
+          "type": "integer",
+          "unit": "escala 0–100",
+          "allowed_values": "0–100, apenas inteiros",
+          "description": "O nível de importância atribuído aos recursos associados à finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Detection",
+          "type": "object",
+          "description": "Detalhes sobre uma attack sequence finding do Amazon GuardDuty Extended Threat Detection",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "FindingProviderFields",
+          "type": "object",
+          "description": "Contém `Confidence`, `Criticality`, `RelatedFindings`, `Severity`, `Types` aninhados. Finding providers não podem atualizar com `BatchUpdateFindings`",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "FirstObservedAt",
+          "type": "string",
+          "datetime_format": "ISO 8601 UTC com milissegundos, ex.: `2017-03-22T13:22:13.933Z`",
+          "description": "Indica quando o problema/evento foi observado pela primeira vez",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "GeneratorDetails",
+          "type": "object",
+          "description": "Metadados para o detector do Amazon CodeGuru associado a uma finding (funções Lambda)",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "LastObservedAt",
+          "type": "string",
+          "datetime_format": "ISO 8601 UTC com milissegundos, ex.: `2017-03-23T13:22:13.933Z`",
+          "description": "Indica quando o problema/evento foi observado mais recentemente",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Malware",
+          "type": "array",
+          "allowed_values": "máximo 5 itens",
+          "description": "Uma lista de malware relacionada com a finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Network",
+          "type": "object",
+          "description": "Informação relacionada com rede sobre uma finding. **RETIRADO**: *\"This object is retired. To provide this data, you can either map the data to a resource in `Resources`, or use the `Action` object.\"*",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "NetworkPath",
+          "type": "array",
+          "description": "Informação sobre um caminho de rede relacionado com uma finding. Cada entrada é um componente do caminho",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Note",
+          "type": "object",
+          "description": "Uma nota definida pelo usuário adicionada a uma finding. Só pode ser atualizada com `BatchUpdateFindings`",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "PatchSummary",
+          "type": "object",
+          "description": "Resumo do status de conformidade de patch de uma instância contra um standard selecionado",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Process",
+          "type": "object",
+          "description": "Detalhes relacionados com processo sobre uma finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "ProcessedAt",
+          "type": "string",
+          "datetime_format": "ISO 8601 UTC com milissegundos, ex.: `2023-03-23T13:22:13.933Z`",
+          "description": "Indica quando o Security Hub recebeu a finding e começou a processá-la",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "ProductFields",
+          "type": "map",
+          "allowed_values": "máximo 50 pares; chave até 128 caracteres, valor até 2048 caracteres. Prefixo `aws/` reservado para AWS",
+          "description": "Detalhes específicos da solução que não fazem parte do ASFF definido",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "ProductName",
+          "type": "string",
+          "allowed_values": "comprimento 1–128",
+          "description": "O nome do produto que gerou a finding. Preenchido automaticamente pelo Security Hub",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "RecordState",
+          "type": "string",
+          "allowed_values": "`ACTIVE` \\| `ARCHIVED`",
+          "description": "O estado de registo de uma finding. Só atualizável com `BatchImportFindings`",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Region",
+          "type": "string",
+          "allowed_values": "comprimento 1–16",
+          "description": "A Region AWS a partir da qual a finding foi gerada. Preenchido automaticamente pelo Security Hub",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "RelatedFindings",
+          "type": "array",
+          "allowed_values": "mínimo 1, máximo 10 itens",
+          "description": "Lista de findings relacionadas com a finding atual",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Remediation",
+          "type": "object",
+          "description": "Informação sobre passos de remediação recomendados",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "RiskAssessment",
+          "type": "object",
+          "description": "Avaliação de risco com `Posture` (`FindingTotal`, `Indicators[].Type`, `Indicators[].Findings[]`)",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Sample",
+          "type": "boolean",
+          "allowed_values": "`true` \\| `false`",
+          "description": "Especifica se a finding é uma sample finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "SourceUrl",
+          "type": "string",
+          "description": "URL que liga a uma página sobre a finding no produto gerador",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "ThreatIntelIndicators",
+          "type": "array",
+          "allowed_values": "mínimo 1, máximo 5 itens",
+          "description": "Detalhes de threat intelligence relacionados com uma finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Threats",
+          "type": "array",
+          "allowed_values": "mínimo 1, máximo 32 itens",
+          "description": "Detalhes sobre a ameaça detectada e os caminhos de arquivo afetados",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "UserDefinedFields",
+          "type": "map",
+          "allowed_values": "máximo 50 pares; chave até 128 caracteres, valor até 1024 caracteres",
+          "description": "Pares nome-valor customizados. Só atualizável com `BatchUpdateFindings`. O simulador preenche com cinco chaves, todas fatias do proprio modelo sob o vocabulario do consumidor: `category` (a categoria nativa do modelo, ex. `CONFIG`/`IAM`/`NETWORK`), `evidence` (o `evidence_json` do modelo -- o mesmo conteudo que `ProductFields` leva), `exposure` (o que esta exposto: o recurso e a classificacao que nomeia a exposicao), `impact` (a ESCALA de impacto que o modelo carrega: severidade, o valor normalizado documentado e confidence/criticality -- e uma escala, nao uma estimativa de impacto de negocio, e por isso se chama assim) e `fingerprint` (sha256 de `exposure.resource`, `Types` e `Severity.Label`, recalculavel a partir do proprio documento). Os quatro primeiros sao colunas NOT NULL na tabela `findings` do consumidor, e a mensagem ASFF nao tem membro para nenhuma delas -- o mapa livre que a AWS publica e o unico lugar do formato onde o produtor pode carrega-las.",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "VerificationState",
+          "type": "string",
+          "allowed_values": "`UNKNOWN` \\| `TRUE_POSITIVE` \\| `FALSE_POSITIVE` \\| `BENIGN_POSITIVE`",
+          "description": "A veracidade de uma finding. Um provider pode dar valor inicial mas não atualizar depois",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Vulnerabilities",
+          "type": "array",
+          "description": "Lista de vulnerabilidades associadas à finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "Workflow",
+          "type": "object",
+          "description": "Informação sobre o status da investigação de uma finding. Só atualizável com `BatchUpdateFindings`",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        },
+        {
+          "name": "WorkflowState",
+          "type": "string",
+          "allowed_values": "`NEW` \\| `ASSIGNED` \\| `IN_PROGRESS` \\| `DEFERRED` \\| `RESOLVED`",
+          "description": "**RETIRADO.** *\"This object is retired and has been replaced by the `Status` field of the `Workflow` object.\"*",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-top-level"
+        }
+      ]
+    },
+    {
+      "name": "asff-resources",
+      "description": "Cada objeto do array Resources[] da finding. Contem Id e Region proprios, distintos dos de asff-top-level. Fonte: API_Resource.html + asff-resources-attributes.html",
+      "columns": [
+        {
+          "name": "Id",
+          "type": "string",
+          "required": true,
+          "allowed_values": "pattern `.*\\S.*`",
+          "description": "O identificador canônico do tipo de recurso. Para recursos identificados por ARN, é o ARN",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "Type",
+          "type": "string",
+          "required": true,
+          "allowed_values": "comprimento 1–256. `AwsEc2Instance`, `AwsS3Bucket`, … ou `Other`",
+          "description": "O tipo do recurso para o qual os detalhes são fornecidos",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "ApplicationArn",
+          "type": "string",
+          "allowed_values": "pattern `.*\\S.*`",
+          "description": "O ARN da aplicação envolvida na finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "ApplicationName",
+          "type": "string",
+          "description": "O nome da aplicação envolvida na finding",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "DataClassification",
+          "type": "object",
+          "description": "Informação sobre dados sensíveis detectados no recurso",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "Details",
+          "type": "object",
+          "description": "Informação adicional sobre um recurso, usando o objeto apropriado ao `Type`. *\"if the finding size exceeds the maximum of 240 KB, then the `Details` object is removed from the finding\"*",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "Owner",
+          "type": "object",
+          "description": "Informação sobre a conta e a organização donas do recurso",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "Partition",
+          "type": "string",
+          "allowed_values": "`aws` \\| `aws-cn` \\| `aws-us-gov` \\| `aws-us-iso` \\| `aws-us-iso-b` \\| `AzureCloud`",
+          "description": "A partição na qual o recurso está localizado",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "Provider",
+          "type": "string",
+          "allowed_values": "`AWS` \\| `Azure`",
+          "description": "O provedor de nuvem ao qual o recurso pertence",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "Region",
+          "type": "string",
+          "allowed_values": "comprimento 1–16",
+          "description": "O código da Region AWS onde o recurso está localizado",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "ResourceRole",
+          "type": "string",
+          "description": "Identifica o papel do recurso na finding: alvo da atividade ou ator que a executou",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        },
+        {
+          "name": "Tags",
+          "type": "map",
+          "allowed_values": "chaves/valores com pattern `.*\\S.*`",
+          "description": "Informação de chave e valor de tags do recurso. Só incluir para recursos que tenham tags associadas",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Resource.html",
+          "status": "verified",
+          "scope": "asff-resources"
+        }
+      ]
+    },
+    {
+      "name": "asff-nested",
+      "description": "Subobjetos aninhados com nomes publicados em exemplos oficiais (Severity, Compliance, Note, Workflow, Remediation, RelatedFindings, FindingProviderFields, Resources[].Details.AwsEc2Instance.*). NAO exaustivo: a pagina de outline do JSON retornou truncada, logo subcampos profundos nao foram enumerados um a um.",
+      "columns": [
+        {
+          "name": "Severity.Label",
+          "type": "string",
+          "allowed_values": "INFORMATIONAL,LOW,MEDIUM,HIGH,CRITICAL",
+          "description": "Enum FORMAL: a pagina do objeto Severity no API Reference publica 'Valid Values: INFORMATIONAL | LOW | MEDIUM | HIGH | CRITICAL', cada um com o seu significado (INFORMATIONAL = nenhum problema encontrado; LOW = o problema nao exige acao isolada; MEDIUM = deve ser tratado, sem urgencia; HIGH = deve ser tratado como prioridade; CRITICAL = deve ser remediado imediatamente). A pagina de atributos obrigatorios tambem lista os mesmos cinco rotulos, mas como recomendacao de traducao; quem da o enum e o API Reference, lido em 2026-10-15.",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Severity.Normalized",
+          "type": "integer",
+          "allowed_values": "0-100",
+          "description": "Inteiro entre 0 e 100. A AWS publica a tabela DETERMINISTA de preenchimento automatico — 'If you provide Label and don't provide Normalized, then Normalized is set automatically as follows': INFORMATIONAL=0, LOW=1, MEDIUM=40, HIGH=70, CRITICAL=90 (e a inversa, 1-39=LOW, 40-69=MEDIUM, 70-89=HIGH, 90-100=CRITICAL). O campo e DEPRECATED quanto a ENTRADA ('instead of providing Normalized, provide Label'), mas continua no schema e e preenchido pelo Security Hub — e e por isso que o valor sai aqui: a superficie descreve a RESPOSTA da API, nao o que o finding provider submete. Valor lido em 2026-10-15; a faixa 0-100 era a unica parte que faltava.",
+          "source_url": "https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Severity.Original",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-required-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Compliance.AssociatedStandards",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Compliance.RelatedRequirements",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Compliance.SecurityControlId",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Compliance.SecurityControlParameters",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Compliance.Status",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Compliance.StatusReasons",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Note.Text",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Note.UpdatedBy",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Note.UpdatedAt",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Workflow.Status",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Remediation.Recommendation.Text",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Remediation.Recommendation.Url",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "RelatedFindings.ProductArn",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "RelatedFindings.Id",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "FindingProviderFields.Confidence",
+          "type": "integer",
+          "allowed_values": "0-100",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "FindingProviderFields.Criticality",
+          "type": "integer",
+          "allowed_values": "0-100",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "FindingProviderFields.RelatedFindings",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "FindingProviderFields.Severity",
+          "type": "object",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "FindingProviderFields.Types",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-top-level-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.IamInstanceProfileArn",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.ImageId",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.IpV4Addresses",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.IpV6Addresses",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.KeyName",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.LaunchedAt",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.SubnetId",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.Type",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.VirtualizationType",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.VpcId",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.MetadataOptions.HttpEndpoint",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.MetadataOptions.HttpProtocolIpv6",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.MetadataOptions.HttpPutResponseHopLimit",
+          "type": "integer",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.MetadataOptions.HttpTokens",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.MetadataOptions.InstanceMetadataTags",
+          "type": "string",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        },
+        {
+          "name": "Resources[].Details.AwsEc2Instance.NetworkInterfaces",
+          "type": "array",
+          "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/asff-resources-attributes.html",
+          "status": "verified",
+          "scope": "asff-nested"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "item": "S3 object key template for native export",
+      "reason": "RESCRITO em 2026-10-15 com a pagina do tipo S3ExportDestination: o ObjectPrefix e 'an optional key prefix that Security Hub PREPENDS to the Amazon S3 object keys of the export output', com maximo de 512 caracteres e nao obrigatorio. O que a AWS publica e o PREFIXO; o template da chave completa continua fora: nenhuma das paginas do export (securityhub-v2-findings-export, StartExportJobV2, GetExportJobV2, S3ExportDestination) publica sufixo, pasta por conta/regiao/data ou nome de job."
+    },
+    {
+      "item": "export file name and structure",
+      "reason": "not documented -- e agora a evidencia e estrutural, nao uma busca que falhou. GetExportJobV2 devolve, no total, DataType, Destination, EndedAt, ExportJobId, FailureCode, FailureMessage, Name, OutputConfiguration, Scopes, StartedAt e Status: nenhum membro descreve arquivos escritos. O unico detalhe de estrutura e o uso de multipart upload em exports grandes, dito nas politicas de exemplo do StartExportJobV2 (s3:AbortMultipartUpload, UploadPart), o que explica as partes mas nao nomeia objeto nenhum."
+    },
+    {
+      "item": "export compression and encoding",
+      "reason": "not documented. SEPARADO do que a AWS publica: a CRIPTOGRAFIA esta documentada e e obrigatoria -- S3ExportDestination.KmsKeyArn exige chave simetrica ENCRYPT_DECRYPT, single-Region (mrk- rejeitado), ARN completo e na mesma conta e Regiao do job, para 'server-side encryption' dos objetos. O que a fonte nao publica e compressao (gzip) e encoding de caracteres."
+    },
+    {
+      "item": "CSV header line, quoting rules and line terminator",
+      "reason": "RENOMEADO em 2026-10-15: o que era 'CSV header and exact delimiter' ja tem metade da resposta. FindingsOutput publica que CSV 'produces comma-separated rows' (o delimitador) e que, para CSV, SelectedFields e OBRIGATORIO e 'the field paths that you specify become the columns of the output, IN THE ORDER that you provide them', de 1 a 50 campos. Ou seja: o conjunto e a ordem das colunas estao publicados. O que continua sem fonte e a LINHA DE CABECALHO em si, a regra de aspas/escape do CSV e o terminador de linha."
+    },
+    {
+      "item": "export manifest",
+      "reason": "RECONFIRMADO por evidencia estrutural em 2026-10-15: GetExportJobV2 -- a operacao que descreve o job e o que ele escreveu -- nao tem nenhum membro de manifest, e a pagina do console tambem nao menciona um. StartExportJobV2 devolve apenas ExportJobId. Nao e que a busca falhou: a pagina que descreveria o manifest existe, foi lida, e ele nao esta la."
+    },
+    {
+      "item": "exhaustive bodies of the remaining ASFF subobjects",
+      "reason": "CORRIGIDO em 2026-10-15: o limite era a LEITURA, nao a fonte. A pagina do contorno do JSON e o outline COMPLETO (a propria AWS escreve 'This page provides a complete outline of the JSON for a finding in ASFF') e ela tem versao .md; o que truncava era o .html na ferramenta de leitura. Cada subobjeto tambem tem pagina propria (asff-resourcedetails-<recurso>.html, asff-recorddetails-*.html). Fechar este item e trabalho de enumeracao, nao evidencia nova: a fonte ja publica tudo."
+    },
+    {
+      "item": "ASFF to CSV column mapping: the path behind each default column",
+      "reason": "A REGRA do mapeamento esta publicada e era o que faltava: FindingsOutput diz que, para CSV, SelectedFields e obrigatorio, que as colunas SAO os field paths OCSF informados e que sao aplicadas NA ORDEM em que foram fornecidas (1 a 50 campos). A pagina do console publica ainda os NOMES das nove colunas padrao -- Finding title, Severity, Resource ID, Created at, Status, Finding account, Finding region, Product vendor name, Finding type -- e diz que cada opcao mostra o path OCSF de origem, com um exemplo explicito: 'Finding account' vem de cloud.account.uid. O que a AWS nao publica e o path das OUTRAS oito: sem os pares nome->path, um artefato teria de escolher o path de 'Severity', 'Status' e 'Created at' por analogia -- e sao exatamente as colunas cujo path o contrato do OCSF já determina (severity, status, finding_info.created_time_dt), o que torna a tentacao maior, nao menor. Por isso a coluna do CSV continua fora do artefato."
+    },
+    {
+      "item": "OCSF JSON schema emitted by the export",
+      "reason": "OCSF format referenced and field paths listed, but no full OCSF schema or version published"
+    },
+    {
+      "item": "EventBridge custom action S3 layout",
+      "reason": "mechanism described without layout, file name, or output schema"
+    }
+  ]
+}
