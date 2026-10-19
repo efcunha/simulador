@@ -33,3 +33,9 @@ desktop.ini
 
 # Manifesto de build (artefato, nao fonte)
 .publish-manifest.json
+
+# Ferramentas/IDE locais (mantidas no disco, fora do controle de versao)
+.kiro/
+.agents/
+.github/
+.playwright-mcp/
