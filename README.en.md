@@ -1,4 +1,5 @@
-# simulador — synthetic cloud generator + API emulators
+# Simulador
+# Synthetic cloud generator + API emulators
 
 > Language: **English** | [Português](README.md)
 
