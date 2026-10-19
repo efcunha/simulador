@@ -4,6 +4,8 @@ Simulador multi-nuvem **independente**. Gera todos os dados necessarios —
 FinOps, seguranca, rede e instancias — para **AWS, GCP e Azure**, e os entrega
 seguindo o mecanismo e o formato de export que **cada nuvem realmente usa**.
 
+![Synthetic multi-cloud data, real API contracts](docs/img/hero.svg)
+
 O repositorio tem duas partes:
 
 | Parte | Onde | O que e |
@@ -27,9 +29,9 @@ O repositorio tem duas partes:
 | Testes | **1095 passam, 20 skip** (1115 coletados) | `pytest tools\synthetic_clouds\tests --collect-only -q` |
 | Specs em prosa | **28** | `specs/<provedor>/*.md` |
 | Emuladores | **3** — AWS · Azure · GCP | `emulators/` |
-| Arquivos versionados | **432** | `git ls-files` |
+| Arquivos versionados | **436** | `git ls-files` |
 
-> No disco sao **434** arquivos: os **432** versionados + `.publish-manifest.json`
+> No disco sao **438** arquivos: os **436** versionados + `.publish-manifest.json`
 > (artefato de build, fora do git) + `tools/synthetic_clouds/schedule/simulador-nuvem-daily.xml`
 > (ignorado pelo `.gitignore`).
 
@@ -38,6 +40,8 @@ Microsoft publica os 132 nomes sem tipos, e nenhum deles aparece nos cinco
 contratos ao mesmo tempo. Gerar exigiria inventar tipo e escolher contrato —
 exatamente o que a regra 3 abaixo proibe. O motivo esta registrado em
 `docs/NAO-COMPROVADOS.md`.
+
+![Coverage, measured](docs/img/cobertura.svg)
 
 ## Regras inviolaveis
 
@@ -84,6 +88,23 @@ O trabalho avanca nesta ordem, sempre:
    unidades e formatos.
 
 Uma superficie de export so e considerada pronta quando os tres passos fecham.
+
+## Arquitetura
+
+![How the data flows](docs/img/pipeline.svg)
+
+O caminho e sempre o mesmo: a **spec** e a fonte da verdade, o **gerador** e
+deterministico, os **emuladores** servem o mesmo dado pelas APIs de cada nuvem,
+e o **consumidor** ingere pelo proprio caminho de producao. O simulador nao
+fala com a nuvem real em momento algum.
+
+## O que e emulado
+
+![What is emulated, by domain](docs/img/dominios.svg)
+
+Quatro dominios — custo/FinOps, seguranca, rede e instancias — nas tres
+nuvens. Cada celula corresponde a superficies de export com spec, gerador e
+teste de fidelidade proprios.
 
 ## Ambiente
 

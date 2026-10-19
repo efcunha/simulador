@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="420" viewBox="0 0 880 420" role="img" aria-label="What is emulated, by domain: cost, security, network and instances across AWS, GCP and Azure.">
+  <rect x="0.5" y="0.5" width="879" height="419" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/>
+
+  <text x="32" y="44" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="20" font-weight="700" fill="#0F172A">What is emulated, by domain</text>
+  <text x="32" y="68" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#64748B">Four domains, three clouds, one faithful surface per domain and cloud.</text>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14.5" font-weight="700" fill="#0F172A" text-anchor="middle">
+    <text x="370" y="122">AWS</text>
+    <text x="560" y="122">GCP</text>
+    <text x="750" y="122">Azure</text>
+  </g>
+  <g>
+    <rect x="340" y="130" width="60" height="3" rx="1.5" fill="#FF9900"/>
+    <rect x="530" y="130" width="60" height="3" rx="1.5" fill="#4285F4"/>
+    <rect x="720" y="130" width="60" height="3" rx="1.5" fill="#0078D4"/>
+  </g>
+
+  <g stroke="#E2E8F0" stroke-width="1">
+    <line x1="32" y1="140" x2="840" y2="140"/>
+    <line x1="32" y1="206" x2="840" y2="206"/>
+    <line x1="32" y1="272" x2="840" y2="272"/>
+    <line x1="32" y1="338" x2="840" y2="338"/>
+  </g>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#0F172A">
+    <rect x="32" y="152" width="4" height="32" rx="2" fill="#2563EB"/>
+    <text x="48" y="174">Cost / FinOps</text>
+    <rect x="32" y="218" width="4" height="32" rx="2" fill="#DC2626"/>
+    <text x="48" y="240">Security</text>
+    <rect x="32" y="284" width="4" height="32" rx="2" fill="#0891B2"/>
+    <text x="48" y="306">Network</text>
+    <rect x="32" y="350" width="4" height="32" rx="2" fill="#7C3AED"/>
+    <text x="48" y="372">Instances</text>
+  </g>
+
+  <g fill="#FFFFFF" stroke="#E2E8F0">
+    <rect x="280" y="150" width="180" height="48" rx="10"/>
+    <rect x="470" y="150" width="180" height="48" rx="10"/>
+    <rect x="660" y="150" width="180" height="48" rx="10"/>
+    <rect x="280" y="216" width="180" height="48" rx="10"/>
+    <rect x="470" y="216" width="180" height="48" rx="10"/>
+    <rect x="660" y="216" width="180" height="48" rx="10"/>
+    <rect x="280" y="282" width="180" height="48" rx="10"/>
+    <rect x="470" y="282" width="180" height="48" rx="10"/>
+    <rect x="660" y="282" width="180" height="48" rx="10"/>
+    <rect x="280" y="348" width="180" height="48" rx="10"/>
+    <rect x="470" y="348" width="180" height="48" rx="10"/>
+    <rect x="660" y="348" width="180" height="48" rx="10"/>
+  </g>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#334155" text-anchor="middle">
+    <text x="370" y="170">CUR 2.0 + FOCUS 1.2</text>
+    <text x="370" y="187">S3 export layout</text>
+    <text x="560" y="170">BigQuery Billing</text>
+    <text x="560" y="187">standard + detailed</text>
+    <text x="750" y="170">Cost Management</text>
+    <text x="750" y="187">focus + actual</text>
+
+    <text x="370" y="236">Config, SG, S3, IAM</text>
+    <text x="370" y="253">8 checks covered</text>
+    <text x="560" y="236">SCC + Firewall</text>
+    <text x="560" y="253">findings and sources</text>
+    <text x="750" y="236">NSG + Defender</text>
+    <text x="750" y="253">assessments</text>
+
+    <text x="370" y="302">VPC Flow Logs</text>
+    <text x="370" y="319">to S3</text>
+    <text x="560" y="302">Flow Logs</text>
+    <text x="560" y="319">to BigQuery</text>
+    <text x="750" y="302">NSG + VNet</text>
+    <text x="750" y="319">flow logs v2</text>
+
+    <text x="370" y="368">EC2 instances</text>
+    <text x="370" y="385">DescribeInstances</text>
+    <text x="560" y="368">Compute + Asset</text>
+    <text x="560" y="385">Inventory</text>
+    <text x="750" y="368">Resource Graph</text>
+    <text x="750" y="385">resource inventory</text>
+  </g>
+</svg>
