@@ -37,7 +37,9 @@ $ComposeFile = Join-Path $WorktreeRoot "deploy\synthetic-clouds\compose.gcp.yaml
 # shared out/, which is ambiguous: out/ also holds the daily cadence surface (out/daily/,
 # FR-22), so the newest directory is not necessarily this run's. It broke aws-up.ps1 exactly
 # that way, and therefore broke scripts/synthetic-clouds/up.ps1 on the GCP plane. Same fix.
-$OutDir      = Join-Path $WorktreeRoot "tools\synthetic_clouds\out\gcp-plane"
+# GCP_OUT_DIR overrides; its default MUST stay byte-identical to gcp-smoke.ps1 so up and smoke
+# render and read the same source.
+$OutDir      = if ($env:GCP_OUT_DIR) { $env:GCP_OUT_DIR } else { Join-Path $WorktreeRoot "tools\synthetic_clouds\out\gcp-plane" }
 $Seed        = if ($env:GCP_SEED) { $env:GCP_SEED } else { "123" }
 $GcpProfile  = if ($env:GCP_PROFILE) { $env:GCP_PROFILE } else { "small" }
 # Length of the simulated window in days. Empty keeps the profile's own window (the historical
@@ -45,6 +47,12 @@ $GcpProfile  = if ($env:GCP_PROFILE) { $env:GCP_PROFILE } else { "small" }
 # Mirrors aws-up.ps1's AWS_SIM_WINDOW_DAYS -- without it a demo run of this script silently
 # regenerated the topology at the profile's 45-day window and overwrote a wide render.
 $WindowDays  = if ($env:GCP_WINDOW_DAYS) { $env:GCP_WINDOW_DAYS } else { "" }
+# Compose project name (podman -p) + named-volume prefix, from one source. SYNTHCLOUDS_PROJECT
+# lets a parallel stack come up without colliding with the fixed-name volumes a running stack
+# owns. The volume names are also hardcoded in the podman cp helper below, so -p alone would
+# not be enough -- both the -p flag and the $ProvVol/$FixVol prefix derive from this variable.
+# Default (no env) stays "synthetic-clouds" -> byte-identical to today's fixed names.
+$ComposeProject = if ($env:SYNTHCLOUDS_PROJECT) { $env:SYNTHCLOUDS_PROJECT } else { "synthetic-clouds" }
 
 $Plan = @(
     "1. python -m tools.synthetic_clouds --seed $Seed --profile $GcpProfile --emit gcp_bigquery_topology,gcp_rest_fixtures --out $OutDir (cwd=$WorktreeRoot)",
@@ -90,7 +98,7 @@ $TopologyDir = Join-Path $RenderRoot "gcp_bigquery_topology"
 $FixturesDir = Join-Path $RenderRoot "gcp_rest_fixtures"
 
 Invoke-Checked "compose up emulator + gcp-sim (build)" {
-    podman compose -f $ComposeFile up -d --build --force-recreate bigquery-emulator gcp-sim
+    podman compose -p $ComposeProject -f $ComposeFile up -d --build --force-recreate bigquery-emulator gcp-sim
 }
 
 # 3. Wait for emulator health.
@@ -125,20 +133,20 @@ function Copy-IntoVolume([string]$Volume, [string]$SrcDir) {
     }
 }
 
-$ProvVol = "synthetic-clouds_gcp_provision"
-$FixVol  = "synthetic-clouds_gcp_sim_fixtures"
+$ProvVol = "${ComposeProject}_gcp_provision"
+$FixVol  = "${ComposeProject}_gcp_sim_fixtures"
 Copy-IntoVolume $ProvVol $TopologyDir
 Copy-IntoVolume $FixVol  $FixturesDir
 
 # gcp-sim loads fixtures at boot; restart so it picks up the just-copied fixtures.
 Invoke-Checked "restart gcp-sim to load fixtures" {
-    podman compose -f $ComposeFile restart gcp-sim
+    podman compose -p $ComposeProject -f $ComposeFile restart gcp-sim
 }
 
 # 5. Run the provision one-shot (DDL + INSERT over the emulator REST endpoint).
 #    --build so the provision image picks up the current gcp_sim.provision code.
 Invoke-Checked "run provisioner (one-shot)" {
-    podman compose -f $ComposeFile up --build --no-deps gcp-bq-provision
+    podman compose -p $ComposeProject -f $ComposeFile up --build --no-deps gcp-bq-provision
 }
 
 $SimPort = if ($env:GCP_SIM_PORT) { $env:GCP_SIM_PORT } else { "8085" }

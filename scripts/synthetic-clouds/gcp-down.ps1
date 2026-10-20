@@ -16,7 +16,10 @@ Set-StrictMode -Version Latest
 $ScriptDir    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $WorktreeRoot = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
 $ComposeFile  = Join-Path $WorktreeRoot "deploy\synthetic-clouds\compose.gcp.yaml"
+# Mirror gcp-up.ps1's project override so the teardown hits the SAME stack the up brought up.
+# Default (no env) stays "synthetic-clouds" -> byte-identical to today's behaviour.
+$ComposeProject = if ($env:SYNTHCLOUDS_PROJECT) { $env:SYNTHCLOUDS_PROJECT } else { "synthetic-clouds" }
 
 Write-Host "==> podman compose down -v ($ComposeFile)"
-podman compose -f $ComposeFile down -v
+podman compose -p $ComposeProject -f $ComposeFile down -v
 Write-Host "==> GCP synthetic-clouds plane torn down."

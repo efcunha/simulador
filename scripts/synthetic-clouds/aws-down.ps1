@@ -25,13 +25,16 @@ Set-StrictMode -Version Latest
 $ScriptDir    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $WorktreeRoot = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
 $ComposeFile  = Join-Path $WorktreeRoot "deploy\synthetic-clouds\compose.aws.yaml"
+# Mirror aws-up.ps1's project override so the teardown hits the SAME stack the up brought up.
+# Default (no env) stays "synthetic-clouds" -> byte-identical to today's behaviour.
+$ComposeProject = if ($env:SYNTHCLOUDS_PROJECT) { $env:SYNTHCLOUDS_PROJECT } else { "synthetic-clouds" }
 
 if ($WhatIf) {
-    Write-Host "would run: podman compose -f $ComposeFile down -v"
+    Write-Host "would run: podman compose -p $ComposeProject -f $ComposeFile down -v"
     exit 0
 }
 
 Write-Host "==> compose down -v ($ComposeFile)"
-podman compose -f $ComposeFile down -v
+podman compose -p $ComposeProject -f $ComposeFile down -v
 if ($LASTEXITCODE -ne 0) { throw "compose down failed (exit $LASTEXITCODE)" }
 Write-Host "==> AWS synthetic-clouds plane removed (containers + named volumes)."

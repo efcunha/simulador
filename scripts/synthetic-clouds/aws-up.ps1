@@ -44,7 +44,13 @@ $AwsProfile = if ($env:AWS_SIM_PROFILE) { $env:AWS_SIM_PROFILE } else { "small" 
 $S3Port     = if ($env:S3_PORT) { $env:S3_PORT } else { "9090" }
 $SimPort    = if ($env:AWS_SIM_PORT) { $env:AWS_SIM_PORT } else { "8086" }
 $Bucket     = if ($env:AWS_SIM_BUCKET) { $env:AWS_SIM_BUCKET } else { "synthetic-focus12-daily-full" }
-$RenderVol  = "synthetic-clouds_aws_sim_render"
+# Compose project name (podman -p) + named-volume prefix, from one source. SYNTHCLOUDS_PROJECT
+# lets a parallel stack come up without colliding with the fixed-name volume a running stack
+# owns. The volume name is also hardcoded in the podman cp helper below, so -p alone would not
+# be enough -- both the -p flag and the $RenderVol prefix derive from this variable. Default
+# (no env) stays "synthetic-clouds" -> byte-identical to today's fixed name.
+$ComposeProject = if ($env:SYNTHCLOUDS_PROJECT) { $env:SYNTHCLOUDS_PROJECT } else { "synthetic-clouds" }
+$RenderVol  = "${ComposeProject}_aws_sim_render"
 # Length of the simulated window in days. Empty keeps the profile's own window (the historical
 # behaviour); set it to reach "today" (e.g. 282 covers the canonical epoch through 2026-10-09).
 $WindowDays = if ($env:AWS_SIM_WINDOW_DAYS) { $env:AWS_SIM_WINDOW_DAYS } else { "" }
@@ -81,7 +87,7 @@ try {
 } finally { Pop-Location }
 
 Invoke-Checked "compose up s3mock + aws-sim (build)" {
-    podman compose -f $ComposeFile up -d --build s3mock aws-sim
+    podman compose -p $ComposeProject -f $ComposeFile up -d --build s3mock aws-sim
 }
 
 # 3. Wait for the S3 store. `GET /` is the S3 ListBuckets call, so a 200 proves the API is
@@ -124,7 +130,7 @@ try {
 # 5. Upload from INSIDE the sim, so settings stay in the container environment and never
 #    appear on a command line. `compose ps -q` is the reliable way to name the container: a
 #    compose-built image is tagged with the project prefix, not `aws-sim`.
-$ContainerId = (podman compose -f $ComposeFile ps -q aws-sim | Select-Object -First 1)
+$ContainerId = (podman compose -p $ComposeProject -f $ComposeFile ps -q aws-sim | Select-Object -First 1)
 if (-not $ContainerId) { throw "aws-sim container not found (compose ps -q aws-sim was empty)" }
 Invoke-Checked "upload the rendered tree to the S3 store" {
     podman exec $ContainerId python -m aws_sim.upload --dir "/render/aws_focus" --bucket $Bucket

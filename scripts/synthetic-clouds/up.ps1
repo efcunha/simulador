@@ -33,11 +33,15 @@ Set-StrictMode -Version Latest
 $ScriptDir    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $WorktreeRoot = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
 $AzureCompose = Join-Path $WorktreeRoot "deploy\synthetic-clouds\compose.yaml"
+# Compose project override. The azure compose.yaml carries name: synthetic-clouds, which -p
+# overrides; the gcp/aws sub-scripts inherit SYNTHCLOUDS_PROJECT from this process, so one env
+# var moves all three planes to a parallel stack. Default (no env) stays "synthetic-clouds".
+$ComposeProject = if ($env:SYNTHCLOUDS_PROJECT) { $env:SYNTHCLOUDS_PROJECT } else { "synthetic-clouds" }
 
 $skipped = @($Skip.Split(",") | Where-Object { $_ -ne "" } | ForEach-Object { $_.Trim().ToLower() })
 
 $Plan = @(
-    "azure: podman compose -f $AzureCompose up -d",
+    "azure: podman compose -p $ComposeProject -f $AzureCompose up -d",
     "gcp  : $ScriptDir\gcp-up.ps1",
     "aws  : $ScriptDir\aws-up.ps1"
 )
@@ -58,7 +62,7 @@ function Invoke-Plane([string]$Name, [scriptblock]$Block) {
     if ($LASTEXITCODE -ne 0) { $script:failures += "$Name (exit $LASTEXITCODE)" }
 }
 
-Invoke-Plane "azure" { podman compose -f $AzureCompose up -d }
+Invoke-Plane "azure" { podman compose -p $ComposeProject -f $AzureCompose up -d }
 Invoke-Plane "gcp" { & (Join-Path $ScriptDir "gcp-up.ps1") }
 Invoke-Plane "aws" { & (Join-Path $ScriptDir "aws-up.ps1") }
 
