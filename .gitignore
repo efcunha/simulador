@@ -39,3 +39,6 @@ desktop.ini
 .agents/
 .github/
 .playwright-mcp/
+
+# Git worktrees locais (criados por workflows; fora do controle de versao)
+.worktrees/
