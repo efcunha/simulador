@@ -47,7 +47,27 @@ def _discover_renderers() -> dict[str, Renderer]:
     registro: ele e anotado em :func:`broken_modules` e o resto continua
     utilizavel. Ignorar em silencio seria pior -- a superficie que depende dele
     falha na invariante que exige renderer registrado.
+
+    O REGISTRO E MEMORIZADO (NIT-3): depois da primeira varredura sem nenhum
+    modulo quebrado, o mapa e o mesmo para sempre. A raza que isso elimina e
+    real: o CLI monta o ``--emit`` default numa PASSAGEM de descoberta e resolve
+    cada nome do default numa NOVA PASSAGEM, dentro do laco de render. Sao
+    varreduras independentes, e nada obrigava as duas a concordar: um modulo que
+    importava na primeira e falhava na segunda (import nao-determinista, recurso
+    consumido, estado entre passagens) sumia do registro e o ``get_renderer``
+    levantava ``KeyError`` sobre um nome que o proprio CLI tinha acabado de
+    listar. Com o registro memoizado as duas passagens veem o MESMO conjunto,
+    por construcao.
+
+    A memorizacao so acontece numa varredura COMPLETA: se algum modulo quebrou,
+    o registro nao e cacheado e a proxima chamada varre de novo -- assim um
+    modulo que quebra por dependencia ausente (que e o caso comum) nao congela
+    um registro incompleto para o resto do processo.
     """
+    global _REGISTRY
+    if _REGISTRY is not None:
+        return _REGISTRY
+
     import importlib
     import inspect
     import pkgutil
@@ -83,15 +103,26 @@ def _discover_renderers() -> dict[str, Renderer]:
                 )
             encontrados[chave] = cast("Renderer", instancia)
 
+    if not _BROKEN:
+        _REGISTRY = encontrados
+
     return encontrados
 
+
+#: Registro memoizado dos renderers (see :func:`_discover_renderers`). ``None``
+#: ate a primeira varredura completa: enquanto ha modulo quebrado, o registro
+#: nao e cacheado e a proxima chamada revarre.
+_REGISTRY: dict[str, Renderer] | None = None
 
 _BROKEN: dict[str, str] = {}
 
 
 def broken_modules() -> dict[str, str]:
-    """Modulos do pacote que nao importaram na ultima varredura, com o motivo."""
-    _discover_renderers()
+    """Modulos do pacote que nao importaram na varredura do registro, com o motivo.
+
+    Nao revarre: o motivo vale para o registro que esta em uso, e um revarredor
+    aqui poderia acusar um modulo quebrado que o registro ainda lista.
+    """
     return dict(_BROKEN)
 
 
