@@ -32,7 +32,11 @@ Set-StrictMode -Version Latest
 
 $ScriptDir    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $WorktreeRoot = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
-$OutDir       = Join-Path $WorktreeRoot "tools\synthetic_clouds\out"
+# Resolve the run from the DEDICATED out dir gcp-up.ps1 renders into (G23), not the shared
+# out/. The shared out/ also holds the daily cadence surface (out/daily/, FR-22), so "newest
+# dir under out/" could pick a run gcp-up never populated. GCP_OUT_DIR overrides; the default
+# MUST stay byte-identical to gcp-up.ps1 so up and smoke read the same source.
+$OutDir       = if ($env:GCP_OUT_DIR) { $env:GCP_OUT_DIR } else { Join-Path $WorktreeRoot "tools\synthetic_clouds\out\gcp-plane" }
 $Project      = if ($env:GCP_PROJECT) { $env:GCP_PROJECT } else { "synthetic" }
 $BqPort       = if ($env:GCP_BQ_REST_PORT) { $env:GCP_BQ_REST_PORT } else { "9050" }
 $Endpoint     = "http://localhost:$BqPort"
@@ -43,7 +47,7 @@ $RenderRoot = Get-ChildItem -Path $OutDir -Directory |
     Select-Object -First 1 |
     ForEach-Object { Join-Path $_.FullName "render\gcp_bigquery_topology" }
 if (-not $RenderRoot -or -not (Test-Path (Join-Path $RenderRoot "_provenance.json"))) {
-    throw "manifest.json not found under $OutDir"
+    throw "_provenance.json not found under $OutDir (run gcp-up.ps1 first)"
 }
 $Manifest = Get-Content (Join-Path $RenderRoot "_provenance.json") -Raw | ConvertFrom-Json
 $BillingTable = $Manifest.tables.standard.table
