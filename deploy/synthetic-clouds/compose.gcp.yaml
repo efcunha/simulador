@@ -5,41 +5,40 @@
 # merge; a later integration step merges azure + gcp compose.
 #
 # HARD CONSTRAINTS (design sec. 2, sec. 6; DISCOVERY Spike):
-#   * bigquery-emulator starts with NO --data-from-yaml. The YAML loader
-#     materializes mode:REPEATED as plain STRUCT and breaks every UNNEST query.
-#     Tables are provisioned via DDL CREATE TABLE ... ARRAY<STRUCT<...>> + INSERT
-#     by the one-shot gcp-bq-provision container (python -m gcp_sim.provision).
+#   * bigquery-emulator is bqemulator (DuckDB + SQLGlot), not goccy. goccy
+#     creates the documented schema but cannot SCAN a RECORD that contains a
+#     REPEATED field ("failed to convert struct from array") — project.ancestors
+#     and project.labels in the detailed export. The CloudPilot reader keeps
+#     selecting the real struct; the emulator is what must match BigQuery.
+#     Tables are still provisioned via DDL CREATE TABLE ... ARRAY<STRUCT<...>> +
+#     insertAll by the one-shot gcp-bq-provision container
+#     (python -m gcp_sim.provision).
 #   * NO Windows drive bind-mount (the spike's statfs ... input/output error):
 #     all state lives in NAMED VOLUMES; rendered scripts/fixtures arrive via
 #     `podman cp` from scripts/synthetic-clouds/gcp-up.ps1, never a drive mount.
 services:
   bigquery-emulator:
-    image: ghcr.io/goccy/bigquery-emulator:latest
-    command:
-      - "--project=${GCP_PROJECT:-synthetic}"
-      - "--port=9050"
-      - "--grpc-port=9060"
-      # NO --data-from-yaml (hard constraint; see header).
+    # bqemulator (DuckDB + SQLGlot) instead of goccy: goccy creates the
+    # documented schema but cannot SCAN a RECORD that contains a REPEATED field
+    # ("failed to convert struct from array") — exactly project.ancestors /
+    # project.labels in the detailed export. The CloudPilot reader must keep
+    # selecting the real struct; the emulator is the layer that has to match
+    # BigQuery, not the client. bqemulator returns the whole struct and is
+    # compatible with the google-cloud-bigquery REST calls the reader makes.
+    image: ghcr.io/jjviscomi/bqemulator:latest
+    # Defaults: REST 9050, gRPC 9060. No project flag — it comes per request.
     ports:
       - "${GCP_BQ_REST_PORT:-9050}:9050"
       - "${GCP_BQ_GRPC_PORT:-9060}:9060"
-    volumes:
-      - "gcp_bq_data:/work"
     networks:
       synthclouds_gcp:
       synthclouds_net:
         aliases:
           - bigquery-emulator
     healthcheck:
-      # This image is Debian-based and ships NO wget/curl (verified in-container:
-      # `command -v wget curl` returns nothing), so the original wget probe could
-      # never pass — the emulator served all five query shapes while reporting
-      # `unhealthy` with FailingStreak 48. bash IS present, so probe the listening
-      # socket via /dev/tcp (exit 0 on connect, 1 on a closed port — verified with a
-      # negative control). HTTP-level readiness is still proven by gcp-up.ps1's
-      # host-side `datasets.list == 200` poll before anything is provisioned, and by
-      # the provisioner's own row-count assertions.
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9050"]
+      # bqemulator ships Python and exposes an HTTP /healthz; the old goccy
+      # image had no curl/wget and probed the TCP socket instead.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9050/healthz', timeout=3)"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -113,7 +112,6 @@ services:
       retries: 20
 
 volumes:
-  gcp_bq_data: {}
   gcp_provision: {}
   gcp_sim_fixtures: {}
 

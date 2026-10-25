@@ -1,0 +1,27 @@
+# Build-context filter for the azure-sim image (Containerfile build context =
+# the worktree root). The image only COPYs tools/synthetic_clouds, specs and
+# emulators/azure-sim, so local environments, caches and generated artifacts
+# are pure transfer weight. Podman accepts this file via ``--ignorefile`` (the
+# repository root intentionally carries no .dockerignore: config of record for
+# pytest/ruff/mypy lives in the packages, per AGENTS.md).
+.git
+.venv
+.worktrees
+.artifacts
+.tmp
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.pnpm-store
+pytest-of-ECUNHA
+uvcache
+node_modules
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/out
+**/*.parquet
+deploy
+d3bis
+docs
+backups

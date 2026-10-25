@@ -83,6 +83,30 @@ services:
     ports:
       # Host port configurable; container API port fixed at 8080 (Containerfile).
       - "${API_PORT:-8080}:8080"
+    # CloudPilot talks to the simulator as the REAL cloud hostnames over TLS
+    # 443 (management.azure.com / login.microsoftonline.com). The leaf is baked
+    # into the image at /app/emulators/azure-sim/tls (see scripts/gen_dev_tls.py);
+    # the plain 8080 listener keeps serving the simulator's own tooling.
+    command:
+      - python
+      - -m
+      - azure_sim
+      - serve
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --tls-port
+      - "443"
+      - --tls-cert
+      - /app/emulators/azure-sim/tls/server.crt
+      - --tls-key
+      - /app/emulators/azure-sim/tls/server.key
+    # The image runs as the non-root ``azuresim`` user (uid 10001). Binding 443
+    # needs the kernel to treat the port as unprivileged; this sysctl is
+    # namespaced per container and changes nothing on the host.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: "0"
     environment:
       # --- simulator settings (config.py) ---
       SEED: "${SEED:-42}"

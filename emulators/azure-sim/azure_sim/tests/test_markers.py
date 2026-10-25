@@ -16,6 +16,7 @@ Covered artifacts:
 
 from __future__ import annotations
 
+import base64
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -64,14 +65,25 @@ def test_manifest_proves_synthetic() -> None:
 # ---------------------------------------------------------------------------
 # Token endpoint marker (API auth artifact).
 # ---------------------------------------------------------------------------
+def _jwt_claims(token: str) -> dict[str, object]:
+    """Decode the payload of the JWT-shaped bearer (no signature check needed)."""
+    payload = token.split(".")[1]
+    padded = payload + "=" * (-len(payload) % 4)
+    return json.loads(base64.urlsafe_b64decode(padded))
+
+
 def test_token_endpoint_proves_synthetic(api_client) -> None:
     client, _app = api_client
     resp = client.post("/contoso-tenant/oauth2/v2.0/token", data={"grant_type": "client_credentials"})
     assert resp.status_code == 200
     body = resp.json()
-    # The issued bearer is plainly synthetic (never a real secret, §9).
+    # The issued bearer is a JWT whose claims carry the synthetic marker (the
+    # ``synth:`` fingerprint lives in ``jti``; the old opaque prefix would not
+    # be a JWT the SDK accepts). Never a real secret (§9).
     assert body["synthetic"] is True
-    assert body["access_token"].startswith(SOURCE_FINGERPRINT_PREFIX)
+    claims = _jwt_claims(body["access_token"])
+    assert str(claims["jti"]).startswith(SOURCE_FINGERPRINT_PREFIX)
+    assert claims["x_synthetic"] is True
 
 
 # ---------------------------------------------------------------------------

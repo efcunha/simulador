@@ -98,7 +98,7 @@ def render_wrapper(*, python_exe: Path, repo_root: Path, task_log: Path, config_
         "setlocal\r\n"
         f'set "PYTHONPATH={repo_root}"\r\n'
         f'cd /d "{repo_root}"\r\n'
-        f'"{python_exe}" -m tools.synthetic_clouds.schedule tick --config "{config_path}"'
+        f'"{python_exe}" -m tools.synthetic_clouds.schedule tick --config "{config_path}" --deliver'
         f' >> "{task_log}" 2>&1\r\n'
         "exit /b %ERRORLEVEL%\r\n"
     )

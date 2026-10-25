@@ -107,6 +107,26 @@ def create_app(settings: Settings) -> FastAPI:
         """Liveness probe (design §6.1)."""
         return {"status": "ok", "synthetic": True}
 
+    @app.post("/admin/estate/refresh")
+    async def refresh_estate(days: int | None = None) -> dict[str, Any]:
+        """Rebuild the estate with a window covering ``days``.
+
+        Operational hook for the daily cadence: the Cost Management Query API
+        serves this estate, so extending its window is how a newly generated
+        day becomes visible to a caller without restarting the container. The
+        estate is deterministic on ``(seed, profile, currency, day)``, so the
+        refreshed data is the same the daily render produced. Not an Azure API
+        path, and therefore outside the ``api-version`` gate on purpose.
+        """
+        window = days if days is not None else settings.window_days
+        app.state.estate = build_simulated_estate(
+            seed=settings.seed,
+            profile=settings.profile,
+            currency=settings.currency,
+            window_days=window,
+        )
+        return {"status": "ok", "window_days": window}
+
     # Register every router. Routers match on official Azure path shapes.
     app.include_router(token.router)
     app.include_router(cost_management.router)

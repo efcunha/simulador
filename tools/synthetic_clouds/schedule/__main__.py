@@ -218,7 +218,21 @@ def _cmd_tick(args: argparse.Namespace) -> int:
         print(f"atencao: {result.truncated} dia(s) anterior(es) ao limite de backfill ficaram de fora")
     for error in result.errors:
         print(f"erro: {error}", file=sys.stderr)
-    return 0 if result.ok else 1
+
+    delivery_failed = False
+    if args.deliver and result.generated:
+        from tools.synthetic_clouds.deliver import deliver_day
+
+        for day in result.generated:
+            delivery = deliver_day(day, daily_root=DEFAULT_OUT)
+            print(
+                f"entrega {day.isoformat()}: aws={delivery.aws_objects} objetos, "
+                f"gcp={delivery.gcp_rows} linhas, azure={delivery.azure_days} dias"
+            )
+            for error in delivery.errors:
+                print(f"erro de entrega: {error}", file=sys.stderr)
+                delivery_failed = True
+    return 0 if result.ok and not delivery_failed else 1
 
 
 def _cmd_status(args: argparse.Namespace) -> int:
@@ -398,6 +412,11 @@ def build_parser() -> argparse.ArgumentParser:
     _add_state_paths(tick_parser)
     tick_parser.add_argument("--force", action="store_true", help="regera o dia alvo mesmo que ja conste no ledger")
     tick_parser.add_argument("--date", help="gera exatamente este dia (YYYY-MM-DD)")
+    tick_parser.add_argument(
+        "--deliver",
+        action="store_true",
+        help="apos gerar, entrega cada dia aos emuladores (S3/BigQuery/azure-sim)",
+    )
     tick_parser.set_defaults(handler=_cmd_tick)
 
     status = subparsers.add_parser("status", help="configuracao, ledger e tarefa do Windows")
