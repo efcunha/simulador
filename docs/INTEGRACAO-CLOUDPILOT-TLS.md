@@ -80,3 +80,15 @@ recriados. As folhas podem ser regeradas sem tocar na CA.
 O azure-sim leva ~1–2 min para construir o estate (`PROFILE=medium`,
 `WINDOW_DAYS=297`) antes de abrir 8080/443; a entrega diária estende a janela
 com `POST /admin/estate/refresh?days=N`.
+
+## Automação do que não sobrevive a restart
+
+`deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1` reaplica, de forma
+idempotente, containers/aliases DNS, CA confiável, janela do estate e (com
+`-Smoke`) “Verificar Conexão” + `/costs/unified`. Ele só reconecta uma rede
+quando falta um alias e só reconstrói o estate quando a janela está vencida.
+
+A tarefa `CloudPilot-Simulator-Ensure` (logon + a cada 30 min) é registrada por
+`register-ensure-task.ps1` com XML **por usuário** (`LogonTrigger` com
+`UserId`), que é o que dispensa elevação. Ver
+`deploy/synthetic-clouds/integration/README.md`.
