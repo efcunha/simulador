@@ -1,0 +1,42 @@
+# TLS front for the GCP hostnames (see tls-front/nginx.conf).
+#
+# CloudPilot's real SDK path resolves bigquery.googleapis.com and
+# oauth2.googleapis.com here; the front terminates TLS with the local-CA leaf
+# and forwards to the emulators already on the CloudPilot network. Deployment
+# configuration of the SIMULATOR side: the CloudPilot ingestion code keeps
+# calling the production client and the production hostnames.
+#
+# Run from this directory:
+#   podman compose -f compose.tls-front.yaml up -d
+#
+# The network is the CloudPilot bridge (created by the CloudPilot stack), so the
+# aliases below are what the CloudPilot containers resolve.
+
+name: synthetic-clouds-tls-front
+
+services:
+  tls-front:
+    image: nginx:1.27-alpine
+    container_name: synthetic-clouds-tls-front
+    restart: unless-stopped
+    volumes:
+      - ../../emulators/azure-sim/tls:/certs:ro
+      - ./tls-front/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      cloudpilot_net:
+        aliases:
+          - bigquery.googleapis.com
+          - oauth2.googleapis.com
+          - cloudresourcemanager.googleapis.com
+          - sts.amazonaws.com
+          - sts.us-east-1.amazonaws.com
+
+networks:
+  cloudpilot_net:
+    external: true
+    name: cloudpilot-deploy_cloudpilot_net

@@ -48,6 +48,12 @@ def _build_parser() -> argparse.ArgumentParser:
     serve = subparsers.add_parser("serve", help="Run the control-plane HTTP API.")
     serve.add_argument("--host", default="0.0.0.0")  # noqa: S104 - sim binds all in-container
     serve.add_argument("--port", type=int, default=8080)
+    # Optional TLS listener. CloudPilot reaches the simulator as the REAL cloud
+    # hostnames (management.azure.com / login.microsoftonline.com) over 443; the
+    # plain listener stays for the simulator's own tooling and health probe.
+    serve.add_argument("--tls-port", type=int, default=None)
+    serve.add_argument("--tls-cert", default=None)
+    serve.add_argument("--tls-key", default=None)
 
     export = subparsers.add_parser("export", help="Run one Cost Management export into Azurite.")
     for flag in _EXPORT_FLAGS:
@@ -67,11 +73,34 @@ def _overrides(args: argparse.Namespace) -> dict[str, str | None]:
 def _run_serve(args: argparse.Namespace) -> int:
     """Validate settings, then run uvicorn against the app factory (fail-closed)."""
     settings = load_settings()  # validates env; ConfigError => caller maps to exit 1
+    import threading
+
     import uvicorn
 
     from azure_sim.api.app import create_app
 
-    uvicorn.run(create_app(settings), host=args.host, port=args.port)
+    app = create_app(settings)
+
+    if args.tls_port:
+        if not args.tls_cert or not args.tls_key:
+            raise ConfigError("--tls-port requires --tls-cert and --tls-key")
+        # The TLS listener runs beside the plain one, in its own thread/loop.
+        # uvicorn only installs signal handlers on the main thread, so the
+        # process stays owned by the plain server below.
+        threading.Thread(
+            target=uvicorn.run,
+            kwargs={
+                "app": app,
+                "host": args.host,
+                "port": args.tls_port,
+                "ssl_certfile": args.tls_cert,
+                "ssl_keyfile": args.tls_key,
+            },
+            name="azure-sim-tls",
+            daemon=True,
+        ).start()
+
+    uvicorn.run(app, host=args.host, port=args.port)
     return 0
 
 

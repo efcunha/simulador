@@ -7,8 +7,8 @@ to the emulator REST endpoint via ``httpx``, polls completion, asserts the
 failing statement + emulator error) on failure.
 
 HARD CONSTRAINTS (design sec. 2, sec. 6):
-  * NO ``--data-from-yaml`` -- tables are created via ``CREATE TABLE ...
-    ARRAY<STRUCT<...>>`` + ``INSERT`` only (the spike's proven path).
+  * Tables are created via ``CREATE TABLE ... ARRAY<STRUCT<...>>`` + ``INSERT``
+    only; there is no loader-specific YAML path.
   * NO Windows drive bind-mount -- scripts arrive via a named volume or podman cp.
 
 M1 note: GCP INSERT rows only ever carry Usage/Purchase/Adjustment cost_types plus
@@ -129,8 +129,9 @@ def insert_rows(
     statement and, cumulatively, after roughly 54k rows in a single table -- measured on
     the v0.3.1 image with a 282-day estate. The streaming API never parses SQL: 4 x 500
     rows carrying nested STRUCT and ARRAY fields returned 200 and ``COUNT(*)`` matched
-    exactly. A 200 carrying ``insertErrors`` still means rows were rejected, so that is
-    treated as a failure rather than counted as progress.
+    exactly. A 200 carrying a NON-EMPTY ``insertErrors`` list means rows were
+    rejected; an empty list (bqemulator always includes the key) is a successful
+    batch, so only a non-empty list is treated as failure.
     """
     url = _insert_all_url(endpoint, project, table_fqtn)
     sent = 0
@@ -145,9 +146,15 @@ def insert_rows(
             raise ProvisionError(
                 f"insertAll {table_fqtn} failed [{resp.status_code}] at row {start}: {resp.text[:300]}"
             )
-        if "insertErrors" in resp.text:
+        # The API makes ``insertErrors`` optional, and an empty list is a
+        # successful response (bqemulator always includes the key with []).
+        # Testing for the key's presence rejected a successful batch; the
+        # contract is "non-empty list means rows were rejected".
+        insert_errors = resp.json().get("insertErrors") or []
+        if insert_errors:
             raise ProvisionError(
-                f"insertAll {table_fqtn} reported insertErrors at row {start}: {resp.text[:300]}"
+                f"insertAll {table_fqtn} rejected rows at {start}: "
+                f"{json.dumps(insert_errors)[:300]}"
             )
         sent += len(chunk)
     return sent

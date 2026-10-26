@@ -8,9 +8,19 @@ covers all rows exactly once, and a validation failure returns the Azure envelop
 
 from __future__ import annotations
 
+import base64
+import json
+
 from azure_sim.api.paging import BadContinuationTokenError, decode_token, encode_token, paginate
 
 _QUERY_API_VERSION = "2024-08-01"
+
+
+def _jwt_claims(token: str) -> dict[str, object]:
+    """Decode the payload of the JWT-shaped bearer (no signature check needed)."""
+    payload = token.split(".")[1]
+    padded = payload + "=" * (-len(payload) % 4)
+    return json.loads(base64.urlsafe_b64decode(padded))
 
 
 def test_healthz_ok(api_client) -> None:
@@ -26,7 +36,12 @@ def test_token_returns_bearer(api_client) -> None:
     assert resp.status_code == 200
     body = resp.json()
     assert body["token_type"] == "Bearer"
-    assert body["access_token"].startswith("synth:")
+    # A real JWT-shaped bearer: three segments, and the payload carries the
+    # synthetic provenance marker that replaced the old opaque ``synth:`` prefix.
+    claims = _jwt_claims(body["access_token"])
+    assert len(body["access_token"].split(".")) == 3
+    assert claims["x_synthetic"] is True
+    assert str(claims["jti"]).startswith("synth:")
     assert body["synthetic"] is True
 
 

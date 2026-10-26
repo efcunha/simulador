@@ -57,7 +57,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
 
 USER azuresim
 
-EXPOSE 8080
+EXPOSE 8080 443
 
 # Liveness probe hits GET /healthz on the API (design §6.1). Uses stdlib urllib
 # so no extra tool (curl/wget) is required in the slim image.

@@ -214,6 +214,36 @@ do CLI recusa caminho fora dela, e `save_config` também.
 export — os artefatos continuam byte-determinísticos (há teste que prova: regerar o mesmo
 dia com `--force` reproduz os mesmos hashes).
 
+## Entrega aos emuladores (`--deliver`)
+
+O `tick` da tarefa roda com `--deliver`: depois de gerar o dia, ele entrega o dia aos
+emuladores que o CloudPilot lê pelos **conectores de produção** (S3/CUR, BigQuery
+billing export e Cost Management). Sem essa etapa o dia existe só em disco.
+
+| Alvo | O que faz | Endpoint padrão |
+|---|---|---|
+| `aws` | sobe o FOCUS 1.2 para o S3 em `focus12-full/<export_name>/data/billing_period=YYYY-MM/<execution>/...` | `http://localhost:9090` |
+| `gcp` | apaga as linhas do dia e insere as do render (`insertAll`) nas tabelas de billing | `http://localhost:9050` |
+| `azure` | estende a janela do estate do `azure-sim` até o dia (`POST /admin/estate/refresh`) | `http://localhost:8080` |
+
+```powershell
+# entregar um dia já gerado (sem gerar de novo)
+& $py -m tools.synthetic_clouds.deliver --day 2026-10-23
+
+# um alvo só
+& $py -m tools.synthetic_clouds.deliver --day 2026-10-23 --targets aws,gcp
+```
+
+A entrega é **idempotente por dia**: o GCP apaga o dia antes de inserir, então um
+`tick --force` não duplica linhas. Endpoints, bucket e nome do export podem ser
+trocados por variáveis `DELIVERY_AWS_ENDPOINT`, `DELIVERY_AWS_BUCKET`,
+`DELIVERY_AWS_PREFIX`, `DELIVERY_AWS_EXPORT_NAME`, `DELIVERY_GCP_ENDPOINT`,
+`DELIVERY_GCP_PROJECT`, `DELIVERY_GCP_DATASET`, `DELIVERY_AZURE_ENDPOINT`.
+
+Falha de entrega **não desfaz** o dia no ledger (o dado foi gerado e registrado), mas
+o `tick` sai com código 1 e o erro vai para o `task.log` — a tarefa aparece como
+falha em vez de silenciar uma entrega que não aconteceu.
+
 ## O que a tarefa do Windows faz
 
 | Item | Valor |

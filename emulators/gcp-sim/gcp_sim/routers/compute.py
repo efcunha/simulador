@@ -48,6 +48,12 @@ from typing import Any
 
 from fastapi import APIRouter, Query, Request
 from tools.synthetic_clouds.model.estate import CanonicalEstate
+from tools.synthetic_clouds.model.network import (
+    GCP_FIREWALL_KIND,
+    GCP_FIREWALL_LIST_KIND,
+    GcpFirewallEntry,
+    GcpFirewallRule,
+)
 from tools.synthetic_clouds.model.resource import Resource
 
 from gcp_sim import scope
@@ -129,4 +135,86 @@ async def list_instances(
     return {
         "items": [row for row in _instances(estate(request), project) if row["zone"] == zone],
         "nextPageToken": "",
+    }
+
+
+# ── firewalls ────────────────────────────────────────────────────────────────
+#
+# ``GET /compute/v1/projects/{project}/global/firewalls`` (``firewalls.list``) --
+# the posture the estate already models (``GcpFirewallRule``), projected per
+# project. The CloudPilot security check reads this list to report a rule that
+# exposes a critical port to anywhere.
+#
+# The rows below are the shape ``tools/synthetic_clouds/render/compute_firewalls.py``
+# publishes for the same surface, member for member -- the renderer and this route
+# describe ONE published contract, so they cannot disagree about a rule. The
+# members the model carries no value for (``id``, ``selfLink``,
+# ``creationTimestamp``, the four targeting containers) are published empty,
+# which is the renderer's own rule: a documented member that never reaches the
+# artifact is as unfaithful as one that carries a value nothing in the model
+# supports.
+
+
+def _firewall_entry(entry: GcpFirewallEntry) -> dict[str, Any]:
+    """One ``allowed[]``/``denied[]`` tuple, in the published form.
+
+    ``ports`` keeps the PUBLISHED form: a list of strings, each one an integer
+    or a range (``["22"]``, ``["12345-12349"]``), and EMPTY when the rule applies
+    to any port.
+    """
+    return {"IPProtocol": entry.ip_protocol, "ports": list(entry.ports)}
+
+
+def _firewall(rule: GcpFirewallRule) -> dict[str, Any]:
+    """The documented ``Firewall`` of one estate rule."""
+    return {
+        "allowed": [_firewall_entry(entry) for entry in rule.allowed],
+        "creationTimestamp": None,
+        "denied": [_firewall_entry(entry) for entry in rule.denied],
+        "description": rule.description,
+        "destinationRanges": list(rule.destination_ranges),
+        "direction": rule.direction,
+        "disabled": rule.disabled,
+        "id": None,
+        "kind": GCP_FIREWALL_KIND,
+        "logConfig": {"enable": rule.log_enabled, "metadata": rule.log_metadata},
+        "name": rule.rule_name,
+        "network": rule.network_url,
+        "params": {},
+        "priority": rule.priority,
+        "selfLink": None,
+        "sourceRanges": list(rule.source_ranges),
+        "sourceServiceAccounts": list(rule.source_service_accounts),
+        "sourceTags": list(rule.source_tags),
+        "targetServiceAccounts": list(rule.target_service_accounts),
+        "targetTags": list(rule.target_tags),
+    }
+
+
+def _firewalls(estate_: CanonicalEstate, project_id: str) -> tuple[dict[str, Any], ...]:
+    """This project's firewall rules, ordered by name.
+
+    The order is the provider's: the list page says the results come back in
+    alphabetical order by default.
+    """
+    rules = [rule for rule in estate_.gcp_firewall_rules if rule.scope_id == project_id]
+    return tuple(_firewall(rule) for rule in sorted(rules, key=lambda rule: rule.rule_name))
+
+
+@router.get("/compute/v1/projects/{project}/global/firewalls")
+async def list_firewalls(
+    project: str,
+    request: Request,
+    maxResults: int | None = Query(default=None),  # noqa: N803 - GCP query param casing
+) -> dict[str, Any]:
+    """Compute Engine ``firewalls.list`` for one project."""
+    require_bearer(request)
+    clamp_page_size(maxResults)
+    return {
+        "id": None,
+        "items": list(_firewalls(estate(request), project)),
+        "kind": GCP_FIREWALL_LIST_KIND,
+        "nextPageToken": None,
+        "selfLink": None,
+        "warning": {},
     }
