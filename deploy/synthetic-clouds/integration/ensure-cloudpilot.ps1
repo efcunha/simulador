@@ -65,6 +65,8 @@ $FrontAliases = @(
     'bigquery.googleapis.com',
     'oauth2.googleapis.com',
     'cloudresourcemanager.googleapis.com',
+    'compute.googleapis.com',
+    'securitycenter.googleapis.com',
     'sts.amazonaws.com',
     'sts.us-east-1.amazonaws.com'
 )
@@ -180,6 +182,75 @@ function Ensure-NetworkAliases {
 function Get-CertBody {
     param([string]$Pem)
     return ((($Pem -replace '-----BEGIN CERTIFICATE-----', '') -replace '-----END CERTIFICATE-----', '') -replace '\s', '')
+}
+
+function Ensure-FrontCertificate {
+    <#
+      .SYNOPSIS
+        Guarantees that the leaf the TLS front serves covers every hostname the front routes.
+
+      .DESCRIPTION
+        The client verifies the name it dialled, so a hostname the front routes but the
+        leaf does not name fails the handshake -- the routing table and the certificate
+        are one contract. The SAN list is therefore the generator's
+        (gen_cloud_front_tls.DEFAULT_DNS_NAMES) PLUS the aliases this script routes, so
+        a hostname added to the routing table cannot leave the certificate behind.
+
+        The leaf is a local artifact (git-ignored) and the new one is signed by the SAME
+        CA, so the CloudPilot trust bundle does not have to be rebuilt. Like the CA
+        bundle, the running front keeps the OLD leaf until it is recreated, so this
+        warns when it re-signs.
+    #>
+    $leaf = Join-Path $RepoRoot 'emulators\azure-sim\tls\server-clouds.crt'
+    $generator = Join-Path $RepoRoot 'emulators\azure-sim\scripts\gen_cloud_front_tls.py'
+    $python = Join-Path $RepoRoot '.venv\Scripts\python.exe'
+    if (-not (Test-Path $python)) {
+        Add-Problem "simulator venv python not found at $python (needed to re-sign the front leaf)"
+        return $false
+    }
+    if (-not (Test-Path $generator)) {
+        Add-Problem "leaf generator missing at $generator"
+        return $false
+    }
+    $py = @'
+import json
+import sys
+from pathlib import Path
+
+generator_path = Path(sys.argv[1])
+leaf_path = Path(sys.argv[2])
+extra = tuple(sys.argv[3:])
+
+sys.path.insert(0, str(generator_path.parent))
+import gen_cloud_front_tls as generator
+from cryptography import x509
+
+required = tuple(dict.fromkeys(tuple(generator.DEFAULT_DNS_NAMES) + extra))
+present = []
+if leaf_path.is_file():
+    cert = x509.load_pem_x509_certificate(leaf_path.read_bytes())
+    san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+    present = list(san.get_values_for_type(x509.DNSName))
+missing = [name for name in required if name not in present]
+regenerated = False
+if missing:
+    generator.generate(leaf_path.parent, days=3650, dns_names=required)
+    regenerated = True
+print(json.dumps({"missing": missing, "regenerated": regenerated, "names": len(required)}))
+'@
+    $raw = ($py | & $python - $generator $leaf @($FrontAliases) 2>&1)
+    $line = $raw | Where-Object { "$_".StartsWith('{') } | Select-Object -Last 1
+    if (-not $line) {
+        Add-Problem "could not verify the front leaf: $($raw | Select-Object -Last 3)"
+        return $false
+    }
+    $result = $line | ConvertFrom-Json
+    if ($result.regenerated) {
+        Write-Log 'WARN' ("front leaf re-signed (missing SANs: {0}); the tls-front must be recreated to pick it up" -f ($result.missing -join ', '))
+        return $true
+    }
+    Write-Log 'INFO' ("front leaf covers the {0} names the front may serve" -f $result.names)
+    return $true
 }
 
 function Repair-CaBundle {
@@ -398,6 +469,9 @@ Ensure-NetworkAliases -Container $BqEmu -Network $CpNet -Aliases @('bigquery-emu
 # 3. CA trust
 Repair-CaBundle | Out-Null
 Test-CloudPilotTrust | Out-Null
+
+# 3b. the front leaf covers the hostnames the front routes
+Ensure-FrontCertificate | Out-Null
 
 # 4. estate window
 if (-not $SkipEstate) { Ensure-Estate -Force:$ForceRefresh }
