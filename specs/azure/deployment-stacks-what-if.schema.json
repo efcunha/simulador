@@ -1,0 +1,68 @@
+{
+  "surface": "azure/deployment-stacks-what-if",
+  "provider": "azure",
+  "reference": {
+    "title": "Deployment Stacks What If Results At Resource Group — DeploymentStacksWhatIfResult (REST, api-version 2025-07-01)",
+    "url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01",
+    "consulted_at": "2026-10-27",
+    "secondary_urls": [
+      "https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deployment-stacks-what-if",
+      "https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deployment-stacks"
+    ]
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Resources/deploymentStacksWhatIfResults/{deploymentStacksWhatIfResultName}?api-version=2025-07-01",
+    "format": "json",
+    "compression": "none",
+    "note": "This is a control-plane REST representation, not a push export. Deployment Stacks what-if is a PLAN: changeType modify/delete/detach are predicted changes, not a persisted native drift record. Consumers must label the source as what-if."
+  },
+  "notes": [
+    "The result is addressed as Microsoft.Resources/deploymentStacksWhatIfResults and carries properties.changes.resourceChanges[].",
+    "DeploymentStacksWhatIfResourceChange publishes id, type, changeType, changeCertainty, managementStatusChange, resourceConfigurationChanges and unsupportedReason; this schema transcribes the subset the simulator models and leaves the rest out rather than inventing a shape.",
+    "DeploymentStacksWhatIfPropertyChange publishes path, before, after, changeType and children[].",
+    "changeType values: create, delete, detach, modify, noChange, unsupported. managementStatus values: managed, unmanaged, unknown. changeCertainty values: definite, potential.",
+    "The before/after direction follows the what-if contract: before is the current configuration, after is the desired configuration."
+  ],
+  "columns": [
+    { "name": "id", "type": "string (arm-id)", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfResult", "status": "verified" },
+    { "name": "type", "type": "string", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfResult", "status": "verified" },
+    { "name": "name", "type": "string", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfResult", "status": "verified" },
+    { "name": "location", "type": "string", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfResult", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].id", "type": "string", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfResourceChange", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].type", "type": "string", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfResourceChange", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].changeType", "type": "enum", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfChangeType", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].changeCertainty", "type": "enum", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfChangeCertainty", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].managementStatusChange.before", "type": "enum", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksManagementStatus", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].managementStatusChange.after", "type": "enum", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksManagementStatus", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].resourceConfigurationChanges.before", "type": "object", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#ResourceConfigurationChanges", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].resourceConfigurationChanges.after", "type": "object", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#ResourceConfigurationChanges", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].resourceConfigurationChanges.delta[].path", "type": "string", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfPropertyChange", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].resourceConfigurationChanges.delta[].before", "type": "any", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfPropertyChange", "status": "verified", "evidence": "declared", "type_source": "documented", "type_note": "The property change table publishes 'before' without a fixed scalar type; the value is whatever the ARM property holds." },
+    { "name": "properties.changes.resourceChanges[].resourceConfigurationChanges.delta[].after", "type": "any", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfPropertyChange", "status": "verified", "evidence": "declared", "type_source": "documented", "type_note": "The property change table publishes 'after' without a fixed scalar type; the value is whatever the ARM property holds." },
+    { "name": "properties.changes.resourceChanges[].resourceConfigurationChanges.delta[].changeType", "type": "enum", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfPropertyChangeType", "status": "verified" },
+    { "name": "properties.changes.resourceChanges[].resourceConfigurationChanges.delta[].children[]", "type": "array", "required": false, "unit": null, "source_url": "https://learn.microsoft.com/en-us/rest/api/resources/deployment-stacks-what-if-results-at-resource-group/create-or-update?view=rest-resources-2025-07-01#DeploymentStacksWhatIfPropertyChange", "status": "verified" }
+  ],
+  "unverified": [
+    {
+      "item": "properties.changes.deploymentScopeChange and denySettingsChange",
+      "reason": "DeploymentStacksWhatIfChange publishes both members, but the simulator's estate models neither a stack scope change nor deny settings. They are not emitted rather than filled with a placeholder.",
+      "status": "unverified"
+    },
+    {
+      "item": "the full DeploymentStacksWhatIfResult property set (parameters, template, templateLink, validationLevel, diagnostics, retentionInterval, provisioningState, ...)",
+      "reason": "The REST reference publishes them as part of the result, but the simulator only models the resource changes this phase needs. Omitting them is intentional; inventing their values would be worse than an honest subset.",
+      "status": "unverified"
+    },
+    {
+      "item": "resourceConfigurationChanges.delta element type",
+      "reason": "The page publishes the delta member and describes DeploymentStacksWhatIfPropertyChange, but does not print an explicit type link for delta. The fields transcribed here are the ones the property-change definition publishes; the container type is not asserted.",
+      "status": "unverified"
+    },
+    {
+      "item": "the concrete spelling of delta[].path for a tag key",
+      "reason": "The property-change definition publishes path as a string and the examples shown are for resource properties, not for a tag key. The simulator emits tags.<key> as a scenario path; the documentation consulted does not print an example for a tag map key, so tags.<key> is not asserted as the published spelling.",
+      "status": "unverified"
+    }
+  ]
+}

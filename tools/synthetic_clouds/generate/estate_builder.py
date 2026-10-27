@@ -2106,15 +2106,51 @@ class EstateBuilder:
     def _build_iac(self, scoped: list[_ScopedResource], inventory: list[InventoryAsset]) -> list[IacStateSnapshot]:
         managed_uuids = {a.resource_uuid for a in inventory if a.managed_by_iac}
         captured = datetime.combine(self.clock.sim_now, _MIDDAY, tzinfo=UTC)
+        # Garante pelo menos um drift por (provider, escopo): sem isso um projeto
+        # inteiro podia ficar sem diff e a emulação daquela conta responderia lista
+        # vazia, que é indistinguível de "não há drift". A âncora é o menor uuid
+        # com tags, então a escolha é determinística.
+        first_by_scope: dict[tuple[str, str, str], str] = {}
+        for sr in scoped:
+            if sr.resource.identity.uuid not in managed_uuids:
+                continue
+            provider = sr.resource.identity.provider
+            if provider not in (const.PROVIDER_KEY_GCP, const.PROVIDER_KEY_AZURE):
+                continue
+            if not sr.resource.tags:
+                continue
+            key = (provider, sr.resource.parent_scope_id, sr.resource.resource_type)
+            atual = first_by_scope.get(key)
+            if atual is None or sr.resource.identity.uuid < atual:
+                first_by_scope[key] = sr.resource.identity.uuid
         by_scope: dict[str, list[IacResourceState]] = {}
         for sr in scoped:
-            if sr.resource.identity.uuid in managed_uuids:
-                by_scope.setdefault(sr.resource.parent_scope_id, []).append(
-                    IacResourceState(
-                        resource_uuid=sr.resource.identity.uuid,
-                        declared_config={"type": sr.resource.resource_type, "region": sr.resource.region_id},
-                    )
+            if sr.resource.identity.uuid not in managed_uuids:
+                continue
+            declared: dict[str, Any] = {
+                "type": sr.resource.resource_type,
+                "region": sr.resource.region_id,
+            }
+            # C11: o snapshot carrega as TAGS declaradas. Para um subconjunto
+            # determinístico, uma chave é omitida -- é o input de drift (o
+            # consumidor compara com as tags que o inventário publica), não um
+            # veredito. A chave omitida é sempre a primeira em ordem, então o
+            # mesmo seed produz o mesmo diff.
+            if sr.resource.identity.provider in (const.PROVIDER_KEY_GCP, const.PROVIDER_KEY_AZURE):
+                tags = dict(sorted(sr.resource.tags))
+                digest = int(hashlib.sha256(sr.resource.identity.uuid.encode()).hexdigest(), 16)
+                anchor = first_by_scope.get(
+                    (sr.resource.identity.provider, sr.resource.parent_scope_id, sr.resource.resource_type)
                 )
+                if tags and (digest % 5 == 0 or sr.resource.identity.uuid == anchor):
+                    tags.pop(next(iter(tags)))
+                declared["tags"] = tags
+            by_scope.setdefault(sr.resource.parent_scope_id, []).append(
+                IacResourceState(
+                    resource_uuid=sr.resource.identity.uuid,
+                    declared_config=declared,
+                )
+            )
         return [
             IacStateSnapshot(
                 snapshot_id=self.identity.uuid_for(f"iac/{scope_id}/snapshot"),

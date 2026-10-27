@@ -16,7 +16,7 @@ O repositorio tem duas partes:
 | **Gerador** | `tools/synthetic_clouds/` | Deriva os artefatos a partir das specs citadas; tem os gates de fidelidade. |
 | **Emuladores** | `emulators/`, `deploy/`, `scripts/` | Servem os mesmos dados pelas APIs de cada nuvem (Query/S3 REST, ARM, GCP REST/gRPC). |
 
-> Os numeros de "Estado atual" foram medidos em **2026-10-19**. A coluna "Como
+> Os numeros de "Estado atual" foram medidos em **2026-10-27**. A coluna "Como
 > medir" diz exatamente qual comando reproduz cada um — se um numero divergir do
 > codigo, o comando ganha do numero.
 
@@ -24,13 +24,13 @@ O repositorio tem duas partes:
 
 | Metrica | Valor | Como medir |
 |---|---|---|
-| Superficies de export especificadas | **46** — AWS 15 · GCP 21 · Azure 10 | `specs/**/*.schema.json` |
-| Superficies **PRONTO** | **45** | `fidelity --ready` → `PRONTO: 45`, exit 0 |
+| Superficies de export especificadas | **48** — AWS 15 · GCP 22 · Azure 11 | `specs/**/*.schema.json` |
+| Superficies **PRONTO** | **47** | `fidelity --ready` → `PRONTO: 47`, exit 0 |
 | Bloqueada pela documentacao | **1** — `azure/cost-management-export-cost-details` | `fidelity --matrix` → `bloqueado=1` |
 | Falta gerar | **0** | `fidelity --matrix` → `falta=0` |
 | Coluna inventada (qualquer provedor) | **0** | `fidelity --audit aws` → `com coluna inventada=0` |
-| Testes | **1095 passam, 20 skip** (1115 coletados) | `pytest tools\synthetic_clouds\tests --collect-only -q` |
-| Specs em prosa | **28** | `specs/<provedor>/*.md` |
+| Testes | **1106 passam, 20 skip** (1126 coletados) | `pytest tools\synthetic_clouds\tests --collect-only -q` |
+| Specs em prosa | **29** | `specs/<provedor>/*.md` |
 | Emuladores | **3** — AWS · Azure · GCP | `emulators/` |
 | Arquivos versionados | **445** | `git ls-files` |
 

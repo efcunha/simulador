@@ -1,0 +1,29 @@
+# Build context = worktree root. The emulator images only need tools/, specs/ and
+# emulators/; everything else is either generated, virtualenv, VCS metadata or a
+# test artifact. Without this file the context included .venv/ and out/ (hundreds
+# of MB) and a single `compose up --build` spent tens of minutes transferring it.
+.git
+.venv
+out
+pytest-of-*
+evidence-tmp
+.mypy_cache
+.ruff_cache
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+.artifacts
+.benchmarks
+.worktrees
+.kiro
+.agents
+.venv
+uvcache
+d3bis
+deploy
+docs
+tests
+scripts
+services
+*.xml

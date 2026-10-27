@@ -66,6 +66,7 @@ $FrontAliases = @(
     'oauth2.googleapis.com',
     'cloudresourcemanager.googleapis.com',
     'compute.googleapis.com',
+    'config.googleapis.com',
     'securitycenter.googleapis.com',
     'sts.amazonaws.com',
     'sts.us-east-1.amazonaws.com'

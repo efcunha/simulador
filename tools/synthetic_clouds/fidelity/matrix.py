@@ -333,6 +333,14 @@ SURFACES: tuple[SurfaceCoverage, ...] = (
         "campo de itens ausentes. Incremento 4.",
     ),
     SurfaceCoverage(
+        "gcp/infrastructure-manager-resource-drift",
+        STATUS_IMPLEMENTED,
+        "drift_views",
+        "ResourceDrift/PropertyDrift do Infrastructure Manager. O gerador emite o INPUT (tags "
+        "declaradas no snapshot vs. inventario), e a projecao traduz para o contrato oficial. "
+        "Tambem e servido em config.googleapis.com pelo gcp-sim.",
+    ),
+    SurfaceCoverage(
         "aws/iam-get-credential-report",
         STATUS_IMPLEMENTED,
         "iam_get_credential_report",
@@ -418,6 +426,14 @@ SURFACES: tuple[SurfaceCoverage, ...] = (
         "por assinatura. Existe porque o consumidor varre assessments.list e filtra por "
         "status.code, e nao havia superficie nenhuma com essa forma. O estado entrega os TRES "
         "literais: so 'Healthy' e descartado, e 'NotApplicable' vira achado do mesmo jeito.",
+    ),
+    SurfaceCoverage(
+        "azure/deployment-stacks-what-if",
+        STATUS_IMPLEMENTED,
+        "drift_views",
+        "DeploymentStacksWhatIfResult com resourceChanges modify/detach e delta por propriedade. "
+        "O what-if e um PLANO (before=atual, after=desejado), nao um drift nativo persistido; "
+        "tambem e servido em management.azure.com pelo azure-sim.",
     ),
 )
 

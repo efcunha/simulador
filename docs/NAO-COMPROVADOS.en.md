@@ -6,12 +6,12 @@ Registry **derived from the specifications** — the normative source of this re
 
 **Nothing here is new.** Every line is an `unverified` that was already written in the spec, with the reason the author recorded. What this document adds is the **consolidation** and the **count** — and that is why it is generated rather than hand-written: a second list would keep two truths about the same subject.
 
-**A reading correction worth recording:** `spec.unverified` exposes only the **names**. The reasons live in `unverified_fields` (a name that does not belong to the contract) and `unverified_topics` (a topic that exists in the contract and whose proof is missing), and both have to be read: together they give 258 items in **46** surfaces. A registry that read only the list of names would give a third of the problem and no reason at all — which is half the value for whoever closes the gap. The numbers are computed, not written: a fixed total ages in silence as soon as a gap is closed by evidence.
+**A reading correction worth recording:** `spec.unverified` exposes only the **names**. The reasons live in `unverified_fields` (a name that does not belong to the contract) and `unverified_topics` (a topic that exists in the contract and whose proof is missing), and both have to be read: together they give 266 items in **48** surfaces. A registry that read only the list of names would give a third of the problem and no reason at all — which is half the value for whoever closes the gap. The numbers are computed, not written: a fixed total ages in silence as soon as a gap is closed by evidence.
 
 ## Numbers (at the revision in which it was generated)
 
-* **258 unproven items** in **46 of 46 surfaces** (that is: **no** surface is without a declared gap).
-* By provider: **aws** 88, **azure** 79, **gcp** 91.
+* **266 unproven items** in **48 of 48 surfaces** (that is: **no** surface is without a declared gap).
+* By provider: **aws** 88, **azure** 83, **gcp** 95.
 * By type: **field** = the name does not belong to the contract; **topic** = the name exists and the proof that the value is canonical is missing.
 
 **How to read each item.** A spec declares two kinds of unproven item, and the difference matters:
@@ -713,3 +713,29 @@ Spec: [`specs/azure/security-assessments-list.schema.json`]](../specs/azure/secu
 | topic | `variantes OnPremise de 'properties.resourceDetails'` | The page publishes three variants (AzureResourceDetails, OnPremiseResourceDetails, OnPremiseSqlResourceDetails) and the state produces only the Azure one: the two OnPremise ones describe machines under a Log Analytics agent, which this repository does not model. The choice of variant is a FACT of the assessed resource, and the assessed resource here is a VNet on Azure. |
 | topic | `pagina de 'nextLink'` | The response is a page of a collection and the page does not publish the page size nor an example cursor. The envelope is delivered as a single page (all the assessments of the scope fit in it), with the member present and empty. |
 | topic | `escopo por grupo de gerenciamento` | The page publishes that 'scope' can be a subscription OR a management group. The FinOps consumer queries the subscription, and the canonical state does not model an Azure management group; an envelope per group would be a cut the model does not have. |
+
+## `azure/deployment-stacks-what-if` — 4 item(ns)
+
+
+Spec: [`specs/azure/deployment-stacks-what-if.schema.json`]](../specs/azure/deployment-stacks-what-if.schema.json)
+
+
+| kind | item | declared reason |
+|---|---|---|
+| topic | `properties.changes.deploymentScopeChange and denySettingsChange` | DeploymentStacksWhatIfChange publishes both members, but the simulator's estate models neither a stack scope change nor deny settings. They are not emitted rather than filled with a placeholder. |
+| topic | `the full DeploymentStacksWhatIfResult property set (parameters, template, templateLink, validationLevel, diagnostics, retentionInterval, provisioningState, ...)` | The REST reference publishes them as part of the result, but the simulator only models the resource changes this phase needs. Omitting them is intentional; inventing their values would be worse than an honest subset. |
+| topic | `resourceConfigurationChanges.delta element type` | The page publishes the delta member and describes DeploymentStacksWhatIfPropertyChange, but does not print an explicit type link for delta. The fields transcribed here are the ones the property-change definition publishes; the container type is not asserted. |
+| topic | `the concrete spelling of delta[].path for a tag key` | The property-change definition publishes path as a string and the examples shown are for resource properties, not for a tag key. The simulator emits tags.<key> as a scenario path; the documentation consulted does not print an example for a tag map key, so tags.<key> is not asserted as the published spelling. |
+
+## `gcp/infrastructure-manager-resource-drift` — 4 item(ns)
+
+
+Spec: [`specs/gcp/infrastructure-manager-resource-drift.schema.json`]](../specs/gcp/infrastructure-manager-resource-drift.schema.json)
+
+
+| kind | item | declared reason |
+|---|---|---|
+| field | `concrete shape of before/after for a given Terraform type` | The REST reference publishes before/after as a Value (arbitrary JSON). It does not publish a per-resource-type schema, so the simulator may emit only values derived from the estate's own model and must not infer a nested shape from a provider example. |
+| field | `semantics of before/after relative to desired state` | The page describes the values as 'before/after the actions' without stating which side is the desired state for a drift preview. The direction must be measured on a real preview before a consumer maps it to expected/actual. |
+| topic | `the resourceDrifts[]/nextPageToken/unreachable[] envelope` | The envelope belongs to the list method, not to the ResourceDrift item; it is documented at the list method page and is intentionally outside this item schema. |
+| topic | `the grammar of propertyDrifts[].path for a map key` | The REST reference publishes `path` as the path of the property drift, but does not publish the path grammar for maps. The simulator emits `labels.<key>` as a scenario path derived from the estate; that spelling is not asserted by the GCP documentation and must not be read as a published contract. |
