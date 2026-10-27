@@ -66,6 +66,14 @@ Resposta do `list`:
 | `location` | string | zona ou região onde o cluster reside |
 | `masterAuth.clusterCaCertificate` | string | certificado público, em base64, que é a raiz de confiança do cluster |
 
+**A spec de máquina não autoriza nenhuma coluna gerável.** A Kubernetes Engine API não
+publica export durável: o que responde é a **resposta da rota**, e não um arquivo. Sem
+renderer que produza um artefato conferível, a spec de máquina fica com `columns: []` e
+o motivo registrado em `unverified` — é assim que o modelo representa "esta superfície não
+gera nada". A forma publicada acima, com a citação oficial de cada membro, é o contrato
+desta superfície, e quem o confere em execução é
+`emulators/gcp-sim/tests/test_container.py` (12 casos).
+
 ## 4. O que o simulador projeta
 
 O caminho é `emulators/gcp-sim/gcp_sim/projections/container.py` (a projeção) e
@@ -103,6 +111,11 @@ member)". Um consumidor que exija um IP precisa saber que o simulador não publi
 
 | Item | Motivo |
 |---|---|
+| o envelope `clusters[]`/`missingZones[]` do `ListClustersResponse` | documentado na página do `ListClustersResponse` (consultada em 2026-10-27) e servido pela rota; falta o artefato contra o qual provar o valor, porque a superfície não tem export durável |
+| o membro `name` de `Cluster` | documentado na página de `Cluster` (consultada em 2026-10-27); a rota serve o `resource_name` do estate, canônico para este simulador; falta o artefato |
+| o membro `endpoint` de `Cluster` | documentado como *"The IP address of this cluster's master endpoint"*; a rota serve uma URL HTTPS derivada do uuid — ver §4.1: falta o **valor canônico** (o endereço do provedor), e não há artefato |
+| o membro `location` de `Cluster` | documentado na página de `Cluster` (consultada em 2026-10-27); a rota serve a região do estate; falta o artefato |
+| o membro `masterAuth.clusterCaCertificate` de `Cluster` | documentado como *"Base64-encoded public certificate that is the root of trust for the cluster"*; a rota serve um certificado sintético derivado do uuid, **não** emitido pelo provedor — falta o valor canônico, e não há artefato |
 | `currentMasterVersion`, `currentNodeVersion` | o estate não modela versão de Kubernetes: o `sku_id` nomeia o SKU de **node** que ele cobra, que não é a versão do master nem a do node |
 | `nodePools`, `nodeConfig`, `nodePoolDefaults`, `initialNodeCount`, `currentNodeCount` | o estate carrega uma linha por cluster, e nenhum pool dentro dele |
 | `network`, `subnetwork`, `networkConfig`, `ipAllocationPolicy`, `clusterIpv4Cidr`, `servicesIpv4Cidr` | o estate não modela plano de endereçamento nem VPC de um cluster |
@@ -121,6 +134,32 @@ member)". Um consumidor que exija um IP precisa saber que o simulador não publi
 
 ## 6. Fidelidade
 
-- Spec de máquina: `specs/gcp/container-clusters.schema.json`.
-- Teste do emulador: `emulators/gcp-sim/tests/test_container.py`.
-- Entrada na matriz: `tools/synthetic_clouds/fidelity/matrix.py` (`gcp/container-clusters`).
+- Spec de máquina: `specs/gcp/container-clusters.schema.json` (`columns: []` — esta
+  superfície não autoriza coluna gerável; o motivo está em `unverified`).
+- Teste do emulador: `emulators/gcp-sim/tests/test_container.py` (12 casos: o contrato
+  publicado é conferido em execução).
+- Entrada na matriz: `tools/synthetic_clouds/fidelity/matrix.py`
+  (`gcp/container-clusters` — **BLOCKED**).
+
+### 6.1 Por que a matriz a declara bloqueada (e não "em falta")
+
+`fidelity --matrix` separa as superfícies em três estados, e esta cabe em nenhum dos
+outros dois sem dizer uma falsidade:
+
+- **`implemented`** exigiria um renderer registrado e um teste dourado que confronte a
+  spec. Uma resposta de API não tem artefato: não há renderer possível, e declarar
+  `implemented` seria mentira.
+- **`pending`** ("a documentação sustenta a geração e o renderer ainda não existe")
+  prometeria um renderer que nunca vai existir — esta superfície não tem export durável
+  para gerar.
+- **`blocked`** é o estado coerente: a **documentação não é o bloqueio** — ela sustenta
+  a forma e está citada acima. O bloqueio é a ausência de artefato: a spec de máquina
+  fica sem coluna gerável (`columns: []`), com o motivo registrado em `unverified`, e a
+  matriz a declara bloqueada por isso, e não por falta de documentação.
+
+É a razão pela qual a spec de máquina não lista as seis colunas como geráveis: no modelo
+de artefato, uma coluna gerável é uma coluna que pode **receber valor**. Não havendo
+artefato, nenhuma pode — e declarar o contrário seria prometer um valor que ninguém
+produce. As seis continuam registradas, como **temas**, com a citação oficial de cada
+membro e o motivo pelo qual o valor servido ainda não tem prova de ser canônico.
+

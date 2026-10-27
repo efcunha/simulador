@@ -6,12 +6,12 @@ Registry **derived from the specifications** — the normative source of this re
 
 **Nothing here is new.** Every line is an `unverified` that was already written in the spec, with the reason the author recorded. What this document adds is the **consolidation** and the **count** — and that is why it is generated rather than hand-written: a second list would keep two truths about the same subject.
 
-**A reading correction worth recording:** `spec.unverified` exposes only the **names**. The reasons live in `unverified_fields` (a name that does not belong to the contract) and `unverified_topics` (a topic that exists in the contract and whose proof is missing), and both have to be read: together they give 288 items in **49** surfaces. A registry that read only the list of names would give a third of the problem and no reason at all — which is half the value for whoever closes the gap. The numbers are computed, not written: a fixed total ages in silence as soon as a gap is closed by evidence.
+**A reading correction worth recording:** `spec.unverified` exposes only the **names**. The reasons live in `unverified_fields` (a name that does not belong to the contract) and `unverified_topics` (a topic that exists in the contract and whose proof is missing), and both have to be read: together they give 293 items in **49** surfaces. A registry that read only the list of names would give a third of the problem and no reason at all — which is half the value for whoever closes the gap. The numbers are computed, not written: a fixed total ages in silence as soon as a gap is closed by evidence.
 
 ## Numbers (at the revision in which it was generated)
 
-* **288 unproven items** in **49 of 49 surfaces** (that is: **no** surface is without a declared gap).
-* By provider: **aws** 88, **azure** 83, **gcp** 117.
+* **293 unproven items** in **49 of 49 surfaces** (that is: **no** surface is without a declared gap).
+* By provider: **aws** 88, **azure** 83, **gcp** 122.
 * By type: **field** = the name does not belong to the contract; **topic** = the name exists and the proof that the value is canonical is missing.
 
 **How to read each item.** A spec declares two kinds of unproven item, and the difference matters:
@@ -740,7 +740,7 @@ Spec: [`specs/gcp/infrastructure-manager-resource-drift.schema.json`]](../specs/
 | topic | `the resourceDrifts[]/nextPageToken/unreachable[] envelope` | The envelope belongs to the list method, not to the ResourceDrift item; it is documented at the list method page and is intentionally outside this item schema. |
 | topic | `the grammar of propertyDrifts[].path for a map key` | The REST reference publishes `path` as the path of the property drift, but does not publish the path grammar for maps. The simulator emits `labels.<key>` as a scenario path derived from the estate; that spelling is not asserted by the GCP documentation and must not be read as a published contract. |
 
-## `gcp/container-clusters` — 22 item(ns)
+## `gcp/container-clusters` — 27 item(ns)
 
 
 Spec: [`specs/gcp/container-clusters.schema.json`]](../specs/gcp/container-clusters.schema.json)
@@ -770,3 +770,8 @@ Spec: [`specs/gcp/container-clusters.schema.json`]](../specs/gcp/container-clust
 | topic | `the zonal (projects.zones.clusters.list) and aggregated (projects.aggregated.clusters.list) variants of the same list` | Both exist in the same API version and return the same ListClustersResponse. Only the regional projects.locations.clusters.list is served by the emulator; the other two are a scope limit of this surface, not a claim that they do not exist. |
 | topic | `the deprecated query parameters 'projectId' and 'zone'` | The list method publishes both as deprecated and replaced by the 'parent' path parameter. The route takes the parent form only, so a client sending the deprecated spelling is answered by the same parent path instead. |
 | topic | `the reachability of the published endpoint` | The endpoint names the cluster's master endpoint and is derived from the resource's uuid; the emulator hosts no Kubernetes API server behind it. A client that dials it is not reaching a cluster control plane. |
+| topic | `the envelope clusters[]/missingZones[] of ListClustersResponse` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse (consulted 2026-10-27): 'clusters' is a list of clusters in the project in the specified zone, or across all ones; 'missingZones' lists the zones whose cluster list may be missing. The route serves both, and 'missingZones' is published empty because the estate models no zone the emulator failed to answer. The shape is proven; what lacks proof is an artifact to confront it against, because this surface has no durable export (see 'notes'). |
+| topic | `the member name of Cluster` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27). The route serves the estate's own resource_name, which is canonical for this simulator; what lacks proof is an artifact to confront the value against, because this surface has no durable export (see 'notes'). |
+| topic | `the member endpoint of Cluster` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27), where the member is 'Output only. The IP address of this cluster's master endpoint'. The route serves an HTTPS URL derived from the resource uuid instead, and the estate carries no address to publish; the divergence is declared in the notes and in the .md spec. What lacks proof here is the canonical VALUE (the provider's address), and no artifact exists to confront it against. |
+| topic | `the member location of Cluster` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27) as the zone or region in which the cluster resides. The route serves the estate's region, which is canonical for this simulator; what lacks proof is an artifact to confront the value against, because this surface has no durable export (see 'notes'). |
+| topic | `the member masterAuth.clusterCaCertificate of Cluster` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27) as 'Output only. Base64-encoded public certificate that is the root of trust for the cluster'. The route serves a synthetic CA certificate derived from the resource uuid -- deterministic per cluster, and never carrying a private key; it is NOT a certificate issued by the provider, so the canonical value is exactly what lacks proof here. No artifact exists to confront it against. |

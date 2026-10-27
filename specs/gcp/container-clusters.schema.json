@@ -6,12 +6,20 @@
     "url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters/list",
     "consulted_at": "2026-10-27",
     "version": "Kubernetes Engine API v1",
-    "member_pages": [
-      "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters",
-      "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse"
+    "additional_sources": [
+      {
+        "title": "REST Resource: projects.locations.clusters (Cluster, MasterAuth)",
+        "url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters",
+        "consulted_at": "2026-10-27"
+      },
+      {
+        "title": "REST Resource: ListClustersResponse (clusters[], missingZones[])",
+        "url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse",
+        "consulted_at": "2026-10-27"
+      }
     ],
     "machine_source": "https://container.googleapis.com/$discovery/rest?version=v1",
-    "machine_source_note": "A forma dos membros foi conferida no documento de discovery da container v1 (https://container.googleapis.com/$discovery/rest?version=v1), que e a fonte de maquina da MESMA API v1 cuja tabela de propriedades a pagina de Cluster renderiza: as duas trazem os mesmos nomes de membro para 86 dos 87 membros de Cluster (o discovery acrescenta 'parentProductConfig', que a pagina renderizada, de 2026-04-15, ainda nao traz). O endpoint de discovery NAO esta em nenhum source_url: a citacao de cada coluna e a pagina de documentacao, legivel por uma pessoa, e o discovery fica aqui como fonte de maquina, com a nota do que foi lido onde.",
+    "machine_source_note": "A forma dos membros foi conferida no documento de discovery da container v1 (https://container.googleapis.com/$discovery/rest?version=v1), que e a fonte de maquina da MESMA API v1 cuja tabela de propriedades a pagina de Cluster renderiza: as duas trazem os mesmos nomes de membro para 86 dos 87 membros de Cluster (o discovery acrescenta 'parentProductConfig', que a pagina renderizada, de 2026-04-15, ainda nao traz). O endpoint de discovery NAO esta em nenhum source_url: a citacao e a pagina de documentacao, legivel por uma pessoa, e o discovery fica aqui como fonte de maquina, com a nota do que foi lido onde.",
     "page_last_updated": "2026-04-15"
   },
   "delivery": {
@@ -27,22 +35,40 @@
     "served_path": "/container/v1/projects/{project}/locations/{location}/clusters"
   },
   "notes": [
-    "This is an API resource representation, NOT an official export: the Kubernetes Engine API publishes no durable export of the cluster list, so there is no blob, partition, compression or manifest to declare. The response document is the artifact.",
-    "The envelope is the API's: ListClustersResponse publishes exactly two members, 'clusters' and 'missingZones'. The simulator publishes those two and no third one.",
-    "The published members of Cluster are 87; the estate answers for four of them (name, endpoint, location, masterAuth.clusterCaCertificate). Every other published member is registered in 'unverified' with the reason that the estate does not model it -- absence, not a plausible-looking value.",
-    "'endpoint' DIVERGES from the published wording on purpose and the divergence is declared: the reference says 'Output only. The IP address of this cluster's master endpoint', and the estate carries no address for a cluster. The simulator publishes the HTTPS URL the same reference shows the endpoint being used at ('https://username:password@endpoint/'), with the host derived from the resource's uuid, so the value is stable across calls and unique per cluster.",
-    "The list method is served in its REGIONAL form (projects.locations.clusters.list). The zonal (projects.zones.clusters.list) and aggregated (projects.aggregated.clusters.list) variants of the same list exist in the same API version and are NOT served; see 'unverified'.",
-    "The emulator serves the control plane of the API, not of the cluster: the published endpoint is an identifier of the cluster's master endpoint, and the simulator hosts no Kubernetes API server behind it."
+    "Esta superficie nao autoriza NENHUMA coluna geravel, e a razao esta registrada em 'unverified': e uma RESPOSTA de API do plano de controle, servida ao vivo pelo gcp-sim em container.googleapis.com (emulators/gcp-sim/gcp_sim/routers/container.py). A Kubernetes Engine API nao publica export duravel, logo nao existe renderer que produza um artefato conferivel contra esta spec -- e o documento que responde e a propria resposta da rota, verificada por emulators/gcp-sim/tests/test_container.py. A forma publicada, as citacoes oficiais e a divergencia declarada estao em specs/gcp/container-clusters.md.",
+    "O envelope e da API: ListClustersResponse publica exatamente dois membros, 'clusters' e 'missingZones'. O simulador publica esses dois e nenhum terceiro.",
+    "A API publica 87 membros em Cluster; a rota serve quatro deles (name, endpoint, location, masterAuth.clusterCaCertificate). Cada um esta declarado em 'unverified' como TOPICO: o nome existe no contrato e o valor e servido ao vivo, mas nao ha artefato contra o qual provar o valor canonico.",
+    "'endpoint' DIVERGE da redacao publicada de proposito e a divergencia esta declarada: a referencia diz 'Output only. The IP address of this cluster's master endpoint', e o estate nao carrega endereco de cluster. O simulador publica a URL HTTPS que a propria referencia mostra o endpoint sendo usado ('https://username:password@endpoint/'), com o host derivado do uuid do recurso, para que o valor seja estavel entre chamadas e unico por cluster.",
+    "O metodo e servido na forma REGIONAL (projects.locations.clusters.list). As variantes zonal (projects.zones.clusters.list) e agregada (projects.aggregated.clusters.list) da mesma listagem existem na mesma versao da API e NAO sao servidas.",
+    "O emulador serve o plano de controle da API, nao o do cluster: o endpoint publicado nomeia o endpoint master do cluster e nao ha API server do Kubernetes atras dele."
   ],
-  "columns": [
-    { "name": "clusters", "type": "array", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse", "status": "verified", "type_note": "The page publishes 'object (Cluster)' as the element type and describes the member as 'A list of clusters in the project in the specified zone, or across all ones.'" },
-    { "name": "missingZones", "type": "array", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse", "status": "verified", "type_note": "The page publishes 'string' as the element type and describes the member as 'If any zones are listed here, the list of clusters returned may be missing those zones.'" },
-    { "name": "name", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters", "status": "verified" },
-    { "name": "endpoint", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters", "status": "verified", "evidence": "declared", "type_source": "documented", "type_note": "The field table publishes the type as 'string' and describes it as 'Output only. The IP address of this cluster's master endpoint.'; the simulator publishes the HTTPS URL the same paragraph shows the endpoint being used at. The divergence is declared in 'notes' and in the .md spec." },
-    { "name": "location", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters", "status": "verified", "type_note": "Output only. 'The name of the Google Compute Engine zone or region in which the cluster resides.'" },
-    { "name": "masterAuth.clusterCaCertificate", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters", "status": "verified", "type_note": "The MasterAuth member table publishes the type as 'string' and describes it as 'Output only. Base64-encoded public certificate that is the root of trust for the cluster.'" }
-  ],
+  "columns": [],
   "unverified": [
+    {
+      "item": "the envelope clusters[]/missingZones[] of ListClustersResponse",
+      "reason": "Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse (consulted 2026-10-27): 'clusters' is a list of clusters in the project in the specified zone, or across all ones; 'missingZones' lists the zones whose cluster list may be missing. The route serves both, and 'missingZones' is published empty because the estate models no zone the emulator failed to answer. The shape is proven; what lacks proof is an artifact to confront it against, because this surface has no durable export (see 'notes').",
+      "status": "unverified"
+    },
+    {
+      "item": "the member name of Cluster",
+      "reason": "Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27). The route serves the estate's own resource_name, which is canonical for this simulator; what lacks proof is an artifact to confront the value against, because this surface has no durable export (see 'notes').",
+      "status": "unverified"
+    },
+    {
+      "item": "the member endpoint of Cluster",
+      "reason": "Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27), where the member is 'Output only. The IP address of this cluster's master endpoint'. The route serves an HTTPS URL derived from the resource uuid instead, and the estate carries no address to publish; the divergence is declared in the notes and in the .md spec. What lacks proof here is the canonical VALUE (the provider's address), and no artifact exists to confront it against.",
+      "status": "unverified"
+    },
+    {
+      "item": "the member location of Cluster",
+      "reason": "Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27) as the zone or region in which the cluster resides. The route serves the estate's region, which is canonical for this simulator; what lacks proof is an artifact to confront the value against, because this surface has no durable export (see 'notes').",
+      "status": "unverified"
+    },
+    {
+      "item": "the member masterAuth.clusterCaCertificate of Cluster",
+      "reason": "Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27) as 'Output only. Base64-encoded public certificate that is the root of trust for the cluster'. The route serves a synthetic CA certificate derived from the resource uuid -- deterministic per cluster, and never carrying a private key; it is NOT a certificate issued by the provider, so the canonical value is exactly what lacks proof here. No artifact exists to confront it against.",
+      "status": "unverified"
+    },
     {
       "name": "currentMasterVersion",
       "reason": "Output only. The current software version of the master endpoint. The estate does not model a Kubernetes version: the cluster's sku_id names the NODE SKU it bills, which is not the master's version. Publishing one would be a version the estate never asserted.",
