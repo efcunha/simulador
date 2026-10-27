@@ -28,6 +28,7 @@ from tools.synthetic_clouds.generate.constants import PROVIDER_AZURE
 from tools.synthetic_clouds.model.billing import BillingLine
 from tools.synthetic_clouds.model.estate import CanonicalEstate
 from tools.synthetic_clouds.model.iac import InventoryAsset
+from tools.synthetic_clouds.model.identity import azure_subscription_guid
 from tools.synthetic_clouds.model.metrics import MetricSeries
 from tools.synthetic_clouds.model.native import NativeFinding, NativeRecommendation
 from tools.synthetic_clouds.model.resource import Resource
@@ -72,6 +73,47 @@ def of_type(estate: CanonicalEstate, resource_type: str) -> tuple[Resource, ...]
             key=lambda r: r.resource_name,
         )
     )
+
+
+def subscription_label(estate: CanonicalEstate, subscription_id: str) -> str | None:
+    """The estate's scope label for a subscription id, or ``None``.
+
+    Both spellings of a subscription are accepted: the GUID the served ids carry
+    (``identity.azure_subscription_guid``) and the generator's own scope label
+    (``sub-01``). That is the alias rule ``projections/subscription.py`` and
+    ``projections/sql.py`` already follow, so a request built either way is answered
+    rather than silently emptied -- and the caller never has to know which spelling
+    the estate keeps its keys under.
+
+    ``None`` means the estate carries no such subscription: a request for one answers
+    nothing, which is what the list surfaces do for a scope the estate does not have.
+
+    The GUID is minted here rather than read through ``arm.subscription_id`` because
+    ``projections/arm.py`` imports THIS module: importing it back would close a cycle.
+    """
+    for group in estate.azure_mgmt_groups:
+        for subscription in group.subscriptions:
+            if subscription_id in (
+                subscription.subscription_id,
+                azure_subscription_guid(estate.seed, subscription.subscription_id),
+            ):
+                return subscription.subscription_id
+    return None
+
+
+def resource_group_in_scope(scope: str) -> str | None:
+    """The resource group a request scope names, or ``None`` when it names none.
+
+    Mirrors ``arm.subscription_in_scope``: the scope arrives as a path string, and the
+    segment after ``resourceGroups`` is the group. Empty segments are dropped, so a
+    doubled or trailing slash cannot shift the answer, and the comparison is
+    case-insensitive because ARM paths are.
+    """
+    segments = [segment for segment in scope.split("/") if segment]
+    for index, segment in enumerate(segments):
+        if segment.lower() == "resourcegroups" and index + 1 < len(segments):
+            return segments[index + 1]
+    return None
 
 
 def inventory(estate: CanonicalEstate) -> tuple[tuple[InventoryAsset, Resource | None], ...]:

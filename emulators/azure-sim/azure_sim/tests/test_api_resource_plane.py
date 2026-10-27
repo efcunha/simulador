@@ -26,7 +26,8 @@ from tools.synthetic_clouds.render.markers import SYNTH_NAME_PREFIX, unmarked_na
 from azure_sim.estate import build_simulated_estate
 from azure_sim.projections import scope
 
-_SCOPE = "/subscriptions/sub-01"
+_SCOPE_LABEL = "sub-01"
+_SCOPE = f"/subscriptions/{_SCOPE_LABEL}"
 
 _VM_VERSION = "2025-11-01"
 _DISK_VERSION = "2025-01-02"
@@ -69,33 +70,45 @@ def _subscription_ids(app) -> set[str]:
     }
 
 
-def _names(app, resource_type: str) -> set[str]:
+def _names(app, resource_type: str, scope_label: str | None = None) -> set[str]:
     """The distinct names the estate's own Azure resources of a type carry.
 
     Distinct, not counted: the generator restarts its per-scope counter for every scope
     (``generate/estate_builder.py:292``), so one name repeats once per subscription that
     carries it. :func:`_count` is the row-wise count.
+
+    ``scope_label`` narrows to one subscription's rows, for the lists that narrow on the
+    scope they are asked under.
     """
     return {
         resource.resource_name
         for resource in app.state.estate.resources
-        if resource.resource_type == resource_type and resource.identity.provider == "azure"
+        if resource.resource_type == resource_type
+        and resource.identity.provider == "azure"
+        and (scope_label is None or resource.parent_scope_id == scope_label)
     }
 
 
-def _count(app, resource_type: str) -> int:
+def _count(app, resource_type: str, scope_label: str | None = None) -> int:
     """How many Azure resources of ``resource_type`` the estate carries, row-wise."""
     return sum(
         1
         for resource in app.state.estate.resources
-        if resource.resource_type == resource_type and resource.identity.provider == "azure"
+        if resource.resource_type == resource_type
+        and resource.identity.provider == "azure"
+        and (scope_label is None or resource.parent_scope_id == scope_label)
     )
 
 
-def _assert_azure_rows_of_type(app, rows, resource_type: str) -> None:
+def _assert_azure_rows_of_type(
+    app,
+    rows,
+    resource_type: str,
+    scope_label: str | None = None,
+) -> None:
     """Every row is one of the estate's Azure rows of ``resource_type``."""
     subscriptions = _subscription_ids(app)
-    mine = _names(app, resource_type)
+    mine = _names(app, resource_type, scope_label)
     foreign = {
         resource.resource_name
         for resource in app.state.estate.resources
@@ -150,15 +163,18 @@ def test_compute_disks_serve_the_sku_beside_properties(api_client) -> None:
 def test_compute_matches_the_estate_row_for_row(api_client) -> None:
     """One served row per estate resource: no row invented, none dropped."""
     client, app = api_client
-    for path, version, resource_type in (
-        (_VM_PATH, _VM_VERSION, "virtual_machine"),
-        (_DISK_PATH, _DISK_VERSION, "managed_disk"),
-        (_AKS_PATH, _AKS_VERSION, "aks_cluster"),
-        (_STORAGE_PATH, _STORAGE_VERSION, "storage_account"),
-        (_SITE_PATH, _SITE_VERSION, "app_service"),
+    for path, version, resource_type, scope_label in (
+        (_VM_PATH, _VM_VERSION, "virtual_machine", None),
+        (_DISK_PATH, _DISK_VERSION, "managed_disk", None),
+        # The AKS list narrows on the scope it is asked under: every subscription of the
+        # estate reuses the cluster names, so an unnarrowed answer would serve another
+        # subscription's rows under this subscription's id.
+        (_AKS_PATH, _AKS_VERSION, "aks_cluster", _SCOPE_LABEL),
+        (_STORAGE_PATH, _STORAGE_VERSION, "storage_account", None),
+        (_SITE_PATH, _SITE_VERSION, "app_service", None),
     ):
         rows = client.get(f"{path}?api-version={version}").json()["value"]
-        assert len(rows) == _count(app, resource_type)
+        assert len(rows) == _count(app, resource_type, scope_label)
 
 
 # ── Container Service ────────────────────────────────────────────────────────────
@@ -170,7 +186,9 @@ def test_managed_clusters_serve_the_name_and_region_discovery_reads(api_client) 
     resp = client.get(f"{_AKS_PATH}?api-version={_AKS_VERSION}")
     assert resp.status_code == 200
     rows = resp.json()["value"]
-    _assert_azure_rows_of_type(app, rows, "aks_cluster")
+    # The list answers the scope's clusters, not the estate's: the names repeat across
+    # the subscriptions, so the subscription is what identifies the row.
+    _assert_azure_rows_of_type(app, rows, "aks_cluster", _SCOPE_LABEL)
 
     for row in rows:
         assert row["type"] == "Microsoft.ContainerService/managedClusters"
