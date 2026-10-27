@@ -32,6 +32,7 @@ DEFAULT_DNS_NAMES = (
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "config.googleapis.com",
+    "container.googleapis.com",
     "securitycenter.googleapis.com",
     "www.googleapis.com",
     "storage.googleapis.com",

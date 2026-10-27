@@ -333,6 +333,18 @@ SURFACES: tuple[SurfaceCoverage, ...] = (
         "campo de itens ausentes. Incremento 4.",
     ),
     SurfaceCoverage(
+        "gcp/container-clusters",
+        STATUS_PENDING,
+        None,
+        "ListClustersResponse do Kubernetes Engine v1 (projects.locations.clusters.list): o envelope "
+        "(clusters[]/missingZones[]) e 4 dos 87 membros publicados de Cluster. A documentacao "
+        "sustenta a geracao, mas nao existe renderer de artefato duravel: a superficie e uma "
+        "RESPOSTA de API, servida ao vivo pelo gcp-sim em container.googleapis.com "
+        "(emulators/gcp-sim/gcp_sim/routers/container.py), e nao um arquivo de export. Sem "
+        "renderer registrado, 'implemented' seria mentira -- fica 'pending' ate que exista um "
+        "artefato conferivel contra a spec.",
+    ),
+    SurfaceCoverage(
         "gcp/infrastructure-manager-resource-drift",
         STATUS_IMPLEMENTED,
         "drift_views",

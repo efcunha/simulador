@@ -30,6 +30,7 @@ from gcp_sim.routers import (
     catalog,
     cloudresourcemanager,
     compute,
+    container,
     functions,
     infra_manager,
     monitoring,
@@ -92,6 +93,7 @@ def create_app() -> FastAPI:
     app.include_router(catalog.router)
     app.include_router(cloudresourcemanager.router)
     app.include_router(compute.router)
+    app.include_router(container.router)
     app.include_router(functions.router)
     app.include_router(servicehealth.router)
     app.include_router(storage.router)

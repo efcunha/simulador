@@ -1,0 +1,157 @@
+{
+  "surface": "gcp/container-clusters",
+  "provider": "gcp",
+  "reference": {
+    "title": "Kubernetes Engine API — Method: projects.locations.clusters.list (Cluster resource)",
+    "url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters/list",
+    "consulted_at": "2026-10-27",
+    "version": "Kubernetes Engine API v1",
+    "member_pages": [
+      "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters",
+      "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse"
+    ],
+    "machine_source": "https://container.googleapis.com/$discovery/rest?version=v1",
+    "machine_source_note": "A forma dos membros foi conferida no documento de discovery da container v1 (https://container.googleapis.com/$discovery/rest?version=v1), que e a fonte de maquina da MESMA API v1 cuja tabela de propriedades a pagina de Cluster renderiza: as duas trazem os mesmos nomes de membro para 86 dos 87 membros de Cluster (o discovery acrescenta 'parentProductConfig', que a pagina renderizada, de 2026-04-15, ainda nao traz). O endpoint de discovery NAO esta em nenhum source_url: a citacao de cada coluna e a pagina de documentacao, legivel por uma pessoa, e o discovery fica aqui como fonte de maquina, com a nota do que foi lido onde.",
+    "page_last_updated": "2026-04-15"
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://container.googleapis.com/v1/projects/{project}/locations/{location}/clusters",
+    "format": "json",
+    "compression": "none",
+    "response_wrapper": "ListClustersResponse",
+    "item_element": "clusters[]",
+    "method_id": "container.projects.locations.clusters.list",
+    "parent_parameter": "projects/*/locations/*",
+    "pagination": "none: o metodo regional nao publica parametro de paginacao (apenas 'parent' no path, e 'projectId'/'zone' deprecados na query)",
+    "served_path": "/container/v1/projects/{project}/locations/{location}/clusters"
+  },
+  "notes": [
+    "This is an API resource representation, NOT an official export: the Kubernetes Engine API publishes no durable export of the cluster list, so there is no blob, partition, compression or manifest to declare. The response document is the artifact.",
+    "The envelope is the API's: ListClustersResponse publishes exactly two members, 'clusters' and 'missingZones'. The simulator publishes those two and no third one.",
+    "The published members of Cluster are 87; the estate answers for four of them (name, endpoint, location, masterAuth.clusterCaCertificate). Every other published member is registered in 'unverified' with the reason that the estate does not model it -- absence, not a plausible-looking value.",
+    "'endpoint' DIVERGES from the published wording on purpose and the divergence is declared: the reference says 'Output only. The IP address of this cluster's master endpoint', and the estate carries no address for a cluster. The simulator publishes the HTTPS URL the same reference shows the endpoint being used at ('https://username:password@endpoint/'), with the host derived from the resource's uuid, so the value is stable across calls and unique per cluster.",
+    "The list method is served in its REGIONAL form (projects.locations.clusters.list). The zonal (projects.zones.clusters.list) and aggregated (projects.aggregated.clusters.list) variants of the same list exist in the same API version and are NOT served; see 'unverified'.",
+    "The emulator serves the control plane of the API, not of the cluster: the published endpoint is an identifier of the cluster's master endpoint, and the simulator hosts no Kubernetes API server behind it."
+  ],
+  "columns": [
+    { "name": "clusters", "type": "array", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse", "status": "verified", "type_note": "The page publishes 'object (Cluster)' as the element type and describes the member as 'A list of clusters in the project in the specified zone, or across all ones.'" },
+    { "name": "missingZones", "type": "array", "required": true, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse", "status": "verified", "type_note": "The page publishes 'string' as the element type and describes the member as 'If any zones are listed here, the list of clusters returned may be missing those zones.'" },
+    { "name": "name", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters", "status": "verified" },
+    { "name": "endpoint", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters", "status": "verified", "evidence": "declared", "type_source": "documented", "type_note": "The field table publishes the type as 'string' and describes it as 'Output only. The IP address of this cluster's master endpoint.'; the simulator publishes the HTTPS URL the same paragraph shows the endpoint being used at. The divergence is declared in 'notes' and in the .md spec." },
+    { "name": "location", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters", "status": "verified", "type_note": "Output only. 'The name of the Google Compute Engine zone or region in which the cluster resides.'" },
+    { "name": "masterAuth.clusterCaCertificate", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters", "status": "verified", "type_note": "The MasterAuth member table publishes the type as 'string' and describes it as 'Output only. Base64-encoded public certificate that is the root of trust for the cluster.'" }
+  ],
+  "unverified": [
+    {
+      "name": "currentMasterVersion",
+      "reason": "Output only. The current software version of the master endpoint. The estate does not model a Kubernetes version: the cluster's sku_id names the NODE SKU it bills, which is not the master's version. Publishing one would be a version the estate never asserted.",
+      "status": "unverified"
+    },
+    {
+      "name": "currentNodeVersion",
+      "reason": "Output only. The current software version of the node software. The estate bills the cluster under a node SKU and models no Kubernetes release for it.",
+      "status": "unverified"
+    },
+    {
+      "name": "nodePools",
+      "reason": "The node pools associated with this cluster. The estate models one row per cluster and no pool inside it; a pool would be a resource the estate does not carry.",
+      "status": "unverified"
+    },
+    {
+      "name": "nodeConfig",
+      "reason": "The node configuration for this cluster. The estate carries the cluster's billed SKU, not a node configuration, and the two are not the same shape.",
+      "status": "unverified"
+    },
+    {
+      "name": "network",
+      "reason": "The name of the Google Compute Engine network to which the cluster is connected. The estate models no VPC for a cluster, so there is no network name to publish.",
+      "status": "unverified"
+    },
+    {
+      "name": "subnetwork",
+      "reason": "The VPC-native network id the cluster uses. The estate models no subnetwork for a cluster.",
+      "status": "unverified"
+    },
+    {
+      "name": "status",
+      "reason": "Output only. The current status of this cluster. The estate is a billing baseline, not a control-plane state machine: it asserts that the cluster is billed for, not that it is RUNNING.",
+      "status": "unverified"
+    },
+    {
+      "name": "createTime",
+      "reason": "Output only. The time the cluster was created, in RFC3339 text format. The estate asserts no creation time for a resource, and the simulator's clock would be a fabricated one.",
+      "status": "unverified"
+    },
+    {
+      "name": "selfLink",
+      "reason": "Output only. Server-defined URL for the resource. The estate mints a uuid, not a GCP server-defined URL, so any path published here would be a path the provider never defined.",
+      "status": "unverified"
+    },
+    {
+      "name": "id",
+      "reason": "Output only. Unique id for the cluster. The estate's uuid is the estate's own identifier and is not the provider's numeric id.",
+      "status": "unverified"
+    },
+    {
+      "name": "zone",
+      "reason": "Output only, and deprecated in favour of 'location'. The estate records a region and nothing finer, so there is no zone to publish; 'location' carries the region.",
+      "status": "unverified"
+    },
+    {
+      "name": "clusterIpv4Cidr",
+      "reason": "The IPv4 range for the cluster's nodes. The estate models no address plan for a cluster.",
+      "status": "unverified"
+    },
+    {
+      "name": "masterAuth.clientKey",
+      "reason": "Output only. Base64-encoded private key used by clients to authenticate to the cluster endpoint. It is a PRIVATE key: the simulator derives one to sign the CA certificate and never publishes it. Publishing it here would publish a secret the contract does not carry.",
+      "status": "unverified"
+    },
+    {
+      "name": "masterAuth.clientCertificate",
+      "reason": "Output only. Base64-encoded public certificate used by clients to authenticate to the cluster endpoint, issued only if clientCertificateConfig is set. The estate models no client certificate configuration.",
+      "status": "unverified"
+    },
+    {
+      "name": "masterAuth.username",
+      "reason": "The username to use for HTTP basic authentication to the master endpoint. The estate models no basic-authentication account for a cluster, and the page itself marks basic authentication as deprecated.",
+      "status": "unverified"
+    },
+    {
+      "name": "masterAuth.password",
+      "reason": "Deprecated on the page. The estate models no password for a cluster, and a published password would be a credential nobody published.",
+      "status": "unverified"
+    },
+    {
+      "name": "masterAuth.clientCertificateConfig",
+      "reason": "Configuration for client certificate authentication on the cluster. The estate models no client certificate configuration.",
+      "status": "unverified"
+    },
+    {
+      "item": "the remaining published members of Cluster that the estate does not model (secretManagerConfig, alphaClusterFeatureGates, nodePoolAutoConfig, monitoringService, userManagedKeysConfig, description, nodeIpv4CidrSize, masterAuthorizedNetworksConfig, costManagementConfig, maintenancePolicy, networkPolicy, nodePoolDefaults, legacyAbac, secretSyncConfig, addonsConfig, podAutoscaling, locations, meshCertificates, servicesIpv4Cidr, etag, tpuIpv4CidrBlock, gkeAutoUpgradeConfig, satisfiesPzi, managedMachineLearningDiagnosticsConfig, rbacBindingConfig, compliancePostureConfig, workloadIdentityConfig, enterpriseConfig, scheduleUpgradeConfig, resourceUsageExportConfig, controlPlaneEgress, rollbackSafeUpgrade, releaseChannel, currentEmulatedVersion, controlPlaneEndpointsConfig, initialNodeCount, databaseEncryption, labelFingerprint, instanceGroupUrls, statusMessage, verticalPodAutoscaling, anonymousAuthenticationConfig, fleet, conditions, enableKubernetesAlpha, parentProductConfig, resourceLabels, monitoringConfig, networkConfig, privateClusterConfig, loggingConfig, shieldedNodes, securityPostureConfig, binaryAuthorization, expireTime, identityServiceConfig, enableK8sBetaApis, confidentialNodes, ipAllocationPolicy, notificationConfig, initialClusterVersion, enableTpu, managedOpentelemetryConfig, satisfiesPzs, defaultMaxPodsConstraint, loggingService, currentNodeCount, autopilot, autoscaling, authenticatorGroupsConfig, nodeCreationConfig)",
+      "reason": "The API publishes these members and the estate models none of them: a cluster row carries a name, a region, a billed SKU and tags, and nothing else. They are listed by name so that no published member is silently omitted from the accounting, and they stay out of the artifact because publishing them would mean inventing the value the estate does not carry.",
+      "status": "unverified"
+    },
+    {
+      "item": "the endpoint as an IP address (the published wording of the member)",
+      "reason": "The field table publishes the endpoint as 'Output only. The IP address of this cluster's master endpoint', and the estate carries no address for a cluster. The simulator publishes an HTTPS URL derived from the resource's uuid instead -- the form the same paragraph shows the endpoint being used at ('https://username:password@endpoint/'). The divergence is declared, not silent: a consumer that needs an IP must know the simulator does not publish one.",
+      "status": "unverified"
+    },
+    {
+      "item": "the zonal (projects.zones.clusters.list) and aggregated (projects.aggregated.clusters.list) variants of the same list",
+      "reason": "Both exist in the same API version and return the same ListClustersResponse. Only the regional projects.locations.clusters.list is served by the emulator; the other two are a scope limit of this surface, not a claim that they do not exist.",
+      "status": "unverified"
+    },
+    {
+      "item": "the deprecated query parameters 'projectId' and 'zone'",
+      "reason": "The list method publishes both as deprecated and replaced by the 'parent' path parameter. The route takes the parent form only, so a client sending the deprecated spelling is answered by the same parent path instead.",
+      "status": "unverified"
+    },
+    {
+      "item": "the reachability of the published endpoint",
+      "reason": "The endpoint names the cluster's master endpoint and is derived from the resource's uuid; the emulator hosts no Kubernetes API server behind it. A client that dials it is not reaching a cluster control plane.",
+      "status": "unverified"
+    }
+  ]
+}
