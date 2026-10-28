@@ -13,7 +13,7 @@ hostname de produção. Quem se adapta é esta stack.
 | CloudPilot | `D:\cloudpilot-deploy\.local\tls\ca-bundle.pem` | bundle certifi + CA local (não versionado) |
 | Simulador | `emulators/azure-sim/tls/` | CA local e folhas TLS (git-ignored; geradas pelos scripts abaixo) |
 | Simulador | `deploy/synthetic-clouds/compose.yaml` | azure-sim serve 443 (TLS) além de 8080, com `net.ipv4.ip_unprivileged_port_start=0` |
-| Simulador | `deploy/synthetic-clouds/compose.tls-front.yaml` | front nginx para `bigquery.googleapis.com`, `oauth2.googleapis.com`, `cloudresourcemanager.googleapis.com` e `sts.*.amazonaws.com` |
+| Simulador | `deploy/synthetic-clouds/compose.tls-front.yaml` | front nginx para `bigquery.googleapis.com`, `oauth2.googleapis.com` e `cloudresourcemanager.googleapis.com` |
 | Simulador | `deploy/synthetic-clouds/tls-front/nginx.conf` | roteia cada hostname para o emulador certo |
 
 ## Hostnames e destinos
@@ -27,11 +27,24 @@ Na rede `cloudpilot-deploy_cloudpilot_net`:
 | `bigquery.googleapis.com` | bqemulator:9050 | front nginx |
 | `oauth2.googleapis.com` | gcp-sim:8085 | front nginx (`POST /token`) |
 | `cloudresourcemanager.googleapis.com` | gcp-sim:8085 | front nginx (`GET /v1/projects`; o `googleapiclient` usa o discovery estático embutido) |
-| `sts.amazonaws.com`, `sts.us-east-1.amazonaws.com` | aws-sim:8086 | front nginx (Query protocol / GetCallerIdentity) |
 
-`aws-sim` devolve `GetCallerIdentity` com a primeira conta do estate
-(`911368690069` no seed 123), que é o `external_account_id` da conta AWS do
-CloudPilot — por isso a guarda de conta do validador passa.
+`sts.amazonaws.com` e `sts.us-east-1.amazonaws.com` **não** são publicados
+nesta rede: o STS resolve na AWS de verdade. Ver a seção "STS" abaixo.
+
+## STS: por que o simulador não sequestra o hostname
+
+O `aws-sim` responde `GetCallerIdentity` com a primeira conta do estate
+(`911368690069` no seed 123). Publicar `sts.amazonaws.com` para o front por
+DNS fazia o validador do CloudPilot resolver **toda** conta AWS da rede —
+inclusive as contas REAIS, com chaves válidas — contra o simulador. A guarda
+anti-confused-deputy (`backend/app/services/providers/aws/connection_validator.py`)
+então rejeitava a conexão com `reason=account_mismatch`, e o banner
+"Credenciais Expiradas" aparecia para uma credencial perfeitamente válida.
+
+A conta AWS do simulador precisa de um endpoint STS **por conta** — hoje
+`cur_config.endpoint_url` cobre apenas S3 — e não de um sequestro global de
+hostname: sequestrar `sts.*` quebra qualquer conta real que compartilhe a
+rede com o simulador.
 
 ## Certificados
 
@@ -45,7 +58,7 @@ CloudPilot:
 
 O primeiro script cria `ca.crt`/`ca.key` e a folha `server.crt` (hostnames Azure,
 já embutida na imagem do azure-sim). O segundo assina com a MESMA CA a folha
-`server-clouds.crt` usada pelo front (GCP + STS). O bundle do CloudPilot é
+`server-clouds.crt` usada pelo front (GCP). O bundle do CloudPilot é
 `certifi/cacert.pem` do container + `ca.crt`, copiado para
 `D:\cloudpilot-deploy\.local\tls\ca-bundle.pem`.
 

@@ -61,6 +61,15 @@ $S3Mock = 'synthetic-clouds-s3mock-1'
 $BqEmu = 'synthetic-clouds-bigquery-emulator-1'
 
 $AzureHostAliases = @('management.azure.com', 'login.microsoftonline.com')
+# NO STS hostname here on purpose. The CloudPilot network also carries REAL AWS
+# accounts, and the validator binds the STS identity to the declared account
+# (anti-confused-deputy guard in
+# backend/app/services/providers/aws/connection_validator.py). Publishing
+# sts.amazonaws.com through the front made every real account resolve to the
+# emulator's estate account (911368690069 on seed 123) and fail with
+# reason=account_mismatch, even though the key was perfectly valid. The
+# emulator's own accounts need a per-account STS endpoint, not a global
+# hostname hijack.
 $FrontAliases = @(
     'bigquery.googleapis.com',
     'oauth2.googleapis.com',
@@ -68,9 +77,7 @@ $FrontAliases = @(
     'compute.googleapis.com',
     'config.googleapis.com',
     'container.googleapis.com',
-    'securitycenter.googleapis.com',
-    'sts.amazonaws.com',
-    'sts.us-east-1.amazonaws.com'
+    'securitycenter.googleapis.com'
 )
 
 $script:Problems = [System.Collections.Generic.List[string]]::new()

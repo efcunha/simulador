@@ -29,6 +29,10 @@ services:
       retries: 3
     networks:
       cloudpilot_net:
+        # No sts.* alias on purpose: the CloudPilot network carries real AWS
+        # accounts, and hijacking sts.amazonaws.com made every one of them
+        # resolve to the emulator's estate account (see
+        # deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1).
         aliases:
           - bigquery.googleapis.com
           - oauth2.googleapis.com
@@ -37,8 +41,6 @@ services:
           - config.googleapis.com
           - container.googleapis.com
           - securitycenter.googleapis.com
-          - sts.amazonaws.com
-          - sts.us-east-1.amazonaws.com
 
 networks:
   cloudpilot_net:
