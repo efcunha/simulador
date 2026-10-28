@@ -44,6 +44,13 @@ _ALLOCATION_KEY = "payments"
 #: The five cost fields the phase requires on every allocation.
 _COST_FIELDS = ("cpuCost", "ramCost", "pvCost", "networkCost", "totalCost")
 
+#: The cluster names the CloudPilot discovery returns -- one per provider. The name
+#: is the identity the consumer sends (``filter=cluster:"<name>"``, F14), and these
+#: are the estate's real names, read from its canonical ``resources.parquet``.
+_AKS_CLUSTER_NAME = "aks_cluster-0133"
+_GKE_CLUSTER_NAME = "TEMP-gke_cluster-0037"
+_EKS_CLUSTER_NAME = "eks_cluster-0291"
+
 
 @pytest.fixture(scope="module")
 def client() -> Any:
@@ -324,8 +331,14 @@ def estate_clusters() -> list[dict[str, str]]:
 
 
 @pytest.fixture(scope="module")
-def a_cluster_id(estate_clusters: list[dict[str, str]]) -> str:
+def a_cluster_name(estate_clusters: list[dict[str, str]]) -> str:
     """One cluster of the estate -- the first one, in the fixture's own order."""
+    return estate_clusters[0]["cluster_name"]
+
+
+@pytest.fixture(scope="module")
+def a_cluster_id(estate_clusters: list[dict[str, str]]) -> str:
+    """The estate's canonical id of that same cluster -- the alias."""
     return estate_clusters[0]["cluster_id"]
 
 
@@ -337,38 +350,73 @@ def test_the_fixture_holds_the_estate_clusters(estate_clusters: list[dict[str, s
     assert counts == {"aws": 75, "gcp": 111, "azure": 123}
 
 
-def test_the_fixture_is_sorted_and_has_no_repeated_cluster(
+def test_the_fixture_is_sorted_by_name_and_holds_no_cluster_twice(
     estate_clusters: list[dict[str, str]],
 ) -> None:
-    """The catalog is sorted by id and holds no cluster twice."""
+    """The catalog is sorted by name -- the identity -- and every id is unique."""
+    names = [cluster["cluster_name"] for cluster in estate_clusters]
+    assert names == sorted(names)
+
     ids = [cluster["cluster_id"] for cluster in estate_clusters]
-    assert ids == sorted(ids)
     assert len(set(ids)) == len(ids)
+
+
+def test_the_names_repeat_across_scopes_and_the_catalog_keeps_every_cluster(
+    estate_clusters: list[dict[str, str]],
+) -> None:
+    """309 clusters carrying 160 distinct names: the estate reuses a name.
+
+    Measured over the canonical estate of 2026-10-28: the 309 clusters of the
+    ``123-medium-USD`` profile carry 160 distinct ``resource_name`` values -- a
+    name is unique within a scope, not across the estate. The catalog therefore
+    keeps **every** cluster (309, split 75/111/123), and the name is the identity
+    the payload publishes.
+    """
+    names = [cluster["cluster_name"] for cluster in estate_clusters]
+    assert len(set(names)) == 160
 
 
 def test_the_fixture_names_a_provider_and_a_region_for_every_cluster(
     estate_clusters: list[dict[str, str]],
 ) -> None:
-    """Every record carries the three fields the catalog publishes."""
+    """Every record carries the four fields the catalog publishes."""
     for cluster in estate_clusters:
-        assert set(cluster) == {"cluster_id", "provider", "region_id"}
+        assert set(cluster) == {"cluster_id", "cluster_name", "provider", "region_id"}
         assert cluster["cluster_id"]
+        assert cluster["cluster_name"]
         assert cluster["provider"]
         assert cluster["region_id"]
+
+
+@pytest.mark.parametrize(
+    ("cluster_name", "provider"),
+    [
+        (_AKS_CLUSTER_NAME, "azure"),
+        (_GKE_CLUSTER_NAME, "gcp"),
+        (_EKS_CLUSTER_NAME, "aws"),
+    ],
+)
+def test_the_fixture_carries_the_name_the_discovery_returns(
+    estate_clusters: list[dict[str, str]], cluster_name: str, provider: str
+) -> None:
+    """The names the CloudPilot discovery returns are the estate's own names."""
+    matching = [cluster for cluster in estate_clusters if cluster["cluster_name"] == cluster_name]
+    assert matching, f"{cluster_name!r} is not in the catalog"
+    assert {cluster["provider"] for cluster in matching} == {provider}
 
 
 # ── the real OpenCost parameters ──────────────────────────────────────────────
 
 
 def test_the_namespace_and_controller_aggregation_keys_by_both(
-    client: Any, a_cluster_id: str
+    client: Any, a_cluster_name: str
 ) -> None:
     """``aggregate=namespace,controller`` keys the allocation by namespace AND controller."""
     response = _get(
         client,
         window=_WINDOW,
         aggregate="namespace,controller",
-        filter=f'cluster:"{a_cluster_id}"',
+        filter=f'cluster:"{a_cluster_name}"',
         step="1d",
         accumulate="false",
     )
@@ -380,18 +428,18 @@ def test_the_namespace_and_controller_aggregation_keys_by_both(
     allocation = data[0][f"{_NAMESPACE}/{_CONTROLLER}"]
     assert allocation["properties"]["namespace"] == _NAMESPACE
     assert allocation["properties"]["controller"] == _CONTROLLER
-    assert allocation["properties"]["cluster"] == a_cluster_id
+    assert allocation["properties"]["cluster"] == a_cluster_name
 
 
 def test_the_namespace_aggregation_keys_by_the_namespace_only(
-    client: Any, a_cluster_id: str
+    client: Any, a_cluster_name: str
 ) -> None:
     """``aggregate=namespace`` keys the allocation by the namespace alone."""
     response = _get(
         client,
         window=_WINDOW,
         aggregate="namespace",
-        filter=f'cluster:"{a_cluster_id}"',
+        filter=f'cluster:"{a_cluster_name}"',
     )
     assert response.status_code == 200
 
@@ -400,14 +448,14 @@ def test_the_namespace_aggregation_keys_by_the_namespace_only(
 
 
 def test_the_controller_aggregation_keys_by_the_controller_only(
-    client: Any, a_cluster_id: str
+    client: Any, a_cluster_name: str
 ) -> None:
     """``aggregate=controller`` keys the allocation by the controller alone."""
     response = _get(
         client,
         window=_WINDOW,
         aggregate="controller",
-        filter=f'cluster:"{a_cluster_id}"+namespace:"{_NAMESPACE}"+controller:"{_CONTROLLER}"',
+        filter=f'cluster:"{a_cluster_name}"+namespace:"{_NAMESPACE}"+controller:"{_CONTROLLER}"',
     )
     assert response.status_code == 200
 
@@ -420,37 +468,37 @@ def test_the_controller_aggregation_keys_by_the_controller_only(
 
 
 def test_the_cluster_aggregation_keys_by_the_cluster(
-    client: Any, a_cluster_id: str
+    client: Any, a_cluster_name: str
 ) -> None:
     """``aggregate=cluster`` keys the allocation by the cluster -- the connection test."""
     response = _get(
         client,
         window=_WINDOW,
         aggregate="cluster",
-        filter=f'cluster:"{a_cluster_id}"',
+        filter=f'cluster:"{a_cluster_name}"',
     )
     assert response.status_code == 200
 
     data = response.json()["data"]
-    assert list(data[0].keys()) == [a_cluster_id]
+    assert list(data[0].keys()) == [a_cluster_name]
 
-    allocation = data[0][a_cluster_id]
-    assert allocation["name"] == a_cluster_id
-    assert allocation["properties"]["cluster"] == a_cluster_id
+    allocation = data[0][a_cluster_name]
+    assert allocation["name"] == a_cluster_name
+    assert allocation["properties"]["cluster"] == a_cluster_name
 
 
-def test_the_filter_selects_the_cluster_it_names(client: Any, a_cluster_id: str) -> None:
+def test_the_filter_selects_the_cluster_it_names(client: Any, a_cluster_name: str) -> None:
     """The cluster the filter names is the cluster the payload carries."""
     response = _get(
         client,
         window=_WINDOW,
         aggregate="namespace",
-        filter=f'cluster:"{a_cluster_id}"',
+        filter=f'cluster:"{a_cluster_name}"',
     )
     assert response.status_code == 200
 
     allocation = response.json()["data"][0][_NAMESPACE]
-    assert allocation["properties"]["cluster"] == a_cluster_id
+    assert allocation["properties"]["cluster"] == a_cluster_name
 
 
 def test_a_filter_that_names_no_cluster_of_the_estate_answers_no_data(
@@ -468,13 +516,13 @@ def test_a_filter_that_names_no_cluster_of_the_estate_answers_no_data(
 
 
 def test_two_identical_calls_with_a_filter_return_the_same_payload(
-    client: Any, a_cluster_id: str
+    client: Any, a_cluster_name: str
 ) -> None:
     """The filtered payload is a pure function of the request, as the unfiltered one is."""
     params = {
         "window": _WINDOW,
         "aggregate": "namespace,controller",
-        "filter": f'cluster:"{a_cluster_id}"',
+        "filter": f'cluster:"{a_cluster_name}"',
         "step": "1d",
         "accumulate": "false",
     }
@@ -483,13 +531,13 @@ def test_two_identical_calls_with_a_filter_return_the_same_payload(
     assert first == second
 
 
-def test_the_one_day_step_is_accepted(client: Any, a_cluster_id: str) -> None:
+def test_the_one_day_step_is_accepted(client: Any, a_cluster_name: str) -> None:
     """``step=1d`` is the step the provider sends, and it is served."""
     response = _get(
         client,
         window=_WINDOW,
         aggregate="namespace,controller",
-        filter=f'cluster:"{a_cluster_id}"',
+        filter=f'cluster:"{a_cluster_name}"',
         step="1d",
         accumulate="false",
     )
@@ -506,14 +554,14 @@ def test_a_step_other_than_one_day_is_refused(client: Any, step: str) -> None:
 
 
 def test_the_accumulation_still_sums_the_window_with_a_filter(
-    client: Any, a_cluster_id: str
+    client: Any, a_cluster_name: str
 ) -> None:
     """``accumulate=true`` still sums the whole window into one set."""
     response = _get(
         client,
         window=_WINDOW,
         aggregate="namespace",
-        filter=f'cluster:"{a_cluster_id}"',
+        filter=f'cluster:"{a_cluster_name}"',
         accumulate="true",
     )
     assert response.status_code == 200
@@ -524,14 +572,14 @@ def test_the_accumulation_still_sums_the_window_with_a_filter(
 
 
 def test_the_daily_accumulation_still_serves_one_set_per_day(
-    client: Any, a_cluster_id: str
+    client: Any, a_cluster_name: str
 ) -> None:
     """``accumulate=false`` still keeps one set per day."""
     response = _get(
         client,
         window=_WINDOW,
         aggregate="namespace",
-        filter=f'cluster:"{a_cluster_id}"',
+        filter=f'cluster:"{a_cluster_name}"',
         accumulate="false",
     )
     assert response.status_code == 200
@@ -557,13 +605,154 @@ def test_a_filter_this_phase_cannot_honour_is_refused(
     assert response.json()["code"] == 400
 
 
+# ── a identidade do cluster: o nome que a descoberta devolve ─────────────────
+
+
+@pytest.mark.parametrize(
+    "cluster_name",
+    [_AKS_CLUSTER_NAME, _GKE_CLUSTER_NAME, _EKS_CLUSTER_NAME],
+)
+def test_the_filter_accepts_the_cluster_name_the_discovery_returns(
+    client: Any, cluster_name: str
+) -> None:
+    """The name the CloudPilot discovery returns selects the cluster.
+
+    This is the request the provider really makes (F14):
+    ``aggregate=namespace,controller&filter=cluster:"<name>"&step=1d&accumulate=false``.
+    """
+    response = _get(
+        client,
+        window=_WINDOW,
+        aggregate="namespace,controller",
+        filter=f'cluster:"{cluster_name}"',
+        step="1d",
+        accumulate="false",
+    )
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert list(data[0].keys()) == [f"{_NAMESPACE}/{_CONTROLLER}"]
+
+    allocation = data[0][f"{_NAMESPACE}/{_CONTROLLER}"]
+    assert allocation["properties"]["cluster"] == cluster_name
+
+
+@pytest.mark.parametrize(
+    "cluster_name",
+    [_AKS_CLUSTER_NAME, _GKE_CLUSTER_NAME, _EKS_CLUSTER_NAME],
+)
+def test_the_cluster_aggregation_keys_by_the_cluster_name(
+    client: Any, cluster_name: str
+) -> None:
+    """``aggregate=cluster`` keys the allocation by the cluster's NAME."""
+    response = _get(
+        client,
+        window=_WINDOW,
+        aggregate="cluster",
+        filter=f'cluster:"{cluster_name}"',
+    )
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert list(data[0].keys()) == [cluster_name]
+
+    allocation = data[0][cluster_name]
+    assert allocation["name"] == cluster_name
+    assert allocation["properties"]["cluster"] == cluster_name
+
+
+def test_the_cluster_id_is_accepted_as_an_alias(
+    client: Any, a_cluster_id: str, a_cluster_name: str
+) -> None:
+    """The estate's canonical id still selects the cluster -- as an alias.
+
+    The id is not the identity: the payload carries the NAME either way, so a
+    request answered through the alias is indistinguishable from one answered
+    through the name.
+    """
+    response = _get(
+        client,
+        window=_WINDOW,
+        aggregate="namespace,controller",
+        filter=f'cluster:"{a_cluster_id}"',
+        step="1d",
+        accumulate="false",
+    )
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert list(data[0].keys()) == [f"{_NAMESPACE}/{_CONTROLLER}"]
+
+    allocation = data[0][f"{_NAMESPACE}/{_CONTROLLER}"]
+    assert allocation["properties"]["cluster"] == a_cluster_name
+
+
+def test_the_cluster_aggregation_keys_by_the_name_even_through_the_alias(
+    client: Any, a_cluster_id: str, a_cluster_name: str
+) -> None:
+    """``aggregate=cluster`` through the alias still keys by the name."""
+    response = _get(
+        client,
+        window=_WINDOW,
+        aggregate="cluster",
+        filter=f'cluster:"{a_cluster_id}"',
+    )
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert list(data[0].keys()) == [a_cluster_name]
+
+
+def test_a_name_the_estate_does_not_have_answers_no_data(client: Any) -> None:
+    """A name that is not in the estate is an empty answer, never an invented one."""
+    response = _get(
+        client,
+        window=_WINDOW,
+        aggregate="namespace,controller",
+        filter='cluster:"aks_cluster-9999"',
+        step="1d",
+        accumulate="false",
+    )
+    assert response.status_code == 200
+    assert response.json()["data"] == []
+
+
+def test_a_name_carrying_a_space_travels_through_the_filter(
+    client: Any, estate_clusters: list[dict[str, str]]
+) -> None:
+    """The estate carries names with spaces in them -- they are served, not mangled."""
+    spaced = [cluster["cluster_name"] for cluster in estate_clusters if " " in cluster["cluster_name"]]
+    assert spaced, "the estate carries names with spaces"
+
+    response = _get(
+        client,
+        window=_WINDOW,
+        aggregate="cluster",
+        filter=f'cluster:"{spaced[0]}"',
+    )
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert list(data[0].keys()) == [spaced[0]]
+
+
 # ── /clusterInfo ──────────────────────────────────────────────────────────────
 
 
 def test_cluster_info_answers_for_the_filtered_cluster(
-    client: Any, a_cluster_id: str
+    client: Any, a_cluster_name: str
 ) -> None:
     """``/clusterInfo`` describes the cluster the filter names."""
+    response = client.get("/clusterInfo", params={"filter": f'cluster:"{a_cluster_name}"'})
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["code"] == 200
+    assert body["data"] == {"version": "synthetic"}
+
+
+def test_cluster_info_answers_for_the_cluster_id_alias(client: Any, a_cluster_id: str) -> None:
+    """``/clusterInfo`` accepts the alias too -- same cluster, same answer."""
     response = client.get("/clusterInfo", params={"filter": f'cluster:"{a_cluster_id}"'})
     assert response.status_code == 200
 

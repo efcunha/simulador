@@ -12,15 +12,29 @@ estate once, and read at runtime as data.
 
 **What the fixture is derived from.** The canonical ``resources.parquet`` of the
 ``123-medium-USD`` profile (seed 123, profile ``medium``), filtered on the three
-Kubernetes cluster resource types. The ``cluster_id`` is the estate's canonical
-resource identity -- the ``uuid`` column -- and not ``resource_name``: the generator
-writes noise into names (``TEMP-gke_cluster-0037``, ``gke_cluster-0357 (do not
-delete)``), so a name is not a stable identifier, while the ``uuid`` is derived
-deterministically from the seed and is unique across the estate.
+Kubernetes cluster resource types. Each record carries two identities:
+
+- ``cluster_name`` -- the estate's ``resource_name``. This is the **contract's
+  identity**: it is what the CloudPilot discovery returns and what the consumer
+  sends back as ``filter=cluster:"<name>"``, and it is what the simulator
+  publishes in ``properties.cluster`` and keys ``aggregate=cluster`` by. The
+  generator writes noise into names (``TEMP-gke_cluster-0037``, ``gke_cluster-0357
+  (do not delete)``), but that noise is part of the name the consumer really
+  holds, so the simulator has to carry it verbatim.
+- ``cluster_id`` -- the estate's canonical ``uuid``. It is the **auxiliary**
+  identity: unique across the estate, and accepted as an *alias* of the name in
+  the filter, never published as the identity.
+
+A name is **not** unique across the estate: the 309 clusters carry 160 distinct
+names, because the estate reuses a name across scopes (measured on the canonical
+parquet of 2026-10-28). The catalog therefore keeps **every** cluster -- one
+record per cluster of the estate -- and the name identifies the cluster within
+its scope.
 
 **When to regenerate.** Whenever the estate changes. The output is sorted by
-``cluster_id`` and carries no timestamp, so regenerating it from an unchanged estate
-reproduces the file byte for byte -- a diff in the fixture means the estate changed.
+``cluster_name`` (with ``cluster_id`` breaking ties) and carries no timestamp, so
+regenerating it from an unchanged estate reproduces the file byte for byte -- a
+diff in the fixture means the estate changed.
 
 **Usage** (from the repository root)::
 
@@ -81,16 +95,18 @@ def find_parquet(explicit: str | None) -> Path:
 def read_clusters(parquet: Path) -> list[dict[str, str]]:
     """The estate's Kubernetes clusters, as the fixture's records.
 
-    Each record carries exactly the three fields the fixture publishes: the
-    canonical ``cluster_id``, the ``provider`` that owns the cluster and the
-    ``region_id`` it lives in. The records are sorted by ``cluster_id``, which makes
-    the fixture reproducible from an unchanged estate.
+    Each record carries exactly the four fields the fixture publishes: the
+    ``cluster_name`` the consumer names the cluster by, the canonical
+    ``cluster_id`` (the estate's ``uuid``), the ``provider`` that owns the cluster
+    and the ``region_id`` it lives in. The records are sorted by name, with the
+    id breaking ties, which makes the fixture reproducible from an unchanged
+    estate.
     """
     import pyarrow.parquet as pq
 
     table = pq.read_table(parquet)
     columns = set(table.column_names)
-    missing = {"uuid", "provider", "region_id", "resource_type"} - columns
+    missing = {"uuid", "resource_name", "provider", "region_id", "resource_type"} - columns
     if missing:
         raise SystemExit(f"export_clusters: {parquet} has no column(s): {sorted(missing)}")
 
@@ -101,12 +117,13 @@ def read_clusters(parquet: Path) -> list[dict[str, str]]:
         records.append(
             {
                 "cluster_id": str(row["uuid"]),
+                "cluster_name": str(row["resource_name"]),
                 "provider": str(row["provider"]),
                 "region_id": str(row["region_id"]),
             }
         )
 
-    records.sort(key=lambda record: record["cluster_id"])
+    records.sort(key=lambda record: (record["cluster_name"], record["cluster_id"]))
     return records
 
 

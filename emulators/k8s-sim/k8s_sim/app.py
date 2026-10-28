@@ -144,9 +144,10 @@ def create_app() -> FastAPI:
         """The cluster the request asks about.
 
         The ``filter`` names the cluster, the way the CloudPilot provider names it:
-        ``cluster:"<id>"``. The cluster has to be one of the estate's -- the
+        ``cluster:"<name>"``. The cluster has to be one of the estate's -- the
         versioned fixture is the catalog, and a cluster that is not in it does not
-        exist.
+        exist. The estate's canonical id is accepted as an alias, exactly as in
+        ``/allocation/compute``.
 
         The answer says only what is true: this is a synthetic cluster. No node count
         and no pod count are published, because the estate does not model them: a
@@ -161,10 +162,10 @@ def create_app() -> FastAPI:
             return _error(
                 400,
                 "Invalid 'filter' parameter: the cluster is required, as "
-                'cluster:"<id>".',
+                'cluster:"<name>".',
             )
 
-        if alloc_filter.cluster not in allocation.estate_clusters():
+        if allocation.resolve_cluster_name(alloc_filter.cluster) is None:
             return _error(
                 400,
                 f"Invalid 'filter' parameter: {alloc_filter.cluster!r} is not a cluster "

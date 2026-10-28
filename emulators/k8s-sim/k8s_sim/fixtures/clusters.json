@@ -1,1547 +1,1856 @@
 [
   {
-    "cluster_id": "006e5851-05b8-5852-a0d6-01450d7a4784",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "0121a9be-a382-5e9d-9c1a-ee253e9df174",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "022269cc-46f2-514d-ad6f-c4b43f4c2984",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "02bedf55-61e0-5ada-9c1b-aea082be8957",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "04ec25c3-2db7-587c-b255-684fc171e1a6",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "0551195a-2159-5b23-8312-fc77326e7fa2",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "0612a55a-14f1-533b-bd24-1b2e2df6d5b0",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "062bebb3-f57b-57ff-ac2c-625805b01bb6",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "0664129f-c311-5f74-82e1-e93bab5b160b",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "06891791-a328-53ef-bf01-bd3b7a2abb12",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "06f48544-7e0f-59ec-b675-b2384adb9add",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "09c5012e-5e78-5a00-a3ab-8ea51737839a",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "0a5499e5-fafe-58d3-be3e-386cea5c35ce",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "0be979de-61a0-5f27-ae65-49d91d9fb9be",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "0f28e9f8-f8b3-5478-9c47-61089b2ec917",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "0f69f6bc-696f-5f9f-b803-63ddc97d532f",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "0f915dce-2ce8-54bb-9c7c-46fbfeee3d0d",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "1109872a-d5ae-56ff-88f3-436f2a143154",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "13b7e628-e16b-5eb3-bc18-180aae307917",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "153239e1-9a97-5f58-99e2-e0072be3961d",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "16e478d6-45ba-5422-a35e-8e769d7d5315",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "176ce33b-76f5-50bd-91b4-358f3455aa6f",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "17afdce3-e63a-5f6d-8dc3-7707997f22f0",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "17de10a4-9c17-51c4-aaec-b870c62e9418",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "17e84dfc-7dd3-5179-851a-93c9ea57abc2",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "184b984c-f36b-5ec5-8f3c-0a2662d53421",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "18c947cf-bced-5083-b55d-06ca8355a2e0",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "18ddb080-0d0b-592a-a8a3-b34436cec6eb",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "19121497-33de-544c-b780-826ce45defe7",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "197dc4ec-eae0-51a0-8309-7391d6c26763",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "1c60aad9-ec20-562c-97a8-1cfd0e2ff9af",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "1c745d7c-dddc-5957-9292-04415fe7b224",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "1d17eac1-2e9f-5700-9d28-70a5ac550d65",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "1daaae5f-178e-5451-b59b-566d2cdec0a9",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "1f4815a8-0172-52ed-8e06-ccc57753ee9d",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "1f4c2498-a1a9-517d-9141-8e841c3037ab",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "2000db3f-381d-5799-a8c1-03dd37637847",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "204e2496-6ed6-54b9-94ab-4bd3f3da8a2e",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "207f1612-51ea-5e19-b9f1-ef68b50c45c2",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "2099f5aa-5968-56e9-abb3-80dbd7e11688",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "21184733-32f4-56ee-9d25-7328f1e7b2b5",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "216704ee-2384-56a2-a9fb-b315516c8e37",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "21a75cc0-16eb-5386-989f-5d94372dd487",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "2203aec0-efac-5c14-831c-3186b50aee54",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "22d6527b-7eb0-54b3-9e75-c882ee649194",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "22e08dcb-7a4a-5c66-9602-3b2ac9460e9d",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "2311b8ce-7478-5306-91f7-571c6cedec94",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "233ef38d-5299-526d-8dbe-94b7bfaef957",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "23ebdc76-5b49-57a1-b3ac-2708b3ff0838",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "2427d668-25db-54a4-a477-aee47606c641",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "27ac72aa-4ea6-50fa-b7a9-e93a3d78381e",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "284cb7ac-560a-57e9-afa1-3e1cca030a39",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "298ffbba-82d8-57f8-949a-40a12a335405",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "2aa3cd1e-b26f-5c3f-b65f-7befed1608c5",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "2aef227f-4be1-54ea-aa12-4ad71645377c",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
     "cluster_id": "2b3d3083-2101-5631-92d5-8421964627c1",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "2c3e1784-2fa9-5e00-a0c4-470f894bd508",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "2cbf900b-7424-5642-a5e0-c145e356c8c5",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "2fd0aba7-6e71-5ff8-8861-9b4665442fb8",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "2fd7e81a-cb55-5948-9df7-e7bf9db980a6",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "30f1e403-5890-5bd7-b266-2e804ee7b5d0",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "31460bb6-1293-5a86-8491-f58390ec3503",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "316d507d-68e5-594a-8672-254047b14472",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "31dd617a-2bb4-5e71-95e2-7937d526b00f",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "327c2aff-9eea-527f-b2c1-fadcdddb4369",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "329558ba-56f9-550a-80be-d608329264cb",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "32cf43d0-00be-5701-b37a-65eba8e3e986",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "32fd2681-c552-5d05-b281-770f7ba437d0",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "337224ac-4180-5084-81f4-57846274a413",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "33f345b4-560e-58be-a923-cb45f0db9ec1",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "34abc853-e9ff-5070-b583-6e4da73eab38",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "35fa2bd1-89d5-5fc2-8350-153317c7612f",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "36b3f650-b288-5d84-96e9-7f93c307479e",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "3711fa3d-39c6-562a-b429-f79890df2eee",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "371278bb-f9c0-551d-9c46-1bab2c3e7b78",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "38204f9a-d4e8-5c28-9067-cb0e5b02fec2",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "38b8b4f7-bbb1-5d49-a1fd-937710757c68",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "38edb3ea-03c0-54e6-83be-71086606050c",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "3bf235db-d536-5f4c-b8da-fa3576abf167",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "3d4296ef-02bf-5e60-b551-f5b2aeb83b35",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "3f2cb2ac-7c57-5ba7-86cc-ccf34d7aefb4",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "3f4d151d-0260-54c4-8d52-e17b6e85e841",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "3fb7af4f-7a25-556f-9e2b-94c824cf308f",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "40add76d-92e8-5974-a4e5-22be06cd72b1",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "423d2835-9df4-5ff8-93e9-a4cb240ad62c",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "4297dfb5-8da9-5b0c-9f8b-c58beea70f67",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "4529ab7e-409f-5cc3-be8e-bc6638cf5587",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "460c8934-4c5a-5e6b-8846-f193543e7ffd",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "472ae59b-a6d2-5a35-b34f-ae9e026699c3",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "47dd59c4-6183-55ee-8aa3-90664207bc6c",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "483602d2-6109-5bb4-b505-138b4cfbb533",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "4a9a6676-a361-56fa-bd2d-802e16841711",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "4c3dfef4-849e-50e6-8b84-904c93c8ece0",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "4c46719a-48d8-56ef-afa6-66996a15e0f3",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "4cdc85fd-5b71-5854-bef4-8147469f59e0",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "4d435286-3229-5fb2-abeb-43161005e59d",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "4dfef794-2b89-5adf-8021-b17e935d4576",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "4ec62a7d-ab4a-5792-b4f0-a38f35597afe",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "4f901330-393b-5210-b5c0-835674570b97",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "4fb87a84-4a86-5b25-afec-980f1fd56ce4",
+    "cluster_name": "TEMP-aks_cluster-0025",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
     "cluster_id": "508256cb-83fa-5313-8138-2fb88b75d520",
+    "cluster_name": "TEMP-aks_cluster-0106",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "5217b304-7850-51d6-a293-929aa6df8630",
+    "cluster_id": "184b984c-f36b-5ec5-8f3c-0a2662d53421",
+    "cluster_name": "TEMP-aks_cluster-0124",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "55bffa0b-73a4-55f3-9a33-4d803ba57848",
+    "cluster_id": "8128b317-d27e-5d75-9f3c-dbfc73e6adc2",
+    "cluster_name": "TEMP-aks_cluster-0178",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "4cdc85fd-5b71-5854-bef4-8147469f59e0",
+    "cluster_name": "TEMP-aks_cluster-0268",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "062bebb3-f57b-57ff-ac2c-625805b01bb6",
+    "cluster_name": "TEMP-aks_cluster-0304",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "4f901330-393b-5210-b5c0-835674570b97",
+    "cluster_name": "TEMP-aks_cluster-0304",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "c94781cc-aa1a-5687-982a-3e566cfc7c21",
+    "cluster_name": "TEMP-aks_cluster-0322",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "2427d668-25db-54a4-a477-aee47606c641",
+    "cluster_name": "TEMP-aks_cluster-0340",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "b3a8be0f-44f0-52de-86b1-41a8f9915721",
+    "cluster_name": "TEMP-eks_cluster-0081",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "2c3e1784-2fa9-5e00-a0c4-470f894bd508",
+    "cluster_name": "TEMP-eks_cluster-0141",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "89b56152-ba4f-5eac-8799-5341c352608f",
+    "cluster_name": "TEMP-eks_cluster-0231",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "216704ee-2384-56a2-a9fb-b315516c8e37",
+    "cluster_name": "TEMP-eks_cluster-0291",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "09c5012e-5e78-5a00-a3ab-8ea51737839a",
+    "cluster_name": "TEMP-eks_cluster-0351",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "022269cc-46f2-514d-ad6f-c4b43f4c2984",
+    "cluster_name": "TEMP-gke_cluster-0037",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "3bf235db-d536-5f4c-b8da-fa3576abf167",
+    "cluster_name": "TEMP-gke_cluster-0067",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "9bc0d58f-5865-5f6e-abd3-03b88df01d19",
+    "cluster_name": "TEMP-gke_cluster-0107",
     "provider": "gcp",
     "region_id": "southamerica-east1"
   },
   {
-    "cluster_id": "58a2142b-c3af-5a18-b2a7-ffc4ae9b99ce",
+    "cluster_id": "d647ea95-cd82-5a15-9309-09336e9801ac",
+    "cluster_name": "TEMP-gke_cluster-0227",
     "provider": "gcp",
-    "region_id": "us-central1"
+    "region_id": "southamerica-east1"
   },
   {
-    "cluster_id": "58b5a85c-3ca6-511f-824e-8c9745dc5e36",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "58c6d976-a083-5cac-abb4-0c45abc4f48b",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "58cf6606-bdf8-5034-9401-2293b0503b26",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "58d3d1ed-a690-5bd9-a6c3-effabcae2030",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "5924c324-bf90-5638-9e7d-69bdd3c2cd48",
+    "cluster_id": "cab3788d-d3ff-5b9a-8898-f102bde2ec86",
+    "cluster_name": "aks_cluster-0007",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "596036bb-a2ea-582d-b532-60f92be2f584",
-    "provider": "aws",
-    "region_id": "us-east-1"
+    "cluster_id": "ea1d901e-35c0-5b75-9737-90b9f8717466",
+    "cluster_name": "aks_cluster-0007",
+    "provider": "azure",
+    "region_id": "westeurope"
   },
   {
-    "cluster_id": "597bb39d-0542-5f3c-897d-add3a70c5353",
+    "cluster_id": "f9e1fa81-7e78-548a-93c8-d8fe69cd462d",
+    "cluster_name": "aks_cluster-0007",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "2cbf900b-7424-5642-a5e0-c145e356c8c5",
+    "cluster_name": "aks_cluster-0016",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "4ec62a7d-ab4a-5792-b4f0-a38f35597afe",
+    "cluster_name": "aks_cluster-0016",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "786e0c3a-b4ed-5262-8740-aa774688cd85",
+    "cluster_name": "aks_cluster-0016_FINAL_v2",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
     "cluster_id": "59ab9522-36e5-5d5d-aeeb-27785b356224",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "5a00e4c2-8f01-5ac9-b6df-74cc570a2782",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "5afdc9bf-61ae-5b97-a634-f5418797b113",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "5cc42eb2-2c50-5869-9232-3f56771a40cb",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "5d1c9d11-4a9d-5c62-84c1-28dc7f3157d7",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "5ddccbb9-0d9a-5a7d-bd0b-cc88f9d5da18",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "5ed09d60-b86f-5c64-84d9-92990448ae6f",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "5fdeae51-afdf-57d0-898e-9802fe162584",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "6008037f-2d36-51fa-9349-d7386fd71241",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "60ab7a7a-fdd9-587f-a998-2d36565d8e7c",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "60fda9a0-6491-53e1-b841-837c2af902cb",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "61cd0b96-01ad-52aa-ae13-6300899a4853",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "627b09ec-dbb8-5709-b890-239379b9eeaa",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "64583825-bd8b-5dc2-b20f-f3213fb1fdb1",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "6589e8bf-8a66-588a-96da-0480eb5d5416",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "6604f7c3-dbdb-5a9f-8948-7042f8ea40f1",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "665f76f9-177d-53c6-bddb-d644b2e61032",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "68d73170-53c3-5111-8808-4a0207e30995",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "696ce303-479e-5080-8c75-cd4bc3530e93",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "6be9f006-b248-5ec4-9ad2-095157e46c25",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "6ce64338-9348-5458-b4b5-41409a60603f",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "6e76c033-0c84-52f3-95d4-092c8e83e96b",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "702d7c99-f6a9-536c-81cc-ebfa265349f5",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "70c083cf-7eb5-5bf1-8b8b-36521c1bbe29",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "70e4f7fc-200b-58d6-b68a-9d8c2e1b4729",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "713fd185-a049-5d9a-be3f-e4560f9a3d96",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "71902c33-f205-5646-8f63-80e647cc36f3",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "724f68bc-c395-5e74-bca1-546d6bfe02e9",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "7263a99e-25e0-5c9e-9b7d-53b5b7e9cf30",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "72ebdbae-a749-54a2-b95e-76a58e063936",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "735cb1a9-b544-54f6-9a55-ff4e76656289",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "743404df-cef3-576e-b4ea-6d1860a66465",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "748a73f6-bd99-59d8-84c0-fd82cbefccd9",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "74d44b2f-9617-5164-b061-4071339c0b5c",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "76143e26-36f9-530e-b6ab-ea48c019fb35",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "76a742b0-cfa8-5800-919d-1aa19e6f2f75",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "77709d2b-43a7-5ed8-ac1b-860c72efea0a",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "782c48f9-4176-5e0b-964c-efeac6a034ed",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "786e0c3a-b4ed-5262-8740-aa774688cd85",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "7947eee0-6eeb-5e50-abf7-8a7ad21442ec",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "79dc7c4b-83c7-5a4b-aeb4-26a36a798949",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "7a45a14b-c1ae-571d-861b-2eae81cf5e83",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "7b995764-851e-516f-9c17-71079dacfa01",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "7cc5387d-c42c-53bd-9e74-3467658b4494",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "7d60cd54-8c70-5ec0-b90f-5a716f946b3f",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "7d7263d1-3e23-5130-93fe-29ca19ca5c27",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "7de13374-4a05-5940-a68b-9f13aa460fb3",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "7f99add5-7fa0-509b-a8b2-6cb33633f06d",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "801e8ed0-70a8-5f0d-baec-93dd6c4c1e04",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "8128b317-d27e-5d75-9f3c-dbfc73e6adc2",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "814dfe84-010a-5b28-8b02-09828da448aa",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "82335409-8542-5f5a-802e-890759b5f680",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "826304e1-8b31-541a-b7d4-8ddb221ba2a3",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "846d69c2-e5ed-510e-a4f9-005b79391677",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "864ff5d3-683a-5f98-830c-a869cddca6a8",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "869afd87-1a9d-55a4-8801-ca8ea117d282",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "86f980d1-1118-58dc-a913-e8f26270bd05",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "872ead7b-119f-5eeb-8c32-e67c20b4c639",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "8753a193-79c2-5d5d-97c5-a36dfdedfa1e",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "890331c2-20fd-50dc-9206-e4b7c740a240",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "898f95ee-e4f6-587e-8f97-c011d1aceb99",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "89b56152-ba4f-5eac-8799-5341c352608f",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "8a51f852-adc1-5804-aab9-60042abc368b",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "8af2a810-f197-5fe6-8f51-1a6e99a2afa8",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "8b639fdd-31cb-5ea0-a429-b9c508b6697e",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "8d1fbc71-2948-50d2-89a3-1090f88214be",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "8d299e61-876b-59fb-ad01-b5cfc4f406d8",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "8ebe18a8-ef36-5bad-8f7c-e334d58cf7db",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "8fbec23f-78b7-518b-a20b-b97f58d3b3de",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "8fe14915-1875-5c8f-bf77-799d98f4c32f",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "912dbc06-8073-5710-b2c8-ceca7c8ac374",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "918d4bd2-be33-5235-9c4e-8b178f6d0189",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "923bc89f-fb66-5b60-b691-8da90165483a",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "923c1ff2-9acd-516f-90e6-8ad3c6a1ba47",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "9275509d-7c77-59d7-ab6d-f1c97ad8077c",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "94ac383a-0921-54d5-b057-402985fc11b9",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "952550c2-2548-5d35-9c2b-4d4e88d75d80",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "958840a0-d12e-523c-8edf-d9624ff488db",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "95ef7bf6-9e7c-5cd0-a9cb-aede8937eada",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "970d07c1-35dc-590a-b687-6feb289a88b3",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "9719c70f-c376-5622-b633-cf81204d73cb",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "978f53ef-54f8-599a-9955-691acc8d3af2",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "97aa50d2-8554-51d3-bec9-e3f0582fabfe",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "984edcb3-017f-526d-bd5d-ec448db727fa",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "99141157-8278-56c0-841b-0bac158bf5c1",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "99390422-ce7f-53f0-ab1b-b507d8b598b0",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "994ef0ac-5b3f-577a-9f4e-945dedf48706",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "9959fe3f-c272-5ad4-90ec-4857dea130a0",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "99e82a91-5edb-50e4-b4b8-996fac305bf2",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "9a28c832-4030-539b-85ee-2f30583c6c42",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "9ac44744-81de-50be-950f-9c6c908f46e4",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "9bc0d58f-5865-5f6e-abd3-03b88df01d19",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "9c912933-3bbb-595a-a3ff-9e9b4da58c36",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "9de0404c-93cd-58a0-8ca6-9e16970051e8",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "9ef13a08-c4cd-5a80-9534-db10d743b2b2",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "a07da35f-a0ee-53c3-8e49-6f112886974f",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "a225df7e-224a-5a94-8712-50ce8e082af6",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "a2fb9b45-00ae-54d9-94da-39d428100968",
+    "cluster_name": "aks_cluster-0025",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
     "cluster_id": "a4062776-e1e4-53fe-a5f2-b087184079db",
+    "cluster_name": "aks_cluster-0025",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "a4763945-6ee8-5108-9fa1-fbdab2ff76ac",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "a47a94ac-be3e-54a5-906d-c277ee6a1b75",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "a512fc6b-e5f5-58fa-8ee0-33232b6feb4d",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "a59fe726-1642-5cf6-8437-ea5aadceaf56",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "a5c9b53f-be93-5d29-bb82-550705b17775",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "a5cadc6e-4cfc-5e4d-9c94-27ea445ad84e",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "a7f1e553-1bef-576d-a158-5a65c7395074",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "aa77e964-5c6c-5f88-b639-b0f9e1da4e87",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "ab530dc7-4f4f-5b89-a390-41943600bdda",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "abc636e1-108e-51f5-8d9b-538a1ca782dd",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "ac939dda-2e34-505e-b4d8-35b9108349e4",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "acf9720e-4e38-5e70-8e59-61a077d0c9fa",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "ae9c53fd-3ee8-52d2-ac13-f44145c42148",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "b002b459-6906-504c-974c-50f144ce9b07",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "b053f0c5-8ac5-5662-8c57-75dcc5444051",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "b07228bf-6197-5465-b1fc-65197dbaad14",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "b16cb244-f5b0-59e6-a531-cd99d1cbaebe",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "b1c62013-088d-594c-b92b-4774d2c51f3c",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "b21cb7ee-f89f-5523-b9ca-80fe6f24c3c2",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "b37ee47f-191a-5820-8687-4a733ccf5323",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "b393e750-75ff-5abb-9c62-71b757c3cad4",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "b3a8be0f-44f0-52de-86b1-41a8f9915721",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "b4cc7baf-2e08-533e-8629-96cbb93b7c06",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "b4ec231b-3653-50dd-8b9b-bc75262bcff6",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "b5ca4ff5-3755-56ea-bac4-e7d8ee753844",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "b6c4026c-d485-566e-bf34-5e291c5132d2",
+    "cluster_id": "97aa50d2-8554-51d3-bec9-e3f0582fabfe",
+    "cluster_name": "aks_cluster-0034",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
     "cluster_id": "b7af030f-54de-5782-9364-eb1417f7f159",
+    "cluster_name": "aks_cluster-0034",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "b7e3a10e-c332-503e-86a2-dd9b27013cc4",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "b8dceeea-5c90-501e-bb05-1f68cd0eba6e",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "bae2459a-6c27-5ec0-9ec0-a85f8cf38a17",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "bb80b9dd-3ba8-59d6-98a0-582b52fbb083",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "bbdb8f4d-4fec-50b2-9f13-90c9df9290dd",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "be153a78-5486-5d81-9f04-addb7ec63925",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "beae9a74-0b78-51ce-a91c-1afed4dccdaf",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "c30cada2-065c-5977-a299-559a86ed2d72",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "c3e288e5-f470-5a06-ba8e-668debec30ef",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "c4247300-b1ad-5e94-9ce3-7cd0a7fb8c6e",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "c54b30ad-33b6-52ad-a99c-38614be4da4f",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "c5d6d393-f5b1-588b-876f-dcda773006b4",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "c6476314-844d-563e-b588-993c7696bec5",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "c8904cf0-8d2b-5cc9-9806-de5c8936985c",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "c8fd8feb-b4c7-53d1-9ef3-7df0c83d665a",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "c94781cc-aa1a-5687-982a-3e566cfc7c21",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "c9a6e182-2170-5571-bddb-a77ddae717ec",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "c9ca9daf-e296-5962-b4a4-3854ba06868e",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "c9e53085-f154-5da5-b82f-38bda5d22dcd",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "ca1b1ea8-9cf3-52d7-8bf0-c58fec15141a",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "ca42a756-f5ae-5edc-94ca-1ec0ffe89e60",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "cab3788d-d3ff-5b9a-8898-f102bde2ec86",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "cb8513d5-e186-5295-a537-5f56eb556803",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "cbba645e-7110-5d08-b302-3602a10ea654",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "cc58ba52-76ca-5715-b23f-28777c82f17a",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "cc593d31-f40f-5720-bdd5-60491e2f7110",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "cc855a82-d2b9-519c-b7d4-8e4aa895c1f3",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "cc8faaa2-d6f9-510d-b220-9fc63db21313",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "cd855164-7802-57b7-a60e-3af3f56396b6",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "ce1e9b93-e69c-510a-a4c4-769c11d37b02",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "ce3b87db-e023-537c-9d88-41c7f61fea06",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "cf761afe-52b4-519e-94ac-c7eb7e328285",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "d48c2a11-5005-5832-9e2f-3ffbab56f60b",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "d5905299-b8f7-5ea3-939a-9777d2944ff6",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "d647ea95-cd82-5a15-9309-09336e9801ac",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "d7b89054-505e-5442-896f-053fd937ed04",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "d8626cd4-b838-567e-a0a8-dee681395275",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "d90eaa46-de82-5cb3-88c8-d172791af18c",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "d9ae2dbd-c52c-583d-8631-fcd3890d94d6",
+    "cluster_id": "984edcb3-017f-526d-bd5d-ec448db727fa",
+    "cluster_name": "aks_cluster-0043",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
     "cluster_id": "d9e0980d-48cf-5d16-a121-972c14ba4c4c",
+    "cluster_name": "aks_cluster-0043",
     "provider": "azure",
     "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "da88f10b-2aea-5613-81e2-1755a81bf547",
-    "provider": "gcp",
-    "region_id": "us-central1"
-  },
-  {
-    "cluster_id": "da9bbd82-af57-505f-8ba8-3128534b6354",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "dc541e1b-a97b-5b55-8790-99945b7d0b2e",
-    "provider": "gcp",
-    "region_id": "europe-west1"
-  },
-  {
-    "cluster_id": "df234484-f9e8-56ae-b271-4d7dee84ce98",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "dfbbff7d-cea8-502d-969d-f35991c499af",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "e1311740-c6a6-581e-a6ad-29a9ba77e9fa",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "e166a4d6-23ec-5c86-8cf3-c307a80b3879",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "e24361d5-6ed3-5fd3-8713-45c8369406b0",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "e451f836-fac5-50ac-9341-f6c5504e38de",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "e46250e0-2292-5356-813a-3854d1b9f20d",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "e474416b-3de7-5970-8c38-6e25b10fded7",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "e744c786-3382-5ec7-8f80-711d5c70dcab",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "e76294ef-8632-50b3-af83-940b457b263b",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "ea1d901e-35c0-5b75-9737-90b9f8717466",
-    "provider": "azure",
-    "region_id": "westeurope"
-  },
-  {
-    "cluster_id": "ea60ba19-bf15-535f-8475-814155d5333e",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "ecd68f3d-d652-5185-ab86-e364fa633eda",
-    "provider": "aws",
-    "region_id": "us-east-1"
   },
   {
     "cluster_id": "ed21e185-8ff1-5241-b41f-a4df21d60631",
+    "cluster_name": "aks_cluster-0043_FINAL_v2",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "ed306e6a-717f-5460-a6fd-f8f9a99768e7",
+    "cluster_id": "31dd617a-2bb4-5e71-95e2-7937d526b00f",
+    "cluster_name": "aks_cluster-0052",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "eda779d6-c801-5809-9946-40fe900a0905",
-    "provider": "aws",
-    "region_id": "us-east-1"
-  },
-  {
-    "cluster_id": "efbababf-35fd-5f95-9d08-0c21a1ceffe8",
-    "provider": "gcp",
-    "region_id": "southamerica-east1"
-  },
-  {
-    "cluster_id": "f4048d6e-20c4-5d0a-bf4c-3627d69a9462",
+    "cluster_id": "423d2835-9df4-5ff8-93e9-a4cb240ad62c",
+    "cluster_name": "aks_cluster-0052",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "f6529d0e-652c-54f9-8c06-7d8c9e05ae1a",
-    "provider": "aws",
-    "region_id": "us-east-1"
+    "cluster_id": "0551195a-2159-5b23-8312-fc77326e7fa2",
+    "cluster_name": "aks_cluster-0061",
+    "provider": "azure",
+    "region_id": "westeurope"
   },
   {
-    "cluster_id": "f7a9c4db-bedb-57a3-a8b2-de51f7c392bf",
-    "provider": "gcp",
-    "region_id": "us-central1"
+    "cluster_id": "70e4f7fc-200b-58d6-b68a-9d8c2e1b4729",
+    "cluster_name": "aks_cluster-0061",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "890331c2-20fd-50dc-9206-e4b7c740a240",
+    "cluster_name": "aks_cluster-0061",
+    "provider": "azure",
+    "region_id": "westeurope"
   },
   {
     "cluster_id": "f838a19f-1362-5213-8b10-364fa5a0cd18",
+    "cluster_name": "aks_cluster-0070",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "f8831bbb-04f0-5e75-8e16-96c25a7d9011",
-    "provider": "gcp",
-    "region_id": "us-central1"
+    "cluster_id": "0664129f-c311-5f74-82e1-e93bab5b160b",
+    "cluster_name": "aks_cluster-0079",
+    "provider": "azure",
+    "region_id": "westeurope"
   },
   {
-    "cluster_id": "f88cd288-855b-5b31-b6fe-ee873ae05661",
-    "provider": "gcp",
-    "region_id": "europe-west1"
+    "cluster_id": "4fb87a84-4a86-5b25-afec-980f1fd56ce4",
+    "cluster_name": "aks_cluster-0079",
+    "provider": "azure",
+    "region_id": "westeurope"
   },
   {
-    "cluster_id": "f9e1fa81-7e78-548a-93c8-d8fe69cd462d",
+    "cluster_id": "e744c786-3382-5ec7-8f80-711d5c70dcab",
+    "cluster_name": "aks_cluster-0079",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "153239e1-9a97-5f58-99e2-e0072be3961d",
+    "cluster_name": "aks_cluster-0088",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "1f4815a8-0172-52ed-8e06-ccc57753ee9d",
+    "cluster_name": "aks_cluster-0088",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "898f95ee-e4f6-587e-8f97-c011d1aceb99",
+    "cluster_name": "aks_cluster-0088",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "16e478d6-45ba-5422-a35e-8e769d7d5315",
+    "cluster_name": "aks_cluster-0097",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "c54b30ad-33b6-52ad-a99c-38614be4da4f",
+    "cluster_name": "aks_cluster-0097",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "cc593d31-f40f-5720-bdd5-60491e2f7110",
+    "cluster_name": "aks_cluster-0097",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "79dc7c4b-83c7-5a4b-aeb4-26a36a798949",
+    "cluster_name": "aks_cluster-0106",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "9ac44744-81de-50be-950f-9c6c908f46e4",
+    "cluster_name": "aks_cluster-0106",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "0a5499e5-fafe-58d3-be3e-386cea5c35ce",
+    "cluster_name": "aks_cluster-0115",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "0be979de-61a0-5f27-ae65-49d91d9fb9be",
+    "cluster_name": "aks_cluster-0115",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "918d4bd2-be33-5235-9c4e-8b178f6d0189",
+    "cluster_name": "aks_cluster-0115",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "6604f7c3-dbdb-5a9f-8948-7042f8ea40f1",
+    "cluster_name": "aks_cluster-0124",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "76a742b0-cfa8-5800-919d-1aa19e6f2f75",
+    "cluster_name": "aks_cluster-0124",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "006e5851-05b8-5852-a0d6-01450d7a4784",
+    "cluster_name": "aks_cluster-0133",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "9ef13a08-c4cd-5a80-9534-db10d743b2b2",
+    "cluster_name": "aks_cluster-0133",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "c9ca9daf-e296-5962-b4a4-3854ba06868e",
+    "cluster_name": "aks_cluster-0133",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "36b3f650-b288-5d84-96e9-7f93c307479e",
+    "cluster_name": "aks_cluster-0142",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "b6c4026c-d485-566e-bf34-5e291c5132d2",
+    "cluster_name": "aks_cluster-0142",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "d5905299-b8f7-5ea3-939a-9777d2944ff6",
+    "cluster_name": "aks_cluster-0142",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "38edb3ea-03c0-54e6-83be-71086606050c",
+    "cluster_name": "aks_cluster-0151",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "99141157-8278-56c0-841b-0bac158bf5c1",
+    "cluster_name": "aks_cluster-0151",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "b37ee47f-191a-5820-8687-4a733ccf5323",
+    "cluster_name": "aks_cluster-0160",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "c30cada2-065c-5977-a299-559a86ed2d72",
+    "cluster_name": "aks_cluster-0160 (do not delete)",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "743404df-cef3-576e-b4ea-6d1860a66465",
+    "cluster_name": "aks_cluster-0160_FINAL_v2",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "1d17eac1-2e9f-5700-9d28-70a5ac550d65",
+    "cluster_name": "aks_cluster-0169",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "1f4c2498-a1a9-517d-9141-8e841c3037ab",
+    "cluster_name": "aks_cluster-0169",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "a2fb9b45-00ae-54d9-94da-39d428100968",
+    "cluster_name": "aks_cluster-0169",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "6008037f-2d36-51fa-9349-d7386fd71241",
+    "cluster_name": "aks_cluster-0178",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "d9ae2dbd-c52c-583d-8631-fcd3890d94d6",
+    "cluster_name": "aks_cluster-0178",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "d8626cd4-b838-567e-a0a8-dee681395275",
+    "cluster_name": "aks_cluster-0187",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
     "cluster_id": "fb37fe4d-bbd4-59f2-86a1-d740d89aed39",
+    "cluster_name": "aks_cluster-0187",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
-    "cluster_id": "fc37a3cb-fe14-52e1-83aa-62770b69018a",
-    "provider": "gcp",
-    "region_id": "us-central1"
+    "cluster_id": "a5cadc6e-4cfc-5e4d-9c94-27ea445ad84e",
+    "cluster_name": "aks_cluster-0187 (do not delete)",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "17e84dfc-7dd3-5179-851a-93c9ea57abc2",
+    "cluster_name": "aks_cluster-0196",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "1c60aad9-ec20-562c-97a8-1cfd0e2ff9af",
+    "cluster_name": "aks_cluster-0196",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "f4048d6e-20c4-5d0a-bf4c-3627d69a9462",
+    "cluster_name": "aks_cluster-0196",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "8fe14915-1875-5c8f-bf77-799d98f4c32f",
+    "cluster_name": "aks_cluster-0205",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "bb80b9dd-3ba8-59d6-98a0-582b52fbb083",
+    "cluster_name": "aks_cluster-0205",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "627b09ec-dbb8-5709-b890-239379b9eeaa",
+    "cluster_name": "aks_cluster-0205_FINAL_v2",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "19121497-33de-544c-b780-826ce45defe7",
+    "cluster_name": "aks_cluster-0214",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "32fd2681-c552-5d05-b281-770f7ba437d0",
+    "cluster_name": "aks_cluster-0214",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "298ffbba-82d8-57f8-949a-40a12a335405",
+    "cluster_name": "aks_cluster-0223",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "df234484-f9e8-56ae-b271-4d7dee84ce98",
+    "cluster_name": "aks_cluster-0223",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "e24361d5-6ed3-5fd3-8713-45c8369406b0",
+    "cluster_name": "aks_cluster-0223",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "472ae59b-a6d2-5a35-b34f-ae9e026699c3",
+    "cluster_name": "aks_cluster-0232",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "70c083cf-7eb5-5bf1-8b8b-36521c1bbe29",
+    "cluster_name": "aks_cluster-0232",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "aa77e964-5c6c-5f88-b639-b0f9e1da4e87",
+    "cluster_name": "aks_cluster-0232 (do not delete)",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "99390422-ce7f-53f0-ab1b-b507d8b598b0",
+    "cluster_name": "aks_cluster-0241",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "9959fe3f-c272-5ad4-90ec-4857dea130a0",
+    "cluster_name": "aks_cluster-0241",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "bbdb8f4d-4fec-50b2-9f13-90c9df9290dd",
+    "cluster_name": "aks_cluster-0241",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "77709d2b-43a7-5ed8-ac1b-860c72efea0a",
+    "cluster_name": "aks_cluster-0250_FINAL_v2",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "978f53ef-54f8-599a-9955-691acc8d3af2",
+    "cluster_name": "aks_cluster-0250_FINAL_v2",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "99e82a91-5edb-50e4-b4b8-996fac305bf2",
+    "cluster_name": "aks_cluster-0259",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "b4ec231b-3653-50dd-8b9b-bc75262bcff6",
+    "cluster_name": "aks_cluster-0259",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "cf761afe-52b4-519e-94ac-c7eb7e328285",
+    "cluster_name": "aks_cluster-0259",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "5924c324-bf90-5638-9e7d-69bdd3c2cd48",
+    "cluster_name": "aks_cluster-0268",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "8a51f852-adc1-5804-aab9-60042abc368b",
+    "cluster_name": "aks_cluster-0268",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "47dd59c4-6183-55ee-8aa3-90664207bc6c",
+    "cluster_name": "aks_cluster-0277",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "cc855a82-d2b9-519c-b7d4-8e4aa895c1f3",
+    "cluster_name": "aks_cluster-0277",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "e46250e0-2292-5356-813a-3854d1b9f20d",
+    "cluster_name": "aks_cluster-0277 (do not delete)",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "2311b8ce-7478-5306-91f7-571c6cedec94",
+    "cluster_name": "aks_cluster-0286",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "284cb7ac-560a-57e9-afa1-3e1cca030a39",
+    "cluster_name": "aks_cluster-0286",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "5a00e4c2-8f01-5ac9-b6df-74cc570a2782",
+    "cluster_name": "aks_cluster-0286",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "34abc853-e9ff-5070-b583-6e4da73eab38",
+    "cluster_name": "aks_cluster-0295",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "5217b304-7850-51d6-a293-929aa6df8630",
+    "cluster_name": "aks_cluster-0295",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "d48c2a11-5005-5832-9e2f-3ffbab56f60b",
+    "cluster_name": "aks_cluster-0295",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "9719c70f-c376-5622-b633-cf81204d73cb",
+    "cluster_name": "aks_cluster-0304",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "0121a9be-a382-5e9d-9c1a-ee253e9df174",
+    "cluster_name": "aks_cluster-0313",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "32cf43d0-00be-5701-b37a-65eba8e3e986",
+    "cluster_name": "aks_cluster-0313",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "735cb1a9-b544-54f6-9a55-ff4e76656289",
+    "cluster_name": "aks_cluster-0313",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "17afdce3-e63a-5f6d-8dc3-7707997f22f0",
+    "cluster_name": "aks_cluster-0322",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "702d7c99-f6a9-536c-81cc-ebfa265349f5",
+    "cluster_name": "aks_cluster-0322",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "8d299e61-876b-59fb-ad01-b5cfc4f406d8",
+    "cluster_name": "aks_cluster-0331",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "ce1e9b93-e69c-510a-a4c4-769c11d37b02",
+    "cluster_name": "aks_cluster-0331",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "7de13374-4a05-5940-a68b-9f13aa460fb3",
+    "cluster_name": "aks_cluster-0331 (do not delete)",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "0f28e9f8-f8b3-5478-9c47-61089b2ec917",
+    "cluster_name": "aks_cluster-0340",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "18c947cf-bced-5083-b55d-06ca8355a2e0",
+    "cluster_name": "aks_cluster-0340",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "7a45a14b-c1ae-571d-861b-2eae81cf5e83",
+    "cluster_name": "aks_cluster-0349",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "8753a193-79c2-5d5d-97c5-a36dfdedfa1e",
+    "cluster_name": "aks_cluster-0349",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "ca42a756-f5ae-5edc-94ca-1ec0ffe89e60",
+    "cluster_name": "aks_cluster-0349 (do not delete)",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "31460bb6-1293-5a86-8491-f58390ec3503",
+    "cluster_name": "aks_cluster-0358",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "ed306e6a-717f-5460-a6fd-f8f9a99768e7",
+    "cluster_name": "aks_cluster-0358",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "7b995764-851e-516f-9c17-71079dacfa01",
+    "cluster_name": "aks_cluster-0358_FINAL_v2",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "207f1612-51ea-5e19-b9f1-ef68b50c45c2",
+    "cluster_name": "aks_cluster-0367",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "597bb39d-0542-5f3c-897d-add3a70c5353",
+    "cluster_name": "aks_cluster-0367",
+    "provider": "azure",
+    "region_id": "westeurope"
   },
   {
     "cluster_id": "fc8a10a4-eec2-5537-b3ab-6ab250d5dac3",
+    "cluster_name": "aks_cluster-0367",
     "provider": "azure",
     "region_id": "westeurope"
   },
   {
+    "cluster_id": "1c745d7c-dddc-5957-9292-04415fe7b224",
+    "cluster_name": "eks_cluster-0006",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "826304e1-8b31-541a-b7d4-8ddb221ba2a3",
+    "cluster_name": "eks_cluster-0006",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "d90eaa46-de82-5cb3-88c8-d172791af18c",
+    "cluster_name": "eks_cluster-0006",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "460c8934-4c5a-5e6b-8846-f193543e7ffd",
+    "cluster_name": "eks_cluster-0021",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "5d1c9d11-4a9d-5c62-84c1-28dc7f3157d7",
+    "cluster_name": "eks_cluster-0021",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "e76294ef-8632-50b3-af83-940b457b263b",
+    "cluster_name": "eks_cluster-0021_FINAL_v2",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "596036bb-a2ea-582d-b532-60f92be2f584",
+    "cluster_name": "eks_cluster-0036",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "da9bbd82-af57-505f-8ba8-3128534b6354",
+    "cluster_name": "eks_cluster-0036",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
     "cluster_id": "fd9326a9-a313-5afa-bfb7-26b65d026a4d",
+    "cluster_name": "eks_cluster-0036",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "3f2cb2ac-7c57-5ba7-86cc-ccf34d7aefb4",
+    "cluster_name": "eks_cluster-0051",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "60fda9a0-6491-53e1-b841-837c2af902cb",
+    "cluster_name": "eks_cluster-0051",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "329558ba-56f9-550a-80be-d608329264cb",
+    "cluster_name": "eks_cluster-0066",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "38204f9a-d4e8-5c28-9067-cb0e5b02fec2",
+    "cluster_name": "eks_cluster-0066",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "e451f836-fac5-50ac-9341-f6c5504e38de",
+    "cluster_name": "eks_cluster-0066",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "21a75cc0-16eb-5386-989f-5d94372dd487",
+    "cluster_name": "eks_cluster-0081",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "a4763945-6ee8-5108-9fa1-fbdab2ff76ac",
+    "cluster_name": "eks_cluster-0081",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "3fb7af4f-7a25-556f-9e2b-94c824cf308f",
+    "cluster_name": "eks_cluster-0096",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "76143e26-36f9-530e-b6ab-ea48c019fb35",
+    "cluster_name": "eks_cluster-0096",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "ac939dda-2e34-505e-b4d8-35b9108349e4",
+    "cluster_name": "eks_cluster-0096",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "316d507d-68e5-594a-8672-254047b14472",
+    "cluster_name": "eks_cluster-0111",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "4c3dfef4-849e-50e6-8b84-904c93c8ece0",
+    "cluster_name": "eks_cluster-0111",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "6589e8bf-8a66-588a-96da-0480eb5d5416",
+    "cluster_name": "eks_cluster-0111",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "0f915dce-2ce8-54bb-9c7c-46fbfeee3d0d",
+    "cluster_name": "eks_cluster-0126",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "17de10a4-9c17-51c4-aaec-b870c62e9418",
+    "cluster_name": "eks_cluster-0126",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "b5ca4ff5-3755-56ea-bac4-e7d8ee753844",
+    "cluster_name": "eks_cluster-0126",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "c6476314-844d-563e-b588-993c7696bec5",
+    "cluster_name": "eks_cluster-0141",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "eda779d6-c801-5809-9946-40fe900a0905",
+    "cluster_name": "eks_cluster-0141",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "782c48f9-4176-5e0b-964c-efeac6a034ed",
+    "cluster_name": "eks_cluster-0156",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "869afd87-1a9d-55a4-8801-ca8ea117d282",
+    "cluster_name": "eks_cluster-0156",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "f6529d0e-652c-54f9-8c06-7d8c9e05ae1a",
+    "cluster_name": "eks_cluster-0156",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "176ce33b-76f5-50bd-91b4-358f3455aa6f",
+    "cluster_name": "eks_cluster-0171",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "2aef227f-4be1-54ea-aa12-4ad71645377c",
+    "cluster_name": "eks_cluster-0171",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "06f48544-7e0f-59ec-b675-b2384adb9add",
+    "cluster_name": "eks_cluster-0186",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "68d73170-53c3-5111-8808-4a0207e30995",
+    "cluster_name": "eks_cluster-0186",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "724f68bc-c395-5e74-bca1-546d6bfe02e9",
+    "cluster_name": "eks_cluster-0186",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "7cc5387d-c42c-53bd-9e74-3467658b4494",
+    "cluster_name": "eks_cluster-0201",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "b07228bf-6197-5465-b1fc-65197dbaad14",
+    "cluster_name": "eks_cluster-0201",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "bae2459a-6c27-5ec0-9ec0-a85f8cf38a17",
+    "cluster_name": "eks_cluster-0201 (do not delete)",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "2000db3f-381d-5799-a8c1-03dd37637847",
+    "cluster_name": "eks_cluster-0216",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "58cf6606-bdf8-5034-9401-2293b0503b26",
+    "cluster_name": "eks_cluster-0216",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "9275509d-7c77-59d7-ab6d-f1c97ad8077c",
+    "cluster_name": "eks_cluster-0231",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "994ef0ac-5b3f-577a-9f4e-945dedf48706",
+    "cluster_name": "eks_cluster-0246",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "ca1b1ea8-9cf3-52d7-8bf0-c58fec15141a",
+    "cluster_name": "eks_cluster-0246",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "ea60ba19-bf15-535f-8475-814155d5333e",
+    "cluster_name": "eks_cluster-0246",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "71902c33-f205-5646-8f63-80e647cc36f3",
+    "cluster_name": "eks_cluster-0261",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "b21cb7ee-f89f-5523-b9ca-80fe6f24c3c2",
+    "cluster_name": "eks_cluster-0261",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "e166a4d6-23ec-5c86-8cf3-c307a80b3879",
+    "cluster_name": "eks_cluster-0261",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "7f99add5-7fa0-509b-a8b2-6cb33633f06d",
+    "cluster_name": "eks_cluster-0276",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "b393e750-75ff-5abb-9c62-71b757c3cad4",
+    "cluster_name": "eks_cluster-0276",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "cc58ba52-76ca-5715-b23f-28777c82f17a",
+    "cluster_name": "eks_cluster-0276_FINAL_v2",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "04ec25c3-2db7-587c-b255-684fc171e1a6",
+    "cluster_name": "eks_cluster-0291",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "e474416b-3de7-5970-8c38-6e25b10fded7",
+    "cluster_name": "eks_cluster-0291",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "337224ac-4180-5084-81f4-57846274a413",
+    "cluster_name": "eks_cluster-0306",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "72ebdbae-a749-54a2-b95e-76a58e063936",
+    "cluster_name": "eks_cluster-0306",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "ecd68f3d-d652-5185-ab86-e364fa633eda",
+    "cluster_name": "eks_cluster-0306",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "c9a6e182-2170-5571-bddb-a77ddae717ec",
+    "cluster_name": "eks_cluster-0321",
     "provider": "aws",
     "region_id": "us-east-1"
   },
   {
     "cluster_id": "ffb18370-adf2-54f9-a6cd-3822710b280e",
+    "cluster_name": "eks_cluster-0321 (do not delete)",
     "provider": "aws",
     "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "c8904cf0-8d2b-5cc9-9806-de5c8936985c",
+    "cluster_name": "eks_cluster-0321_FINAL_v2",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "33f345b4-560e-58be-a923-cb45f0db9ec1",
+    "cluster_name": "eks_cluster-0336",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "8ebe18a8-ef36-5bad-8f7c-e334d58cf7db",
+    "cluster_name": "eks_cluster-0336",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "a7f1e553-1bef-576d-a158-5a65c7395074",
+    "cluster_name": "eks_cluster-0336",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "a47a94ac-be3e-54a5-906d-c277ee6a1b75",
+    "cluster_name": "eks_cluster-0351",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "ce3b87db-e023-537c-9d88-41c7f61fea06",
+    "cluster_name": "eks_cluster-0351",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "5afdc9bf-61ae-5b97-a634-f5418797b113",
+    "cluster_name": "eks_cluster-0366",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "cd855164-7802-57b7-a60e-3af3f56396b6",
+    "cluster_name": "eks_cluster-0366",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "a07da35f-a0ee-53c3-8e49-6f112886974f",
+    "cluster_name": "eks_cluster-0366 (do not delete)",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "13b7e628-e16b-5eb3-bc18-180aae307917",
+    "cluster_name": "gke_cluster-0007",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "4d435286-3229-5fb2-abeb-43161005e59d",
+    "cluster_name": "gke_cluster-0007",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "748a73f6-bd99-59d8-84c0-fd82cbefccd9",
+    "cluster_name": "gke_cluster-0007",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "27ac72aa-4ea6-50fa-b7a9-e93a3d78381e",
+    "cluster_name": "gke_cluster-0017 (do not delete)",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "814dfe84-010a-5b28-8b02-09828da448aa",
+    "cluster_name": "gke_cluster-0017 (do not delete)",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "8d1fbc71-2948-50d2-89a3-1090f88214be",
+    "cluster_name": "gke_cluster-0017 (do not delete)",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "696ce303-479e-5080-8c75-cd4bc3530e93",
+    "cluster_name": "gke_cluster-0027",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "6e76c033-0c84-52f3-95d4-092c8e83e96b",
+    "cluster_name": "gke_cluster-0027",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "c3e288e5-f470-5a06-ba8e-668debec30ef",
+    "cluster_name": "gke_cluster-0027",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "327c2aff-9eea-527f-b2c1-fadcdddb4369",
+    "cluster_name": "gke_cluster-0037",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "35fa2bd1-89d5-5fc2-8350-153317c7612f",
+    "cluster_name": "gke_cluster-0037",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "2099f5aa-5968-56e9-abb3-80dbd7e11688",
+    "cluster_name": "gke_cluster-0047",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "64583825-bd8b-5dc2-b20f-f3213fb1fdb1",
+    "cluster_name": "gke_cluster-0047",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "a512fc6b-e5f5-58fa-8ee0-33232b6feb4d",
+    "cluster_name": "gke_cluster-0047",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "2aa3cd1e-b26f-5c3f-b65f-7befed1608c5",
+    "cluster_name": "gke_cluster-0057",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "b053f0c5-8ac5-5662-8c57-75dcc5444051",
+    "cluster_name": "gke_cluster-0057",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "74d44b2f-9617-5164-b061-4071339c0b5c",
+    "cluster_name": "gke_cluster-0057 (do not delete)",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "58c6d976-a083-5cac-abb4-0c45abc4f48b",
+    "cluster_name": "gke_cluster-0067",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "8fbec23f-78b7-518b-a20b-b97f58d3b3de",
+    "cluster_name": "gke_cluster-0067 (do not delete)",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "7d60cd54-8c70-5ec0-b90f-5a716f946b3f",
+    "cluster_name": "gke_cluster-0077",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "95ef7bf6-9e7c-5cd0-a9cb-aede8937eada",
+    "cluster_name": "gke_cluster-0077",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "55bffa0b-73a4-55f3-9a33-4d803ba57848",
+    "cluster_name": "gke_cluster-0077 (do not delete)",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "5fdeae51-afdf-57d0-898e-9802fe162584",
+    "cluster_name": "gke_cluster-0087",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "8af2a810-f197-5fe6-8f51-1a6e99a2afa8",
+    "cluster_name": "gke_cluster-0087",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "483602d2-6109-5bb4-b505-138b4cfbb533",
+    "cluster_name": "gke_cluster-0087_FINAL_v2",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "06891791-a328-53ef-bf01-bd3b7a2abb12",
+    "cluster_name": "gke_cluster-0097",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "82335409-8542-5f5a-802e-890759b5f680",
+    "cluster_name": "gke_cluster-0097",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "c8fd8feb-b4c7-53d1-9ef3-7df0c83d665a",
+    "cluster_name": "gke_cluster-0097",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "9c912933-3bbb-595a-a3ff-9e9b4da58c36",
+    "cluster_name": "gke_cluster-0107",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "b8dceeea-5c90-501e-bb05-1f68cd0eba6e",
+    "cluster_name": "gke_cluster-0107",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "58a2142b-c3af-5a18-b2a7-ffc4ae9b99ce",
+    "cluster_name": "gke_cluster-0117",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "9a28c832-4030-539b-85ee-2f30583c6c42",
+    "cluster_name": "gke_cluster-0117",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "da88f10b-2aea-5613-81e2-1755a81bf547",
+    "cluster_name": "gke_cluster-0117",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "22e08dcb-7a4a-5c66-9602-3b2ac9460e9d",
+    "cluster_name": "gke_cluster-0127",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "7d7263d1-3e23-5130-93fe-29ca19ca5c27",
+    "cluster_name": "gke_cluster-0127",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "872ead7b-119f-5eeb-8c32-e67c20b4c639",
+    "cluster_name": "gke_cluster-0127",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "2fd7e81a-cb55-5948-9df7-e7bf9db980a6",
+    "cluster_name": "gke_cluster-0137",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "801e8ed0-70a8-5f0d-baec-93dd6c4c1e04",
+    "cluster_name": "gke_cluster-0137",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "9de0404c-93cd-58a0-8ca6-9e16970051e8",
+    "cluster_name": "gke_cluster-0137_FINAL_v2",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "18ddb080-0d0b-592a-a8a3-b34436cec6eb",
+    "cluster_name": "gke_cluster-0147",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "7263a99e-25e0-5c9e-9b7d-53b5b7e9cf30",
+    "cluster_name": "gke_cluster-0147",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "197dc4ec-eae0-51a0-8309-7391d6c26763",
+    "cluster_name": "gke_cluster-0157",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "21184733-32f4-56ee-9d25-7328f1e7b2b5",
+    "cluster_name": "gke_cluster-0157",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "5ed09d60-b86f-5c64-84d9-92990448ae6f",
+    "cluster_name": "gke_cluster-0157",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "4529ab7e-409f-5cc3-be8e-bc6638cf5587",
+    "cluster_name": "gke_cluster-0167",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "8b639fdd-31cb-5ea0-a429-b9c508b6697e",
+    "cluster_name": "gke_cluster-0167",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "c4247300-b1ad-5e94-9ce3-7cd0a7fb8c6e",
+    "cluster_name": "gke_cluster-0167",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "2fd0aba7-6e71-5ff8-8861-9b4665442fb8",
+    "cluster_name": "gke_cluster-0177",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "b002b459-6906-504c-974c-50f144ce9b07",
+    "cluster_name": "gke_cluster-0177",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "f7a9c4db-bedb-57a3-a8b2-de51f7c392bf",
+    "cluster_name": "gke_cluster-0177",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "02bedf55-61e0-5ada-9c1b-aea082be8957",
+    "cluster_name": "gke_cluster-0187",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "4c46719a-48d8-56ef-afa6-66996a15e0f3",
+    "cluster_name": "gke_cluster-0187",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "5ddccbb9-0d9a-5a7d-bd0b-cc88f9d5da18",
+    "cluster_name": "gke_cluster-0197",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "b1c62013-088d-594c-b92b-4774d2c51f3c",
+    "cluster_name": "gke_cluster-0197",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "efbababf-35fd-5f95-9d08-0c21a1ceffe8",
+    "cluster_name": "gke_cluster-0197",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "61cd0b96-01ad-52aa-ae13-6300899a4853",
+    "cluster_name": "gke_cluster-0207",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "912dbc06-8073-5710-b2c8-ceca7c8ac374",
+    "cluster_name": "gke_cluster-0207",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "970d07c1-35dc-590a-b687-6feb289a88b3",
+    "cluster_name": "gke_cluster-0207",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "58b5a85c-3ca6-511f-824e-8c9745dc5e36",
+    "cluster_name": "gke_cluster-0217",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "c9e53085-f154-5da5-b82f-38bda5d22dcd",
+    "cluster_name": "gke_cluster-0217",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "dc541e1b-a97b-5b55-8790-99945b7d0b2e",
+    "cluster_name": "gke_cluster-0217",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "204e2496-6ed6-54b9-94ab-4bd3f3da8a2e",
+    "cluster_name": "gke_cluster-0227",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "22d6527b-7eb0-54b3-9e75-c882ee649194",
+    "cluster_name": "gke_cluster-0227",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "0f69f6bc-696f-5f9f-b803-63ddc97d532f",
+    "cluster_name": "gke_cluster-0237",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "d7b89054-505e-5442-896f-053fd937ed04",
+    "cluster_name": "gke_cluster-0237",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "fc37a3cb-fe14-52e1-83aa-62770b69018a",
+    "cluster_name": "gke_cluster-0237",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "a225df7e-224a-5a94-8712-50ce8e082af6",
+    "cluster_name": "gke_cluster-0247",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "a5c9b53f-be93-5d29-bb82-550705b17775",
+    "cluster_name": "gke_cluster-0247",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "86f980d1-1118-58dc-a913-e8f26270bd05",
+    "cluster_name": "gke_cluster-0247_FINAL_v2",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "ab530dc7-4f4f-5b89-a390-41943600bdda",
+    "cluster_name": "gke_cluster-0257",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "cc8faaa2-d6f9-510d-b220-9fc63db21313",
+    "cluster_name": "gke_cluster-0257",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "e1311740-c6a6-581e-a6ad-29a9ba77e9fa",
+    "cluster_name": "gke_cluster-0257",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "0612a55a-14f1-533b-bd24-1b2e2df6d5b0",
+    "cluster_name": "gke_cluster-0267",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "864ff5d3-683a-5f98-830c-a869cddca6a8",
+    "cluster_name": "gke_cluster-0267",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "c5d6d393-f5b1-588b-876f-dcda773006b4",
+    "cluster_name": "gke_cluster-0267",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "1daaae5f-178e-5451-b59b-566d2cdec0a9",
+    "cluster_name": "gke_cluster-0277",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "6ce64338-9348-5458-b4b5-41409a60603f",
+    "cluster_name": "gke_cluster-0277",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "58d3d1ed-a690-5bd9-a6c3-effabcae2030",
+    "cluster_name": "gke_cluster-0277_FINAL_v2",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "4297dfb5-8da9-5b0c-9f8b-c58beea70f67",
+    "cluster_name": "gke_cluster-0287",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "94ac383a-0921-54d5-b057-402985fc11b9",
+    "cluster_name": "gke_cluster-0287",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "b4cc7baf-2e08-533e-8629-96cbb93b7c06",
+    "cluster_name": "gke_cluster-0287",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "371278bb-f9c0-551d-9c46-1bab2c3e7b78",
+    "cluster_name": "gke_cluster-0297",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "4dfef794-2b89-5adf-8021-b17e935d4576",
+    "cluster_name": "gke_cluster-0297",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "cbba645e-7110-5d08-b302-3602a10ea654",
+    "cluster_name": "gke_cluster-0297",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "3f4d151d-0260-54c4-8d52-e17b6e85e841",
+    "cluster_name": "gke_cluster-0307",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "5cc42eb2-2c50-5869-9232-3f56771a40cb",
+    "cluster_name": "gke_cluster-0307",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "952550c2-2548-5d35-9c2b-4d4e88d75d80",
+    "cluster_name": "gke_cluster-0307 (do not delete)",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "2203aec0-efac-5c14-831c-3186b50aee54",
+    "cluster_name": "gke_cluster-0317",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "7947eee0-6eeb-5e50-abf7-8a7ad21442ec",
+    "cluster_name": "gke_cluster-0317",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "b16cb244-f5b0-59e6-a531-cd99d1cbaebe",
+    "cluster_name": "gke_cluster-0317",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "3711fa3d-39c6-562a-b429-f79890df2eee",
+    "cluster_name": "gke_cluster-0327",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "665f76f9-177d-53c6-bddb-d644b2e61032",
+    "cluster_name": "gke_cluster-0327",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "be153a78-5486-5d81-9f04-addb7ec63925",
+    "cluster_name": "gke_cluster-0327",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "1109872a-d5ae-56ff-88f3-436f2a143154",
+    "cluster_name": "gke_cluster-0337",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "923bc89f-fb66-5b60-b691-8da90165483a",
+    "cluster_name": "gke_cluster-0337",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "acf9720e-4e38-5e70-8e59-61a077d0c9fa",
+    "cluster_name": "gke_cluster-0337_FINAL_v2",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "23ebdc76-5b49-57a1-b3ac-2708b3ff0838",
+    "cluster_name": "gke_cluster-0347",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "713fd185-a049-5d9a-be3f-e4560f9a3d96",
+    "cluster_name": "gke_cluster-0347",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "beae9a74-0b78-51ce-a91c-1afed4dccdaf",
+    "cluster_name": "gke_cluster-0347",
+    "provider": "gcp",
+    "region_id": "southamerica-east1"
+  },
+  {
+    "cluster_id": "30f1e403-5890-5bd7-b266-2e804ee7b5d0",
+    "cluster_name": "gke_cluster-0357",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "ae9c53fd-3ee8-52d2-ac13-f44145c42148",
+    "cluster_name": "gke_cluster-0357",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "f8831bbb-04f0-5e75-8e16-96c25a7d9011",
+    "cluster_name": "gke_cluster-0357 (do not delete)",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "3d4296ef-02bf-5e60-b551-f5b2aeb83b35",
+    "cluster_name": "gke_cluster-0367",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "f88cd288-855b-5b31-b6fe-ee873ae05661",
+    "cluster_name": "gke_cluster-0367",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "6be9f006-b248-5ec4-9ad2-095157e46c25",
+    "cluster_name": "prodaks_cluster-0034COPY",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "cb8513d5-e186-5295-a537-5f56eb556803",
+    "cluster_name": "prodaks_cluster-0052COPY",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "40add76d-92e8-5974-a4e5-22be06cd72b1",
+    "cluster_name": "prodaks_cluster-0070COPY",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "846d69c2-e5ed-510e-a4f9-005b79391677",
+    "cluster_name": "prodaks_cluster-0070COPY",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "dfbbff7d-cea8-502d-969d-f35991c499af",
+    "cluster_name": "prodaks_cluster-0151COPY",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "38b8b4f7-bbb1-5d49-a1fd-937710757c68",
+    "cluster_name": "prodaks_cluster-0214COPY",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "60ab7a7a-fdd9-587f-a998-2d36565d8e7c",
+    "cluster_name": "prodaks_cluster-0250COPY",
+    "provider": "azure",
+    "region_id": "westeurope"
+  },
+  {
+    "cluster_id": "b7e3a10e-c332-503e-86a2-dd9b27013cc4",
+    "cluster_name": "prodeks_cluster-0051COPY",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "abc636e1-108e-51f5-8d9b-538a1ca782dd",
+    "cluster_name": "prodeks_cluster-0171COPY",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "a59fe726-1642-5cf6-8437-ea5aadceaf56",
+    "cluster_name": "prodeks_cluster-0216COPY",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "923c1ff2-9acd-516f-90e6-8ad3c6a1ba47",
+    "cluster_name": "prodeks_cluster-0231COPY",
+    "provider": "aws",
+    "region_id": "us-east-1"
+  },
+  {
+    "cluster_id": "4a9a6676-a361-56fa-bd2d-802e16841711",
+    "cluster_name": "prodgke_cluster-0147COPY",
+    "provider": "gcp",
+    "region_id": "us-central1"
+  },
+  {
+    "cluster_id": "958840a0-d12e-523c-8edf-d9624ff488db",
+    "cluster_name": "prodgke_cluster-0187COPY",
+    "provider": "gcp",
+    "region_id": "europe-west1"
+  },
+  {
+    "cluster_id": "233ef38d-5299-526d-8dbe-94b7bfaef957",
+    "cluster_name": "prodgke_cluster-0367COPY",
+    "provider": "gcp",
+    "region_id": "europe-west1"
   }
 ]

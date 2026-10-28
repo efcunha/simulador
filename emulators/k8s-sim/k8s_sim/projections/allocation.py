@@ -19,6 +19,13 @@ versioned fixture ``k8s_sim/fixtures/clusters.json``, derived from the estate by
 ``scripts/export_clusters.py``. The service reads that file; it never imports the
 generator, and it never invents a cluster that is not in the file.
 
+**The cluster's identity is its NAME.** The CloudPilot discovery returns the estate's
+``resource_name`` and the consumer sends it back as ``filter=cluster:"<name>"``, so the
+name is what the filter selects, what ``properties.cluster`` carries and what
+``aggregate=cluster`` keys by. The estate's canonical ``uuid`` is kept in the fixture as
+the auxiliary ``cluster_id`` and is accepted as an **alias** of the name in the filter --
+an alias is accepted, never published: the payload always carries the name.
+
 **The field names are OpenCost's, not this project's.** They were read from the
 official sources cited in ``docs/k8s-sim-opencost-contract.md``: the envelope from
 ``core/pkg/protocol/http.go`` (``HTTPResponse``), the allocation fields from
@@ -136,6 +143,10 @@ class AllocationFilter:
 
     A term that is absent is not a constraint: ``None`` means "the request did not
     say", which is different from "the request said something that does not match".
+
+    The ``cluster`` term is kept **as written** -- the name the discovery returns, or
+    the estate's canonical id used as an alias. Resolving it is
+    :func:`resolve_cluster_name`'s job, not the parser's.
     """
 
     cluster: str | None = None
@@ -165,6 +176,10 @@ def estate_clusters() -> dict[str, dict[str, str]]:
     service must be a pure function of the request, and a file read on every request
     would make it depend on the file system as well.
 
+    The index is keyed by the ``cluster_id`` -- the estate's canonical ``uuid`` --
+    because that is the one identity that is unique across the estate. Every cluster
+    of the estate is kept, including the ones that share a name.
+
     :raises FileNotFoundError: when the fixture is missing -- a deployment error, and
         it must not be papered over with an empty catalog.
     """
@@ -172,11 +187,50 @@ def estate_clusters() -> dict[str, dict[str, str]]:
     return {record["cluster_id"]: record for record in records}
 
 
+@lru_cache(maxsize=1)
+def estate_clusters_by_name() -> dict[str, dict[str, str]]:
+    """The estate's clusters, indexed by the name the discovery returns.
+
+    The name is the contract's identity, and the estate **reuses names across
+    scopes**: the 309 clusters carry 160 distinct names (measured on the canonical
+    estate of 2026-10-28), so a name is unique within a scope, not across the
+    estate. The index therefore keeps the first record of each name -- the catalog is
+    sorted deterministically, so "first" is well defined -- and the payload publishes
+    the name, which is the same for every cluster that shares it.
+    """
+    index: dict[str, dict[str, str]] = {}
+    for record in estate_clusters().values():
+        index.setdefault(record["cluster_name"], record)
+    return index
+
+
+def resolve_cluster_name(term: str) -> str | None:
+    """The name of the cluster a filter term names, or ``None``.
+
+    The term is read as the **name** first -- that is the identity the consumer
+    sends -- and as the estate's canonical ``cluster_id`` second, where it is an
+    accepted **alias**. An alias is only ever accepted: the answer carries the name,
+    so a request answered through the alias is indistinguishable from one answered
+    through the name.
+
+    A term that is neither names no cluster of the estate: the request selected nothing.
+    """
+    record = estate_clusters_by_name().get(term)
+    if record is not None:
+        return record["cluster_name"]
+
+    record = estate_clusters().get(term)
+    if record is not None:
+        return record["cluster_name"]
+
+    return None
+
+
 def parse_filter(raw: str | None) -> AllocationFilter:
     """Parse the ``filter`` parameter into the terms this phase reads.
 
     The shape is the one the CloudPilot provider sends: terms written as
-    ``key:"value"`` and joined with ``+`` -- ``cluster:"<id>"+namespace:"<ns>"``.
+    ``key:"value"`` and joined with ``+`` -- ``cluster:"<name>"+namespace:"<ns>"``.
 
     Only ``cluster``, ``namespace`` and ``controller`` are read. A term this phase
     cannot honour is **refused**, not ignored: answering a filtered request with an
@@ -220,20 +274,19 @@ def parse_filter(raw: str | None) -> AllocationFilter:
 
 
 def resolve_cluster(alloc_filter: AllocationFilter) -> str | None:
-    """The cluster the request selects.
+    """The cluster the request selects, **by name**.
 
     A request that names no cluster gets the synthetic default cluster. A request
-    that names a cluster of the estate gets that cluster. A request that names a
-    cluster the estate does not have selects **nothing**: the answer is an empty one,
-    never a made-up cluster.
+    that names a cluster of the estate -- by its name, or by the canonical id used
+    as an alias -- gets that cluster's **name**. A request that names a cluster the
+    estate does not have selects **nothing**: the answer is an empty one, never a
+    made-up cluster.
 
-    :returns: the cluster id, or ``None`` when the request selects no cluster.
+    :returns: the cluster's name, or ``None`` when the request selects no cluster.
     """
     if alloc_filter.cluster is None:
         return CLUSTER
-    if alloc_filter.cluster not in estate_clusters():
-        return None
-    return alloc_filter.cluster
+    return resolve_cluster_name(alloc_filter.cluster)
 
 
 def allocation_key(aggregate: str, cluster: str) -> str:
@@ -245,6 +298,9 @@ def allocation_key(aggregate: str, cluster: str) -> str:
     aggregation asks for it -- not because the allocation has it -- so
     ``aggregate=namespace`` keys by ``payments`` and ``aggregate=namespace,controller``
     keys by ``payments/api``.
+
+    ``aggregate=cluster`` keys by the cluster's **name** -- the identity the consumer
+    sends and the one the estate carries.
 
     The ``controllerKind`` does not prefix the controller here: the synthetic
     allocation has no ``controllerKind``, and the official key only carries it when
@@ -371,8 +427,9 @@ def build_allocation(
     """The OpenCost allocation object for the window that runs from ``start`` to ``end``.
 
     ``days`` is the length of that window in days: one for a daily set, the length of
-    the whole request for an accumulated one. ``cluster`` is the cluster the request
-    selected, and ``key`` is the key the aggregation files the allocation under.
+    the whole request for an accumulated one. ``cluster`` is the **name** of the cluster
+    the request selected, and ``key`` is the key the aggregation files the allocation
+    under.
     """
     allocation: dict[str, Any] = {
         "name": key,
