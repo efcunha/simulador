@@ -2,28 +2,37 @@
 # emulators/; everything else is either generated, virtualenv, VCS metadata or a
 # test artifact. Without this file the context included .venv/ and out/ (hundreds
 # of MB) and a single `compose up --build` spent tens of minutes transferring it.
+#
+# PATTERN SEMANTICS (Docker/Podman .dockerignore): a bare pattern is matched
+# against the path RELATIVE TO THE CONTEXT ROOT, so `out` only excludes
+# `<context>/out` and NEVER `<context>/tools/synthetic_clouds/out`. The heavy
+# tree in this repo is nested, so every generated directory that can appear at
+# any depth MUST use the `**/` prefix. Measured on 2026-10-28: `out` alone left
+# tools/synthetic_clouds/out in the context -- 5.67 GB / 133.748 files, and the
+# `compose up --build` of the GCP plane never finished its context transfer.
+# `**/out` drops that tree; the images never needed it (gitignored, 0 tracked
+# files, only mypy/ruff caches and pytest artifacts).
 .git
-.venv
-out
-pytest-of-*
-evidence-tmp
-.mypy_cache
-.ruff_cache
-.pytest_cache
-__pycache__
-*.pyc
-*.pyo
-.artifacts
-.benchmarks
-.worktrees
-.kiro
-.agents
-.venv
-uvcache
-d3bis
+**/.venv
+**/out
+**/pytest-of-*
+**/evidence-tmp
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.artifacts
+**/.benchmarks
+**/.worktrees
+**/.kiro
+**/.agents
+**/uvcache
+**/d3bis
 deploy
 docs
 tests
 scripts
 services
-*.xml
+**/*.xml

@@ -442,7 +442,13 @@ if (Test-ContainerExists $AzureSim) {
 }
 
 if (Test-ContainerExists $TlsFront) {
-    if (-not (Start-Container $TlsFront)) { Add-Problem 'tls-front did not become healthy' }
+    # The front is NOT started here: nginx resolves its upstreams
+    # (bigquery-emulator, gcp-sim, aws-sim) at STARTUP and exits with
+    # "host not found in upstream" when they are absent, so starting it
+    # before step 2 attaches those aliases burns the whole Wait-Healthy
+    # timeout in a restart loop and reports a false "did not become
+    # healthy". It is started in step 2b, right after the aliases land.
+    Write-Log 'INFO' 'tls-front container present; start deferred until the upstream aliases exist'
 } else {
     Write-Log 'INFO' 'tls-front container missing; creating from compose'
     Push-Location $DeployDir
@@ -467,6 +473,11 @@ Ensure-NetworkAliases -Container $GcpSim -Network $CpNet -Aliases @('gcp-sim')
 Ensure-NetworkAliases -Container $AwsSim -Network $CpNet -Aliases @('aws-sim')
 Ensure-NetworkAliases -Container $S3Mock -Network $CpNet -Aliases @('s3mock')
 Ensure-NetworkAliases -Container $BqEmu -Network $CpNet -Aliases @('bigquery-emulator')
+
+# 2b. Now that the upstreams answer by name, the front can start.
+if (Test-ContainerExists $TlsFront) {
+    if (-not (Start-Container $TlsFront)) { Add-Problem 'tls-front did not become healthy' }
+}
 
 # 3. CA trust
 Repair-CaBundle | Out-Null

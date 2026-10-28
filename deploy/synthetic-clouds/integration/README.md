@@ -5,10 +5,35 @@ sobrevive a restart/recriação de container.
 
 | Arquivo | Papel |
 |---|---|
+| `cold-start.ps1` | **começo frio em um comando**: sobe a máquina podman (limpando proxy órfão), a stack CloudPilot+CIP, os planos de nuvem sintética e a integração; tolera `already running`; no fim mostra endpoints e containers |
 | `ensure-cloudpilot.ps1` | garante podman machine, containers dos emuladores, aliases DNS na rede do CloudPilot, CA confiável nos containers, janela do estate até o dia UTC atual e (com `-Smoke`) “Verificar Conexão” + `/costs/unified` |
 | `register-ensure-task.ps1` | registra a tarefa `CloudPilot-Simulator-Ensure` (logon + repetição a cada 30 min) via XML **por usuário**; não exige elevação |
 | `run-ensure.cmd` | wrapper que a tarefa agendada executa |
 | `README.md` | este arquivo |
+
+## Começo frio (após `podman machine stop` ou reboot do Windows)
+
+`podman machine stop` derruba **todos** os containers, e **nenhum volta sozinho** quando a
+máquina sobe — nem os que têm `restart=unless-stopped` (a política só vale enquanto o
+serviço vive). Use o cold start:
+
+```powershell
+.\deploy\synthetic-clouds\integration\cold-start.ps1
+```
+
+A ordem interna é obrigatória: máquina → stack CloudPilot → simuladores → integração.
+Os simuladores precisam da bridge `cloudpilot-deploy_cloudpilot_net` (criada pela stack
+CloudPilot), e a integração é o passo que **anexa** os emuladores a ela — sem ele o
+`tls-front` entra em crash-loop com `host not found in upstream "bigquery-emulator:9050"`.
+
+Opções: `-SkipSimulators`, `-SkipIntegration`, `-SkipMachine`.
+
+> **Três-controladores.** Neste host a máquina podman é disputada pelo GUI do Podman
+> Desktop, pela tarefa agendada `CloudPilot-Simulator-Ensure` e pelo CLI. Quando dois
+> iniciam ao mesmo tempo, o perdedor falha com
+> `unable to start "podman-machine-default": already running` (exit 125) — **inofensivo**
+> (a máquina está no ar), mas o GUI mostra um diálogo de erro vermelho. O `cold-start.ps1`
+> tolera esse erro; o GUI não.
 
 ## Uso manual
 
