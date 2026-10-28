@@ -22,10 +22,20 @@ the estate mints for its scope label (``identity.azure_subscription_guid``) and 
 label itself (``sub-01``). The GUID is never written by hand in this file -- it is
 derived from the estate's own seed -- so the route answers whatever subscription id
 the caller holds, and the file pins no subscription into the code.
+
+**The FQDN the discovery reads is published here too.** ``_list_aks_clusters`` reads
+``properties.fqdn`` off the ARM payload and ``get_cluster_health`` hands it back as
+the cluster's ``endpoint``; before this phase the estate published no FQDN at all,
+so the endpoint was an empty string. The last section of this file pins the contract
+of that field: a DNS host under the AKS suffix, stable, unique per cluster, and the
+SAME on both routes -- because both routes serve the same projection. The estate
+those assertions run against is the DEPLOYED one (``SEED=123``, ``medium``: 41
+clusters in ``sub-01``), not the suite's default fixture.
 """
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pytest
@@ -43,6 +53,24 @@ _AKS_TYPE = "Microsoft.ContainerService/managedClusters"
 
 #: The scope label the estate keys its Azure subscriptions under.
 _SCOPE_LABEL = "sub-01"
+
+#: The seed and profile the DEPLOYED stack runs with. The suite's shared ``api_client``
+#: fixture runs the estate's defaults (seed 42, ``small`` profile), whose ``sub-01``
+#: carries 8 clusters; the deployed estate carries 41, and 41 is the number the
+#: discovery actually sees.
+_DEPLOY_SEED = "123"
+_DEPLOY_PROFILE = "medium"
+_DEPLOY_SUBSCRIPTION_CLUSTERS = 41
+
+#: The suffix AKS publishes its API server FQDN under.
+_AKS_SUFFIX = ".azmk8s.io"
+
+#: A DNS label: lower-case, only ``[a-z0-9-]``, no leading or trailing hyphen, and
+#: at most 63 characters (RFC 1035).
+_DNS_LABEL = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
+
+#: The characters a derived hash is written in.
+_HEX = frozenset("0123456789abcdef")
 
 
 def _guid(app) -> str:
@@ -67,6 +95,32 @@ def _resources_list(client, subscription_id: str, *, resource_type: str = _AKS_T
         f"/subscriptions/{subscription_id}/resources",
         params={"$filter": f"resourceType eq '{resource_type}'", "api-version": _RESOURCES_VERSION},
     )
+
+
+def _typed_list(client, subscription_id: str) -> Any:
+    """The typed ``managedClusters`` list of one subscription."""
+    return client.get(
+        f"/subscriptions/{subscription_id}/providers/Microsoft.ContainerService/managedClusters"
+        f"?api-version={_TYPED_VERSION}"
+    )
+
+
+def _assert_dns_hostname(value: object) -> None:
+    """Assert ``value`` is a DNS host under the AKS suffix -- and nothing more.
+
+    A host is not a URL: no scheme, no port, no path. The consumer (``_AKSKubernetesClient``)
+    builds the endpoint out of it, so a value that carried ``https://`` would be a
+    broken contract rather than a different spelling.
+    """
+    assert isinstance(value, str), f"the FQDN must be a string, got {type(value).__name__}"
+    assert value, "the FQDN must not be empty"
+    assert "://" not in value, f"the FQDN is a host, not a URL: {value!r}"
+    assert ":" not in value, f"the FQDN carries no port: {value!r}"
+    assert "/" not in value, f"the FQDN carries no path: {value!r}"
+    assert value.endswith(_AKS_SUFFIX), f"the FQDN is not under {_AKS_SUFFIX}: {value!r}"
+    assert len(value) <= 253, f"the FQDN is longer than a DNS name: {value!r}"
+    for label in value.split("."):
+        assert _DNS_LABEL.match(label), f"not a DNS label: {label!r} (in {value!r})"
 
 
 # ── The request the client makes ─────────────────────────────────────────────────
@@ -253,3 +307,166 @@ def test_the_typed_route_gates_the_api_version(api_client, version: str) -> None
 
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "InvalidApiVersion"
+
+
+# ── The FQDN the discovery reads ─────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="module")
+def deploy_client():
+    """A client bound to the DEPLOYED estate: ``SEED=123``, ``PROFILE=medium``.
+
+    The suite's shared ``api_client`` fixture runs the estate's defaults (seed 42,
+    ``small`` profile), whose ``sub-01`` carries 8 clusters. The deployed stack runs
+    SEED=123/medium, whose ``sub-01`` carries 41 -- the number the discovery actually
+    sees, and the number the FQDN contract is proved against.
+
+    The estate is built once for the module: the generator is deterministic in
+    ``(seed, profile)``, so a second request answers the same rows.
+    """
+    from fastapi.testclient import TestClient
+
+    from azure_sim.api.app import create_app
+    from azure_sim.config import load_settings
+
+    settings = load_settings(
+        env={"SEED": _DEPLOY_SEED, "PROFILE": _DEPLOY_PROFILE},
+        API_PAGE_SIZE=10000,
+    )
+    app = create_app(settings)
+    with TestClient(app) as client:
+        yield client, app
+
+
+def test_the_deployed_subscription_carries_its_forty_one_clusters(deploy_client) -> None:
+    """The deployed estate's ``sub-01`` is the 41-cluster one the discovery reads."""
+    client, app = deploy_client
+    rows = _resources_list(client, _guid(app)).json()["value"]
+
+    assert len(_estate_clusters(app, _SCOPE_LABEL)) == _DEPLOY_SUBSCRIPTION_CLUSTERS
+    assert len(rows) == _DEPLOY_SUBSCRIPTION_CLUSTERS
+
+
+def test_every_row_of_both_routes_carries_an_fqdn(deploy_client) -> None:
+    """Both routes publish a non-empty ``properties.fqdn`` on every cluster row."""
+    client, app = deploy_client
+    guid = _guid(app)
+    resources = _resources_list(client, guid).json()["value"]
+    typed = _typed_list(client, guid).json()["value"]
+
+    assert resources and typed
+    for row in resources + typed:
+        properties = row["properties"]
+        assert "fqdn" in properties, f"no fqdn published for {row['name']!r}"
+        assert properties["fqdn"], f"an empty fqdn published for {row['name']!r}"
+
+
+def test_the_fqdn_is_a_host_under_the_aks_suffix(deploy_client) -> None:
+    """A host, not a URL: no scheme, no port, and under the AKS suffix."""
+    client, app = deploy_client
+    rows = _resources_list(client, _guid(app)).json()["value"]
+
+    for row in rows:
+        _assert_dns_hostname(row["properties"]["fqdn"])
+
+
+def test_the_fqdn_has_the_published_shape(deploy_client) -> None:
+    """``<cluster>-<hash>.<region>.azmk8s.io``: the cluster, a hash, and the region.
+
+    The suffix is TWO labels (``azmk8s`` and ``io``), so the host has four of them.
+    """
+    client, app = deploy_client
+    rows = _resources_list(client, _guid(app)).json()["value"]
+
+    for row in rows:
+        fqdn = row["properties"]["fqdn"]
+        cluster_label, region, zone, tld = fqdn.split(".")
+        assert (zone, tld) == ("azmk8s", "io")
+        assert region == row["location"]
+
+        label, _, digest = cluster_label.rpartition("-")
+        assert label, f"no cluster label in {fqdn!r}"
+        assert digest and set(digest) <= _HEX, f"the hash is not hex in {fqdn!r}"
+
+
+def test_a_name_that_is_not_a_dns_label_is_normalized(deploy_client) -> None:
+    """``aks_cluster-0187 (do not delete)`` is published as a DNS-valid host.
+
+    The estate's cluster names are generator names, not DNS labels: they carry
+    underscores, upper-case characters, spaces and parentheses. The published host is
+    the normalized reading of that name, so the field stays a hostname a client can be
+    handed -- and the name's CONTENT survives the normalization, so the host still
+    names the cluster.
+    """
+    client, app = deploy_client
+    rows = _resources_list(client, _guid(app)).json()["value"]
+    by_name = {row["name"]: row["properties"]["fqdn"] for row in rows}
+
+    awkward = [name for name in by_name if "_" in name or name != name.lower()]
+    assert awkward, "the deployed estate carries a name that needs normalizing"
+
+    for name in awkward:
+        fqdn = by_name[name]
+        _assert_dns_hostname(fqdn)
+        assert "_" not in fqdn
+        assert "(" not in fqdn and " " not in fqdn
+        # Every run of letters and digits of the name survives the normalization: the
+        # host still NAMES the cluster, it is not a hash of nothing.
+        cluster_label = fqdn.split(".")[0]
+        for run in re.findall(r"[a-z0-9]+", name.lower()):
+            assert run in cluster_label, f"{run!r} of {name!r} is missing from {fqdn!r}"
+
+
+def test_the_fqdn_is_stable_between_calls(deploy_client) -> None:
+    """The same cluster answers the same FQDN on every call."""
+    client, app = deploy_client
+    guid = _guid(app)
+
+    first = {row["name"]: row["properties"]["fqdn"] for row in _resources_list(client, guid).json()["value"]}
+    second = {row["name"]: row["properties"]["fqdn"] for row in _resources_list(client, guid).json()["value"]}
+
+    assert first == second
+    assert all(first.values())
+
+
+def test_the_fqdn_is_unique_per_cluster(deploy_client) -> None:
+    """No two clusters of the subscription share an FQDN."""
+    client, app = deploy_client
+    rows = _resources_list(client, _guid(app)).json()["value"]
+    fqdns = [row["properties"]["fqdn"] for row in rows]
+
+    assert len(set(fqdns)) == len(fqdns)
+    assert len(fqdns) == _DEPLOY_SUBSCRIPTION_CLUSTERS
+
+
+def test_both_routes_serve_the_same_fqdn_for_the_same_cluster(deploy_client) -> None:
+    """The typed list and the ARM resources list agree, cluster by cluster.
+
+    Both routes serve the same projection, so a cluster cannot answer one FQDN on
+    the typed list and another on the resources list: the consumer that reads the
+    resources list and the consumer that reads the typed one would then disagree
+    about the same cluster.
+    """
+    client, app = deploy_client
+    guid = _guid(app)
+    resources = {row["name"]: row["properties"]["fqdn"] for row in _resources_list(client, guid).json()["value"]}
+    typed = {row["name"]: row["properties"]["fqdn"] for row in _typed_list(client, guid).json()["value"]}
+
+    assert resources == typed
+
+
+def test_the_properties_carry_no_field_beyond_the_fqdn(deploy_client) -> None:
+    """``fqdn`` joins ``provisioningState``; no other property is published.
+
+    The absence matters as much as the presence: an empty ``agentPoolProfiles``
+    would claim a cluster with no node pools, and a ``dnsPrefix`` would claim a DNS
+    prefix the estate does not model. Both stay absent.
+    """
+    client, app = deploy_client
+    rows = _resources_list(client, _guid(app)).json()["value"]
+
+    for row in rows:
+        assert set(row["properties"]) == {"provisioningState", "fqdn"}
+        assert "agentPoolProfiles" not in row["properties"]
+        assert "dnsPrefix" not in row["properties"]
+        assert "privateFqdn" not in row["properties"]

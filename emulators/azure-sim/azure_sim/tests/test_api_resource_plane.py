@@ -198,6 +198,29 @@ def test_managed_clusters_serve_the_name_and_region_discovery_reads(api_client) 
         assert "agentPoolProfiles" not in row["properties"]
 
 
+def test_managed_clusters_serve_the_fqdn_and_nothing_else(api_client) -> None:
+    """The typed list publishes ``properties.fqdn`` -- the only property added.
+
+    ``fqdn`` is the endpoint ``_list_aks_clusters`` reads and ``get_cluster_health``
+    hands back, so the typed list carries it too. It is the ONLY addition: the
+    properties of a managed cluster are exactly the provisioning state and the FQDN,
+    and a field that appears empty is a claim about the cluster the estate does not
+    make.
+    """
+    client, app = api_client
+    resp = client.get(f"{_AKS_PATH}?api-version={_AKS_VERSION}")
+    assert resp.status_code == 200
+    rows = resp.json()["value"]
+
+    for row in rows:
+        properties = row["properties"]
+        assert set(properties) == {"provisioningState", "fqdn"}
+        fqdn = properties["fqdn"]
+        assert fqdn, f"an empty fqdn published for {row['name']!r}"
+        assert fqdn.endswith(".azmk8s.io"), f"not an AKS host: {fqdn!r}"
+        assert "://" not in fqdn, f"the FQDN is a host, not a URL: {fqdn!r}"
+
+
 # ── Network ──────────────────────────────────────────────────────────────────────
 
 
