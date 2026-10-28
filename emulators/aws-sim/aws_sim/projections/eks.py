@@ -22,39 +22,37 @@ Deliberately omitted, each because the estate cannot back it:
 * ``createdAt`` is the resource's earliest billed day, and is omitted when the estate has
   never billed the cluster.
 
-**The cluster is published under the estate's OWN name, and carries the ARN AWS
-publishes for it.** ``name`` is ``Resource.resource_name``: the name the estate
-publishes, the name the k8s-sim fixture carries and the name the CloudPilot sends back
-as ``filter=cluster:"<name>"``. ``arn`` is
+**The cluster is published under the estate's OWN name, and the LIST publishes the same
+name.** ``name`` is ``Resource.resource_name``: the name the estate publishes, the name
+the k8s-sim fixture carries and the name the CloudPilot sends back as
+``filter=cluster:"<name>"``. ``arn`` is
 ``arn:aws:eks:<region>:<account>:cluster/<name>`` — the shape AWS itself publishes, whose
-resource part IS the cluster name.
+resource part IS the cluster name. The list and the document therefore say the same
+thing: every name ``ListClusters`` publishes is a name ``DescribeCluster`` answers with.
 
-**The name alone cannot identify a cluster, and the ARN is what does.** The estate
-reuses a name across accounts (``generate/estate_builder.py:292`` restarts the
-per-scope counter for every account): measured on the canonical estate of 2026-10-28,
-the 75 EKS clusters carry 40 distinct names, the same names repeated across the three
-accounts. The ARN carries the account and the region besides the name, and is
-therefore the unique key — which is what the CloudPilot needs (C-IDENT).
+**The surface is scoped by the account of the credentials.** The real EKS resolves a name
+inside the account that signed the request, and the emulator does the same: the account
+is decoded from the SigV4 credential, the ONE account-from-credential rule the package
+already has (``projections/sts.py``, used by ``sts.GetCallerIdentity``, the IAM
+credential report and the SSO credentials). The account is therefore never invented and
+never carried by a header of its own — it is the account the caller signed with.
 
-**THE LIST KEEPS THE SIMULATOR'S HANDLE, and that is deliberate.**
-``ListClusters`` answers with the derived id (``cluster-<17 hex>``), the way it
-always has, and the handle is what the routes address. The alternative — answering
-with the names — would make the list a lossy address space: the EKS surface serves
-every account of the estate on one endpoint (the real service resolves a name inside
-the account of the credentials), so a name the estate reuses would resolve to ONE of
-the clusters carrying it and the other one's ARN would never be published. The
-consumer's discovery walks the list and describes every entry, so with names in the
-list it would receive 40 of the 75 clusters (measured above), and C-IDENT could not
-recover the other 35 — their identifiers would never have been published. With the
-handle in the list, every cluster is described and every cluster publishes its own
-ARN. The NAME the AWS contract publishes is in the cluster document, where the
-account is published beside it.
+**That scope is what makes the list a lossless address space.** The estate reuses a name
+across accounts (``generate/estate_builder.py:292`` restarts the per-scope counter for
+every account): measured on the canonical estate of 2026-10-28 (seed 123, ``medium``),
+the 75 EKS clusters carry 41 distinct names, the same names repeated across the three
+accounts. **Inside one account the names are unique** — the generator names each
+resource once per scope — so a name addresses exactly one cluster there, and the ARN
+(which carries the account and the region besides the name) identifies the cluster in
+the world. The consumer's discovery walks the list and describes every entry, so with
+the names published and the list scoped by account, every cluster is described and every
+cluster publishes its own ARN.
 
-**The derived id is therefore never published as a name.** It is the simulator's
-address, and it is accepted as an **alias** by :func:`find_cluster` beside the
-estate's own name, so a caller that stored either resolves: an alias is accepted,
-never published — the rule the k8s-sim's ``cluster_id`` alias and the Azure
-subscription-label alias already follow.
+**The derived id is therefore never published as a name.** It is the simulator's own
+address, and it is accepted as an **alias** by :func:`find_cluster` beside the estate's
+own name, so a caller that stored either resolves: an alias is accepted, never published
+— the rule the k8s-sim's ``cluster_id`` alias and the Azure subscription-label alias
+already follow. The alias resolves inside the account too, because a name does.
 
 **What does NOT follow the name.** The node group name and the IAM role name stay on the
 derived id: neither an IAM role name nor a node group name can carry the estate's names
@@ -98,49 +96,71 @@ def _cluster_resources(estate: CanonicalEstate) -> tuple[Resource, ...]:
     )
 
 
-def clusters(estate: CanonicalEstate) -> tuple[str, ...]:
-    """The handle of every cluster the estate carries, ordered.
+def _account_clusters(estate: CanonicalEstate, account: str) -> tuple[Resource, ...]:
+    """The clusters ``account`` owns, ordered by name.
 
-    The values are the simulator's own address for a cluster, the way
-    ``eks.ListClusters`` has always answered: the EKS surface serves every account
-    of the estate on one endpoint, so a name the estate reuses across accounts
-    cannot address one of them (see the module docstring). The NAME the AWS
-    contract publishes is in the cluster document.
+    The estate's names are unique inside one account (the generator names each resource
+    once per scope), so this set has no duplicates and every name addresses exactly one
+    cluster — which is what the real service resolves inside the account of the
+    credentials.
     """
-    return tuple(ids.resource_id(r) for r in _cluster_resources(estate))
+    return tuple(r for r in _cluster_resources(estate) if r.parent_scope_id == account)
 
 
-def find_cluster(estate: CanonicalEstate, name: str) -> Resource | None:
+def covered_account(estate: CanonicalEstate, account: str) -> str:
+    """The account the request speaks for: the caller's, or the estate's first.
+
+    The same fallback ``sts.caller_identity`` and the IAM credential report use, for
+    the same reason: a request that presents no decodable credential still has to reach
+    an answer, and the estate's first account is a deterministic one to reach. The
+    account is the estate's OWN, never one the caller made up.
+    """
+    known = scope.scope_ids(estate)
+    if account in known:
+        return account
+    return min(known) if known else "000000000000"
+
+
+def clusters(estate: CanonicalEstate, account: str) -> tuple[str, ...]:
+    """The names of the clusters ``account`` owns, ordered.
+
+    The values are the estate's own names — the very ones the cluster document
+    publishes — so the list and the document agree. The list is scoped to the account
+    of the credentials, the way the real service scopes it (see the module docstring).
+    """
+    return tuple(r.resource_name for r in _account_clusters(estate, account))
+
+
+def find_cluster(estate: CanonicalEstate, name: str, account: str) -> Resource | None:
     """Resolve one cluster by the estate's name or by the simulator's handle.
 
-    Both are accepted, and both are aliases: neither is published as the
-    cluster's name — the document carries ``Resource.resource_name`` and the ARN.
-    The handle resolves to exactly one cluster; a name the estate reuses across
-    accounts resolves to the first cluster carrying it, because the surface is
-    account-agnostic (the real service resolves a name inside the account of the
-    credentials). The ARN is what identifies a cluster across accounts.
+    Both are accepted, and both are aliases: the name is what the surface publishes,
+    and the handle is the simulator's own address, which is accepted so a caller that
+    stored either resolves. Both resolve **inside the account** of the credentials,
+    because a name does — a name the estate reuses across accounts names one cluster
+    per account, and each of them its own.
     """
-    resources = _cluster_resources(estate)
-    for resource in resources:
-        if ids.resource_id(resource) == name:
-            return resource
+    resources = _account_clusters(estate, account)
     for resource in resources:
         if resource.resource_name == name:
+            return resource
+    for resource in resources:
+        if ids.resource_id(resource) == name:
             return resource
     return None
 
 
-def node_groups(estate: CanonicalEstate, name: str) -> tuple[str, ...]:
+def node_groups(estate: CanonicalEstate, name: str, account: str) -> tuple[str, ...]:
     """The node group names for one cluster (empty for an unknown cluster)."""
-    cluster = find_cluster(estate, name)
+    cluster = find_cluster(estate, name, account)
     if cluster is None:
         return ()
     return (f"{ids.resource_id(cluster)}-{NODE_GROUP_SUFFIX}",)
 
 
-def addons(estate: CanonicalEstate, name: str) -> tuple[str, ...]:
+def addons(estate: CanonicalEstate, name: str, account: str) -> tuple[str, ...]:
     """The add-on names for one cluster (empty for an unknown cluster)."""
-    if find_cluster(estate, name) is None:
+    if find_cluster(estate, name, account) is None:
         return ()
     return DEFAULT_ADDONS
 

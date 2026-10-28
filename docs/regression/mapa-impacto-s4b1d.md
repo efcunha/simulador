@@ -4,6 +4,10 @@
 `emulators/gcp-sim` · **Fora do escopo:** CloudPilot (C-IDENT), fixture do k8s-sim
 (S4b1-E), billing/compose, `specs/**`, `emulators/k8s-sim/**`.
 
+**Revisão S4b1-D-C (2026-10-28):** a superfície EKS passa a ser **escopada pela conta**
+e a lista passa a publicar o **mesmo nome** que o documento publica. As seções §1, §2,
+§5, §7 e §8 foram atualizadas; o resto do mapa permanece válido.
+
 ## 1. O que muda
 
 Cada descoberta passa a publicar o **identificador nativo** do cluster, e o `name`
@@ -15,6 +19,15 @@ passa a ser o nome real da cloud:
 | **AKS** | `id` = ARM ID completo; `name` = nome do estate | **sem mudança de payload** — o `id` já era o ARM ID completo; a fase adiciona o teste de contrato que prova isso |
 | **GKE** | `name`, `endpoint`, `location`, `masterAuth.clusterCaCertificate` | acrescente **`selfLink`** = `projects/<projeto>/locations/<local>/clusters/<nome>`; os outros quatro ficam como estavam |
 
+**Revisão S4b1-D-C — EKS, a lista e o escopo:**
+
+| Antes (S4b1-D) | Depois (S4b1-D-C) |
+|---|---|
+| `GET /clusters` → `cluster-<17 hex>` (o handle do simulador) | `GET /clusters` → o **nome do estate**, o mesmo que o documento publica |
+| a lista respondia com os clusters das **3 contas** | a lista responde com os clusters da **conta da credencial** |
+| um nome repetido entre contas resolvia para **um** cluster (o primeiro) | um nome repetido resolve para **um cluster por conta** — o da conta que assinou o pedido |
+| o handle era a única forma de alcançar um cluster específico | o handle continua **aceito como alias**, dentro da conta; o nome é o que se publica |
+
 Nenhum campo inventado: o ARN do EKS e o `selfLink` do GKE são construídos **só**
 com campos que o estate carrega (região, conta/projeto, nome). Nenhum membro que o
 estate não modela foi acrescentado.
@@ -23,16 +36,20 @@ estate não modela foi acrescentado.
 
 | # | Rota | Handler | Projeção |
 |---|---|---|---|
-| 1 | `GET /clusters` (EKS) | `aws_sim/api/eks.py:47` (`list_clusters`) | `aws_sim/projections/eks.py:101` (`clusters`) |
-| 2 | `GET /clusters/{name}` (EKS) | `aws_sim/api/eks.py:53` (`describe_cluster`) | `aws_sim/projections/eks.py:173` (`cluster_document`) |
-| 3 | `GET /clusters/{name}/node-groups` | `aws_sim/api/eks.py:63` (`list_nodegroups`) | `aws_sim/projections/eks.py:133` (`node_groups`) |
-| 4 | `GET /clusters/{name}/addons` | `aws_sim/api/eks.py:72` (`list_addons`) | `aws_sim/projections/eks.py:141` (`addons`) |
+| 1 | `GET /clusters` (EKS) | `aws_sim/api/eks.py:68` (`list_clusters`) | `aws_sim/projections/eks.py:124` (`clusters`) |
+| 2 | `GET /clusters/{name}` (EKS) | `aws_sim/api/eks.py:75` (`describe_cluster`) | `aws_sim/projections/eks.py:134` (`find_cluster`) → `:193` (`cluster_document`) |
+| 3 | `GET /clusters/{name}/node-groups` | `aws_sim/api/eks.py:85` (`list_nodegroups`) | `aws_sim/projections/eks.py:153` (`node_groups`) |
+| 4 | `GET /clusters/{name}/addons` | `aws_sim/api/eks.py:95` (`list_addons`) | `aws_sim/projections/eks.py:161` (`addons`) |
 | 5 | `GET /projects/{project}/locations/{location}/clusters` (GKE) | `gcp_sim/routers/container.py:36` | `gcp_sim/projections/container.py:173` (`clusters`) → `:153` (`cluster`) |
 | 6 | `GET /subscriptions/{id}/providers/Microsoft.ContainerService/managedClusters` (AKS) | `azure_sim/api/containerservice.py:114` | `azure_sim/projections/containerservice.py:130` (`project_managed_clusters`) → `arm.py:193` (`arm_row`) |
 | 7 | `GET /subscriptions/{id}/resources?$filter=resourceType eq 'Microsoft.ContainerService/managedClusters'` | `azure_sim/api/containerservice.py:134` | a mesma `project_managed_clusters` |
 
 As rotas 6 e 7 chamam a **mesma** projeção, então o `id` do mesmo cluster é o mesmo
 nas duas.
+
+**As quatro rotas do EKS passaram a receber a conta** (`aws_sim/api/eks.py:55`,
+`_account`), e as três projeções que resolvem um cluster (`clusters`, `find_cluster`,
+`node_groups`, `addons`) passaram a recebê-la também.
 
 ## 3. Quem consome hoje (leitura, nenhuma mudança no CloudPilot)
 
@@ -48,6 +65,23 @@ O caminho de **custo** K8s não lê nenhum dos três identificadores: ele consom
 `endpoint` (e o `name`, no filtro `cluster:"<nome>"` do k8s-sim). O que muda nesta
 fase é o que o produtor **entrega**, não o que o consumidor lê.
 
+**A descoberta AWS é por conta, e é por isso que o escopo do simulador casa com ela.**
+`cluster_discovery.py:116` roda uma vez por `CloudAccount`, e o cliente de cada conta
+assina com a credencial **dessa** conta (`get_aws_client_for_account`). Com a lista
+escopada, cada descoberta devolve exatamente os clusters da sua conta — e o
+`DiscoveryResult` recebe o nome real, que é o que o `filter=cluster:"<nome>"` do
+k8s-sim exige.
+
+**Medido em 2026-10-28, no ambiente local:** nenhum hostname AWS é apontado para o
+aws-sim (`deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1:73` — a lista
+`$FrontAliases` só traz hostnames do GCP; o alias do STS foi removido em `e461f572`), e
+só a conta `[SYNTH] AWS acct-01` tem override de endpoint, para o **STS**
+(`cur_config.endpoint_overrides.sts`). **O tráfego de EKS do CloudPilot não chega ao
+aws-sim neste ambiente** — ele vai para a AWS real. A mudança desta fase, portanto,
+não altera o runtime do CloudPilot local; ela muda o **contrato** da superfície do
+simulador, que é o que o `cluster_discovery` consumirá quando o endpoint for apontado
+para o simulador.
+
 ## 4. O contrato do valor
 
 | Propriedade | EKS | GKE |
@@ -61,52 +95,66 @@ fase é o que o produtor **entrega**, não o que o consumidor lê.
 O `selfLink` do GKE é a **forma canônica do caminho** que o Kubernetes Engine usa
 para nomear um cluster. Todo segmento dele é um campo do estate; nada é inventado.
 
-## 5. A decisão do EKS: a lista mantém o handle, e por quê
+## 5. A decisão do EKS (revisão S4b1-D-C): a lista publica o nome, escopada pela conta
 
-`ListClusters` continua respondendo com o id derivado (`cluster-<17 hex>`), e o
-`name` novo vive no **documento** do cluster. Isso é deliberado, e é a única parte
-desta fase que se afasta da leitura literal do enunciado.
+`ListClusters` responde com o **nome do estate** — o mesmo que o `DescribeCluster`
+publica — e a resposta é **escopada pela conta da credencial**.
 
-**O porquê, medido.** O estate canônico (seed 123, `medium`) tem **75 clusters EKS
-em 3 contas, com 40 nomes distintos** — o mesmo conjunto de nomes se repete nas três
-contas (`generate/estate_builder.py:292` reinicia o contador por escopo). A
-superfície EKS do simulador serve **todas** as contas do estate em um endpoint; o
-serviço real resolve um nome **dentro da conta das credenciais**.
+**O escopo vem da credencial, e de nenhum outro lugar.** A conta é decodificada da
+credencial SigV4 do pedido (`projections/sts.py`: `parse_access_key` +
+`account_from_access_key`), que é **a regra única de conta-por-credencial do pacote** —
+a mesma que o `sts.GetCallerIdentity`, o relatório de credenciais do IAM e as
+credenciais do SSO já seguem. Nenhum header novo foi inventado: a conta é a conta com
+que o chamador assinou. Um pedido sem credencial decodificável cai na **primeira conta
+do estate** (`covered_account`), o mesmo fallback do STS e do IAM — determinístico e
+sempre uma conta do próprio estate.
 
-Se a lista passasse a publicar os nomes, a descoberta do consumidor (que percorre a
-lista e descreve cada entrada, `cluster_discovery.py:128-130`) receberia **40 dos 75
-clusters**: os outros 35 nunca seriam descritos e **o ARN deles nunca seria
-publicado** — e o C-IDENT, que vai chavear o mapa pela ARN, não teria como
-recuperá-los. Com o handle na lista, cada cluster é descrito e publica a sua ARN
-(75/75), e o `name` que a descoberta entrega ao CloudPilot é o nome real, que é o
-que o `filter=cluster:"<nome>"` do k8s-sim exige.
+**Por que o escopo é o que torna a lista um espaço de endereçamento sem perdas.** O
+estate canônico (seed 123, `medium`) tem **75 clusters EKS em 3 contas, com 41 nomes
+distintos** — o mesmo conjunto de nomes se repete nas três contas
+(`generate/estate_builder.py:292` reinicia o contador por escopo). **Dentro de uma
+conta os nomes são únicos** (medido: 25 clusters, 25 nomes distintos em cada uma das 3
+contas) — porque o gerador nomeia cada recurso uma vez por escopo. Então, dentro da
+conta das credenciais, um nome endereça **exatamente um** cluster, e a ARN (que carrega
+a conta e a região além do nome) o identifica no mundo. A descoberta do consumidor
+percorre a lista e descreve cada entrada: com os nomes publicados e a lista escopada,
+**cada cluster é descrito e cada cluster publica a sua ARN** — 75/75, sem duplicação.
 
-O mesmo raciocínio já vale para o GKE e o AKS, onde a superfície **é**
-scope-scoped: a rota do GKE lista por projeto (`providers/gcp.py:539`) e a do AKS
-por subscription — lá o nome identifica o cluster dentro do escopo e o `selfLink`/
-`id` identifica o cluster no mundo.
+O mesmo raciocínio já vale para o GKE e o AKS, onde a superfície **é** scope-scoped: a
+rota do GKE lista por projeto (`providers/gcp.py:539`) e a do AKS por subscription —
+lá o nome identifica o cluster dentro do escopo e o `selfLink`/`id` identifica o
+cluster no mundo. O EKS agora faz o mesmo.
+
+**O handle derivado continua existindo, e continua sendo apenas um alias.** Ele não é
+publicado como nome (a regra do `cluster_id` do k8s-sim e do alias de label de
+subscription do Azure): `find_cluster` o aceita ao lado do nome do estate, **dentro
+da conta**, porque um nome resolve dentro da conta. Quem guardou o handle continua
+resolvendo; quem guardou o nome também.
+
+**O que não acompanha o nome.** O nome do node group (`<id>-ng`) e o nome da role IAM
+(`<id>-cluster-role`) continuam no id derivado: nenhum dos dois é um nome que o estate
+possa carregar (`eks_cluster-0021 (do not delete)` não é nome IAM nem nome de node
+group), e normalizá-los seria inventar um nome.
 
 ## 6. O que **não** muda
 
 - O estate (`generate/estate_builder.py`) — nenhum campo novo, nenhum tipo novo.
 - O gerador de nomes (`model/identity.py`) — o id derivado continua sendo o que é.
-- O nome do node group (`<id>-ng`) e o `roleArn` (`arn:aws:iam::<conta>:role/<id>-cluster-role`):
-  nenhum dos dois é um nome que o estate possa carregar (`eks_cluster-0021 (do not delete)`
-  não é nome IAM nem nome de node group), e normalizá-los seria inventar um nome.
+- O nome do node group (`<id>-ng`) e o `roleArn`
+  (`arn:aws:iam::<conta>:role/<id>-cluster-role`): normalizá-los seria inventar um nome.
 - As demais propriedades do cluster EKS (`status`, `version`, `endpoint`, `tags`,
   `identity`, `resourcesVpcConfig`, `accessConfig`, `createdAt`).
 - Os outros quatro membros do cluster GKE (`name`, `endpoint`, `location`, `masterAuth`).
 - `specs/**` e `tools/synthetic_clouds/fidelity/**` — intocados (gap no §8).
 - `emulators/k8s-sim/**` — intocado (o fixture é S4b1-E).
 - O CloudPilot (`d:\cloudpilot-deploy`) — **nenhum arquivo alterado**.
+- GKE e AKS — intocados.
 
 ## 7. Riscos residuais
 
-1. **A superfície EKS é account-agnostic.** Um nome que o estate reusa entre contas
-   resolve para **um** cluster (o primeiro que o carrega) — os outros não são
-   endereçáveis pelo nome. O ARN de cada cluster continua único, e o handle
-   endereça cada um exatamente; fechar a lacuna é tornar a superfície escopada por
-   conta, o que toca `api/eks.py` (fora da allowlist desta fase).
+1. ~~**A superfície EKS é account-agnostic.**~~ **FECHADO em S4b1-D-C.** A superfície
+   é escopada pela conta da credencial; um nome repetido entre contas resolve para um
+   cluster por conta, e o handle continua aceito como alias dentro da conta.
 2. **O ARN do EKS diverge do ARN do mesmo cluster em outras superfícies do próprio
    simulador.** O Resource Groups Tagging API e o AWS Config publicam
    `arns.resource_arn(...)`, que usa o id derivado; o `DescribeCluster` publica
@@ -119,10 +167,13 @@ por subscription — lá o nome identifica o cluster dentro do escopo e o `selfL
    servidor"). O valor publicado agora é o caminho canônico, montado só com campos do
    estate — mas o spec (e o `docs/NAO-COMPROVADOS.md`, que dele deriva) não podem ser
    regerados nesta fase (`specs/**` fora da allowlist).
-4. **O mapa de contas do CloudPilot ainda é chaveado por nome.** Publicar o nome real
-   faz os nomes repetidos colidirem no `cluster_account_map` (75 clusters, 40 nomes
-   no EKS): o mapa perde entradas até o C-IDENT chavear pela ARN. É o motivo de
-   existir o C-IDENT — e o motivo de a lista do EKS não ter virado os nomes.
+4. **O mapa de contas do CloudPilot ainda é chaveado por nome.** O
+   `cluster_account_map` é `{cluster_name: account_uuid}`
+   (`cur_cluster_cost.py:172`, `cost_tracker.py:88`). Com a lista escopada, a
+   **colisão entre contas desaparece** (a descoberta de cada conta devolve só os
+   clusters dela, e dentro da conta os nomes são únicos), mas o mapa continua
+   **name-keyed** — é o que o C-IDENT tem de corrigir, chaveando pelo identificador
+   nativo (a ARN).
 5. **Os nomes do estate são publicados verbatim, e alguns não são válidos na AWS.**
    O gerador produz ruído de propósito (`TEMP-eks_cluster-0006`,
    `eks_cluster-0021 (do not delete)`, `prodeks_cluster-0021COPY`), e o ARN do EKS
@@ -139,7 +190,13 @@ por subscription — lá o nome identifica o cluster dentro do escopo e o `selfL
 |---|---|
 | C-IDENT no CloudPilot: `DiscoveryResult` (e o `cluster_account_map`) passam a chavear pelo identificador nativo | S4b1-C (CloudPilot) |
 | Fixture do k8s-sim com o identificador nativo por cluster e filtro por ID | S4b1-E |
-| Superfície EKS escopada por conta (o nome resolve dentro da conta das credenciais) | S4b1-E ou posterior |
 | Alinhar o ARN do EKS no Tagging API e no AWS Config com o ARN oficial | S4b1-E ou posterior |
-| O docstring da rota `eks:ListClusters` (`aws_sim/api/eks.py:49`) ainda diz "the cluster names this account owns" — a lista responde com o handle (ver §5) | S4b1-E ou posterior (o arquivo está fora da allowlist desta fase) |
 | Regerar `specs/gcp/container-clusters.schema.json` (o `selfLink` deixa de ser `unverified`) e `docs/NAO-COMPROVADOS.md` | fase de spec |
+
+**Fechados em S4b1-D-C:**
+
+| Gap | Como foi fechado |
+|---|---|
+| Superfície EKS escopada por conta (o nome resolve dentro da conta das credenciais) | a conta é decodificada da credencial SigV4 (`projections/sts.py`) e todas as quatro rotas a recebem (`aws_sim/api/eks.py:55`) |
+| A lista publicava o handle (`cluster-<17 hex>`) em vez do nome | `clusters()` publica `Resource.resource_name` — o mesmo do documento |
+| O docstring da rota `eks:ListClusters` (`aws_sim/api/eks.py:68`) dizia "the cluster names this account owns" sem que a conta fosse levada em conta | a frase agora é verdadeira: a rota é escopada pela conta |
