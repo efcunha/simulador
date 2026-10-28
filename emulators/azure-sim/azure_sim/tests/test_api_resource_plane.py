@@ -221,6 +221,67 @@ def test_managed_clusters_serve_the_fqdn_and_nothing_else(api_client) -> None:
         assert "://" not in fqdn, f"the FQDN is a host, not a URL: {fqdn!r}"
 
 
+def test_managed_clusters_publish_the_complete_arm_id(api_client) -> None:
+    """The row carries the ARM id that identifies the cluster, and the name unchanged.
+
+    The estate reuses a cluster name across the subscriptions, so the name alone
+    cannot identify a cluster; the ARM id is what does, because it carries the
+    subscription (as the GUID the account is keyed on) and the resource group
+    besides the name. The id is the NATIVE identifier Azure publishes for a
+    managed cluster, so it is published whole -- not shortened, not re-derived.
+
+    The name stays the cluster's own: the discovery reads ``cluster.name`` and
+    sends it back as the cluster's identity.
+    """
+    client, app = api_client
+    resp = client.get(f"{_AKS_PATH}?api-version={_AKS_VERSION}")
+    assert resp.status_code == 200
+    rows = resp.json()["value"]
+    assert rows, "the estate carries AKS clusters"
+
+    subscriptions = _subscription_ids(app)
+    seen: set[str] = set()
+    for row in rows:
+        parts = str(row["id"]).split("/")
+        # /subscriptions/<guid>/resourceGroups/<rg>/providers/<ns>/managedClusters/<name>
+        assert len(parts) == 9, f"the ARM id is not whole: {row['id']!r}"
+        assert parts[0] == ""
+        assert parts[1] == "subscriptions"
+        assert parts[2] in subscriptions, "the subscription segment must be the GUID"
+        assert parts[3] == "resourceGroups"
+        assert parts[4], "the resource group is named"
+        assert parts[5] == "providers"
+        assert parts[6] == "Microsoft.ContainerService"
+        assert parts[7] == "managedClusters"
+        assert parts[8] == row["name"], "the id ends with the cluster's name"
+        assert row["name"], "the cluster keeps its own name"
+        assert str(row["id"]) not in seen, "two clusters share one ARM id"
+        seen.add(str(row["id"]))
+
+    # The same cluster, the same id, on every call.
+    again = client.get(f"{_AKS_PATH}?api-version={_AKS_VERSION}").json()["value"]
+    assert [row["id"] for row in again] == [row["id"] for row in rows]
+
+
+def test_the_arm_resources_list_publishes_the_same_arm_id(api_client) -> None:
+    """The route the discovery reads answers with the same rows the typed list does.
+
+    ``ResourceManagementClient.resources.list(filter=...)`` is the call the
+    Kubernetes discovery makes, so the id it reads is the one the typed list
+    publishes -- one cluster, one id, on both routes.
+    """
+    client, _ = api_client
+    typed = client.get(f"{_AKS_PATH}?api-version={_AKS_VERSION}").json()["value"]
+    listed = client.get(
+        "/subscriptions/sub-01/resources"
+        "?$filter=resourceType eq 'Microsoft.ContainerService/managedClusters'"
+        "&api-version=2025-04-01"
+    ).json()["value"]
+
+    assert listed, "the resources list answers the managed clusters"
+    assert {row["id"] for row in listed} <= {row["id"] for row in typed}
+
+
 # ── Network ──────────────────────────────────────────────────────────────────────
 
 

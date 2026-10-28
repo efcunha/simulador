@@ -5,14 +5,24 @@ estate already carries one row per cluster (``generate/constants.py`` names the 
 ``gke_cluster``, with the GKE node SKU it bills). This module turns that row into the
 published members of a ``Cluster`` and nothing else.
 
-**The four members, and why there are four.** The REST reference publishes 87 members
-on ``Cluster``; the estate answers for four of them:
+**The five members, and why there are five.** The REST reference publishes 87 members
+on ``Cluster``; the estate answers for five of them:
 
 * ``name`` -- the cluster's name (``Resource.resource_name``).
+* ``selfLink`` -- the cluster's full resource path
+  (``projects/<project>/locations/<location>/clusters/<name>``), the canonical shape
+  of the path the Kubernetes Engine names a cluster by. Every segment of it is a
+  field the estate carries (the project that owns the cluster, the region it sits
+  in and its own name), so the path is PUBLISHED, not invented.
 * ``endpoint`` -- where the cluster's master endpoint lives.
 * ``location`` -- the zone or region the cluster resides in (``Resource.region_id``).
 * ``masterAuth.clusterCaCertificate`` -- the public certificate that roots the
   cluster's trust, base64-encoded.
+
+**The path is what identifies a cluster; the name alone does not.** The estate reuses
+a name across projects, so ``gke_cluster-0017`` names three clusters of three
+projects; the path carries the project and the location, which is what makes it the
+unique key the CloudPilot needs (C-IDENT).
 
 Every other published member is registered as unproven in
 ``specs/gcp/container-clusters.schema.json`` with the reason that the estate does not
@@ -140,10 +150,20 @@ def _ca_certificate(resource: Resource) -> str:
     return base64.b64encode(_ca_certificate_pem(resource.identity.uuid).encode("ascii")).decode("ascii")
 
 
-def cluster(resource: Resource) -> dict[str, Any]:
-    """One ``Cluster`` for an estate cluster: the four members the estate answers for."""
+def cluster(resource: Resource, project_id: str) -> dict[str, Any]:
+    """One ``Cluster`` for an estate cluster: the members the estate answers for.
+
+    ``selfLink`` is the cluster's full path, built from the three fields the estate
+    carries about it -- the project that owns it, the region it sits in and its own
+    name. It is the identifier that survives a hop between two GCP calls, and the
+    one a caller needs when the name alone is ambiguous (the estate reuses a name
+    across projects).
+    """
     return {
         "name": resource.resource_name,
+        "selfLink": (
+            f"projects/{project_id}/locations/{resource.region_id}/clusters/{resource.resource_name}"
+        ),
         "endpoint": _endpoint(resource),
         "location": resource.region_id,
         "masterAuth": {"clusterCaCertificate": _ca_certificate(resource)},
@@ -161,4 +181,4 @@ def clusters(estate: CanonicalEstate, project_id: str, location: str) -> tuple[d
     rows = scope.resources_of_type(estate, CLUSTER, project_id=project_id)
     if location != ALL_LOCATIONS:
         rows = tuple(row for row in rows if row.region_id == location)
-    return tuple(cluster(row) for row in rows)
+    return tuple(cluster(row, project_id) for row in rows)

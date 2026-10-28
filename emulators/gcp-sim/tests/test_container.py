@@ -8,7 +8,8 @@ carries **exactly** those two members -- an extra one would be a member the prov
 does not publish.
 
 Each cluster carries only what the REST reference publishes for the members the estate
-can answer for: ``name``, ``endpoint``, ``location`` and ``masterAuth.clusterCaCertificate``.
+can answer for: ``name``, ``selfLink``, ``endpoint``, ``location`` and
+``masterAuth.clusterCaCertificate``.
 Every other published member of ``Cluster`` is registered as unproven in
 ``specs/gcp/container-clusters.schema.json``, so the absence of ``currentMasterVersion``,
 ``nodePools`` or ``network`` here is the spec's own rule, not an omission of the route.
@@ -39,7 +40,7 @@ _AUTH = {"Authorization": "Bearer synthetic-token"}
 ENVELOPE_MEMBERS = frozenset({"clusters", "missingZones"})
 
 #: The published members of one cluster, for the members the estate answers for.
-CLUSTER_MEMBERS = frozenset({"name", "endpoint", "location", "masterAuth"})
+CLUSTER_MEMBERS = frozenset({"name", "selfLink", "endpoint", "location", "masterAuth"})
 
 #: ``MasterAuth`` publishes six members; the estate answers for one of them.
 MASTER_AUTH_MEMBERS = frozenset({"clusterCaCertificate"})
@@ -103,6 +104,40 @@ def test_name_and_location_come_from_the_estate(client: TestClient) -> None:
     for resource in expected:
         row = served[resource.resource_name]
         assert row["location"] == resource.region_id
+
+
+def test_the_self_link_is_the_full_resource_path(client: TestClient) -> None:
+    """``selfLink`` names the cluster the way the Kubernetes Engine names it.
+
+    The reference publishes ``selfLink`` as the server-defined URL of the resource;
+    the canonical shape of that path is
+    ``projects/<project>/locations/<location>/clusters/<name>``, and every segment
+    of it is a field the estate carries -- the project that owns the cluster, the
+    location it sits in and its own name. So the path is PUBLISHED, not invented.
+
+    The name alone cannot identify a cluster: the estate reuses it across
+    projects, and the path carries the project. That is what makes the path the
+    key the CloudPilot needs (C-IDENT).
+    """
+    estate = load_estate()
+    project = _project_id(estate)
+    expected = _clusters_of(estate, project)
+    served = {row["name"]: row for row in _list(client, project)["clusters"]}
+
+    for resource in expected:
+        row = served[resource.resource_name]
+        assert row["selfLink"] == (
+            f"projects/{project}/locations/{resource.region_id}/clusters/{resource.resource_name}"
+        )
+        # The short name stays the short name: the path does not replace it.
+        assert row["name"] == resource.resource_name
+        assert "/" not in row["name"]
+
+    links = [row["selfLink"] for row in _list(client, project)["clusters"]]
+    assert len(set(links)) == len(links), "two clusters share one self link"
+    # Two calls describe the same clusters: a value that moved between calls would
+    # make a client correlate two different answers about one cluster.
+    assert _list(client, project) == _list(client, project)
 
 
 def test_the_endpoint_is_a_deterministic_https_url(client: TestClient) -> None:

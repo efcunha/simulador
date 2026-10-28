@@ -8,9 +8,9 @@ differently because that is what the two actually are:
   claim about the estate — and the estate records nothing about add-ons that could
   contradict it.
 * a node group is a customer's choice. The estate models none, so one is derived per
-  cluster, named off the cluster (``<cluster>-ng``), which keeps the answer traceable to
-  the cluster it hangs from and stops the caller from reading an empty list as "this
-  cluster runs no compute".
+  cluster, named off the cluster's own id (``<id>-ng``), which keeps the answer
+  traceable to the cluster it hangs from and stops the caller from reading an empty
+  list as "this cluster runs no compute".
 
 Deliberately omitted, each because the estate cannot back it:
 
@@ -22,12 +22,46 @@ Deliberately omitted, each because the estate cannot back it:
 * ``createdAt`` is the resource's earliest billed day, and is omitted when the estate has
   never billed the cluster.
 
-A cluster's **name** is the resource's derived AWS id (``aws_sim.ids``), not its
-``resource_name``: the estate reuses a name across accounts and an EKS cluster name is
-scope-free, so a name read from the estate would answer the same value for every cluster
-sharing it — one identity for several clusters, which is the correlation failure
-:mod:`aws_sim.ids` exists to remove. Everything derived from the cluster hangs off that same
-id (the node group ``<id>-ng``, the cluster role), and the ARN is built from it.
+**The cluster is published under the estate's OWN name, and carries the ARN AWS
+publishes for it.** ``name`` is ``Resource.resource_name``: the name the estate
+publishes, the name the k8s-sim fixture carries and the name the CloudPilot sends back
+as ``filter=cluster:"<name>"``. ``arn`` is
+``arn:aws:eks:<region>:<account>:cluster/<name>`` — the shape AWS itself publishes, whose
+resource part IS the cluster name.
+
+**The name alone cannot identify a cluster, and the ARN is what does.** The estate
+reuses a name across accounts (``generate/estate_builder.py:292`` restarts the
+per-scope counter for every account): measured on the canonical estate of 2026-10-28,
+the 75 EKS clusters carry 40 distinct names, the same names repeated across the three
+accounts. The ARN carries the account and the region besides the name, and is
+therefore the unique key — which is what the CloudPilot needs (C-IDENT).
+
+**THE LIST KEEPS THE SIMULATOR'S HANDLE, and that is deliberate.**
+``ListClusters`` answers with the derived id (``cluster-<17 hex>``), the way it
+always has, and the handle is what the routes address. The alternative — answering
+with the names — would make the list a lossy address space: the EKS surface serves
+every account of the estate on one endpoint (the real service resolves a name inside
+the account of the credentials), so a name the estate reuses would resolve to ONE of
+the clusters carrying it and the other one's ARN would never be published. The
+consumer's discovery walks the list and describes every entry, so with names in the
+list it would receive 40 of the 75 clusters (measured above), and C-IDENT could not
+recover the other 35 — their identifiers would never have been published. With the
+handle in the list, every cluster is described and every cluster publishes its own
+ARN. The NAME the AWS contract publishes is in the cluster document, where the
+account is published beside it.
+
+**The derived id is therefore never published as a name.** It is the simulator's
+address, and it is accepted as an **alias** by :func:`find_cluster` beside the
+estate's own name, so a caller that stored either resolves: an alias is accepted,
+never published — the rule the k8s-sim's ``cluster_id`` alias and the Azure
+subscription-label alias already follow.
+
+**What does NOT follow the name.** The node group name and the IAM role name stay on the
+derived id: neither an IAM role name nor a node group name can carry the estate's names
+(``eks_cluster-0021 (do not delete)`` is neither), and normalizing one into something AWS
+would accept would be inventing a name. Everything else derived from the cluster — the
+endpoint, the OIDC issuer, the tags — hangs off the resource's own identity and is
+untouched.
 """
 
 from __future__ import annotations
@@ -65,13 +99,35 @@ def _cluster_resources(estate: CanonicalEstate) -> tuple[Resource, ...]:
 
 
 def clusters(estate: CanonicalEstate) -> tuple[str, ...]:
-    """Every cluster name the estate carries, ordered."""
+    """The handle of every cluster the estate carries, ordered.
+
+    The values are the simulator's own address for a cluster, the way
+    ``eks.ListClusters`` has always answered: the EKS surface serves every account
+    of the estate on one endpoint, so a name the estate reuses across accounts
+    cannot address one of them (see the module docstring). The NAME the AWS
+    contract publishes is in the cluster document.
+    """
     return tuple(ids.resource_id(r) for r in _cluster_resources(estate))
 
 
 def find_cluster(estate: CanonicalEstate, name: str) -> Resource | None:
-    """Resolve one cluster by name, or ``None``."""
-    return next((r for r in _cluster_resources(estate) if ids.resource_id(r) == name), None)
+    """Resolve one cluster by the estate's name or by the simulator's handle.
+
+    Both are accepted, and both are aliases: neither is published as the
+    cluster's name — the document carries ``Resource.resource_name`` and the ARN.
+    The handle resolves to exactly one cluster; a name the estate reuses across
+    accounts resolves to the first cluster carrying it, because the surface is
+    account-agnostic (the real service resolves a name inside the account of the
+    credentials). The ARN is what identifies a cluster across accounts.
+    """
+    resources = _cluster_resources(estate)
+    for resource in resources:
+        if ids.resource_id(resource) == name:
+            return resource
+    for resource in resources:
+        if resource.resource_name == name:
+            return resource
+    return None
 
 
 def node_groups(estate: CanonicalEstate, name: str) -> tuple[str, ...]:
@@ -89,6 +145,26 @@ def addons(estate: CanonicalEstate, name: str) -> tuple[str, ...]:
     return DEFAULT_ADDONS
 
 
+def cluster_arn(cluster: Resource) -> str:
+    """The ARN AWS publishes for one cluster: ``arn:aws:eks:<region>:<account>:cluster/<name>``.
+
+    The shape — the service and the ``cluster/`` segment — comes from the package's
+    own ARN table (:func:`arns.arn_for_type`), so it is written in one place; what
+    fills the resource-name slot is the cluster's OWN NAME, because that is what AWS
+    puts there. The account and the region are the cluster's own, so the ARN names
+    one cluster even where two accounts reuse a name.
+    """
+    arn = arns.arn_for_type(
+        RESOURCE_TYPE,
+        cluster.resource_name,
+        cluster.region_id,
+        cluster.parent_scope_id,
+    )
+    if arn is None:  # the ARN table holds the EKS shape, so this branch is unreachable
+        raise ValueError(f"the ARN table has no shape for {RESOURCE_TYPE!r}")
+    return arn
+
+
 def _epoch(value: datetime) -> float:
     """JSON/rest-JSON timestamps are numbers; the Query protocol's are ISO strings."""
     return value.astimezone(UTC).timestamp()
@@ -97,13 +173,15 @@ def _epoch(value: datetime) -> float:
 def cluster_document(estate: CanonicalEstate, cluster: Resource) -> dict[str, Any]:
     """The ``DescribeCluster`` cluster document for one estate cluster."""
     uuid = cluster.identity.uuid
-    name = ids.resource_id(cluster)
+    name = cluster.resource_name
     document: dict[str, Any] = {
         "name": name,
-        "arn": arns.resource_arn(cluster),
+        "arn": cluster_arn(cluster),
         "version": KUBERNETES_VERSION,
         "endpoint": f"https://{arns.stable_digest(uuid)}.gr7.{cluster.region_id}.eks.amazonaws.com",
-        "roleArn": f"arn:aws:iam::{cluster.parent_scope_id}:role/{name}-cluster-role",
+        # The role is an IAM name: it stays on the derived id, because the estate's
+        # own names are not names IAM accepts.
+        "roleArn": f"arn:aws:iam::{cluster.parent_scope_id}:role/{ids.resource_id(cluster)}-cluster-role",
         "resourcesVpcConfig": {
             "endpointPublicAccess": True,
             "endpointPrivateAccess": False,
