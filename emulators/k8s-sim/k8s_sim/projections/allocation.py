@@ -1,10 +1,11 @@
-"""The OpenCost allocation projection: one synthetic AKS workload, costed per day.
+"""The OpenCost allocation projection: one synthetic workload, costed per day, in any
+cluster of the estate.
 
 This is the only place in k8s-sim that knows what the synthetic estate *is*. The HTTP
 layer in :mod:`k8s_sim.app` parses the query string and hands the window over; this
 module turns the window into allocation sets.
 
-Two rules shape what comes out:
+Three rules shape what comes out:
 
 **Nothing is invented at request time.** The workload, its usage and its prices are
 declared here as constants and the payload is a pure function of the requested window.
@@ -13,25 +14,38 @@ two identical calls return identical bytes -- and it is also why the numbers bel
 SYNTHETIC: they are a made-up rate card for a made-up cluster, they are not AKS prices,
 and they do not reconcile with any billing line. Reconciling them is S4b's job.
 
+**The clusters are data, not code.** The estate's 309 Kubernetes clusters live in the
+versioned fixture ``k8s_sim/fixtures/clusters.json``, derived from the estate by
+``scripts/export_clusters.py``. The service reads that file; it never imports the
+generator, and it never invents a cluster that is not in the file.
+
 **The field names are OpenCost's, not this project's.** They were read from the
 official sources cited in ``docs/k8s-sim-opencost-contract.md``: the envelope from
 ``core/pkg/protocol/http.go`` (``HTTPResponse``), the allocation fields from
 ``core/pkg/opencost/allocation_json.go`` (``AllocationJSON``), the property names from
 ``core/pkg/opencost/allocationprops.go`` (``AllocationProperties``) and the key rule
 from ``AllocationProperties.GenerateKey``, which joins the aggregated property values
-with "/". The key holds **the aggregated properties only**: this phase serves
-``aggregate=namespace``, so the key is the namespace and the controller stays in
-``properties``.
+with "/". The key holds **the aggregated properties only**: ``aggregate=namespace``
+keys by the namespace, ``aggregate=namespace,controller`` keys by ``payments/api``,
+``aggregate=controller`` keys by the controller and ``aggregate=cluster`` keys by the
+cluster.
 """
 
 from __future__ import annotations
 
+import json
 import re
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
-#: The one cluster this simulator models.
+#: The cluster served when the request names no cluster of the estate. It is the
+#: synthetic cluster of the previous phase (S4a) and it is **not** one of the estate's
+#: clusters: the fixture is the catalog of the estate, and a request that wants an
+#: estate cluster has to name it in the ``filter``.
 CLUSTER = "aks-synthetic-01"
 
 #: The namespace the workload lives in.
@@ -40,18 +54,32 @@ NAMESPACE = "payments"
 #: The workload inside the namespace.
 CONTROLLER = "api"
 
-#: The allocation-set key. OpenCost builds it by joining the aggregated property
-#: values with "/" (``AllocationProperties.GenerateKey``,
-#: ``core/pkg/opencost/allocationprops.go:361``), and the key holds **the aggregated
-#: properties only**. This phase serves ``aggregate=namespace``, and the namespace is
-#: the only aggregated property, so the key is the namespace alone. The controller is
-#: a property of the allocation, not part of the aggregation, so it stays in
-#: ``properties``: the official ``aggregate=namespace`` produces ``payments``, not
-#: ``payments/api``.
-ALLOCATION_KEY = NAMESPACE
+#: The aggregations this phase serves. ``aggregate=namespace,controller`` is what the
+#: CloudPilot provider asks for; ``aggregate=cluster`` is what its connection test
+#: asks for; ``aggregate=namespace`` and ``aggregate=controller`` are what its
+#: namespace and workload lookups ask for.
+SUPPORTED_AGGREGATES: tuple[str, ...] = (
+    "namespace",
+    "namespace,controller",
+    "controller",
+    "cluster",
+)
 
-#: The only aggregation this phase serves.
-SUPPORTED_AGGREGATE = "namespace"
+#: The aggregation served when the parameter is absent.
+DEFAULT_AGGREGATE = "namespace"
+
+#: The step this phase serves. The provider sends ``step=1d``; any other step is
+#: refused rather than approximated.
+SUPPORTED_STEP = "1d"
+
+#: The keys the ``filter`` parameter may use. The OpenCost filter language is much
+#: wider than this; the terms this phase does not read are refused, never ignored
+#: (see :func:`parse_filter`).
+SUPPORTED_FILTER_KEYS: tuple[str, ...] = ("cluster", "namespace", "controller")
+
+#: The versioned catalog of the estate's Kubernetes clusters. It is DATA: the
+#: generator is a development-time tool and is not a dependency of the service.
+FIXTURE_PATH = Path(__file__).resolve().parents[1] / "fixtures" / "clusters.json"
 
 #: The accumulation options this phase distinguishes, mirroring the official
 #: ``AccumulateOption`` (``core/pkg/opencost/query.go:47-57``).
@@ -90,9 +118,145 @@ _HOURS_PER_DAY = Decimal("24")
 #: shape is checked before the value is parsed.
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
+#: One filter term: a key, a colon and a quoted value.
+_FILTER_TERM = re.compile(r'^(?P<key>[A-Za-z_][A-Za-z0-9_]*):"(?P<value>[^"]+)"$')
+
 
 class WindowError(ValueError):
     """The ``window`` parameter is not a pair of dates this phase can read."""
+
+
+class FilterError(ValueError):
+    """The ``filter`` parameter is not a filter this phase can honour."""
+
+
+@dataclass(frozen=True)
+class AllocationFilter:
+    """The filter terms this phase reads, one per supported key.
+
+    A term that is absent is not a constraint: ``None`` means "the request did not
+    say", which is different from "the request said something that does not match".
+    """
+
+    cluster: str | None = None
+    namespace: str | None = None
+    controller: str | None = None
+
+    def matches_workload(self) -> bool:
+        """Whether the synthetic workload satisfies the namespace and controller terms.
+
+        The estate models ONE workload -- ``payments/api`` -- and it lives in every
+        cluster of the estate. A filter that names another namespace or another
+        controller therefore names something that does not exist here, and the answer
+        is an empty one.
+        """
+        if self.namespace is not None and self.namespace != NAMESPACE:
+            return False
+        return not (self.controller is not None and self.controller != CONTROLLER)
+
+
+@lru_cache(maxsize=1)
+def estate_clusters() -> dict[str, dict[str, str]]:
+    """The estate's Kubernetes clusters, read from the versioned fixture.
+
+    The fixture is the catalog of the estate's 309 clusters (75 EKS, 111 GKE, 123
+    AKS), derived from the canonical ``resources.parquet`` by
+    ``scripts/export_clusters.py``. It is read once and cached: the answer of the
+    service must be a pure function of the request, and a file read on every request
+    would make it depend on the file system as well.
+
+    :raises FileNotFoundError: when the fixture is missing -- a deployment error, and
+        it must not be papered over with an empty catalog.
+    """
+    records = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    return {record["cluster_id"]: record for record in records}
+
+
+def parse_filter(raw: str | None) -> AllocationFilter:
+    """Parse the ``filter`` parameter into the terms this phase reads.
+
+    The shape is the one the CloudPilot provider sends: terms written as
+    ``key:"value"`` and joined with ``+`` -- ``cluster:"<id>"+namespace:"<ns>"``.
+
+    Only ``cluster``, ``namespace`` and ``controller`` are read. A term this phase
+    cannot honour is **refused**, not ignored: answering a filtered request with an
+    unfiltered answer would be a lie about what was served, and the simulator does not
+    lie about what it answered. The same goes for a term that is not written as
+    ``key:"value"``.
+
+    :raises FilterError: when the filter is malformed, names an unsupported key, or
+        repeats a key.
+    """
+    if raw is None:
+        return AllocationFilter()
+
+    text = raw.strip()
+    if not text:
+        return AllocationFilter()
+
+    values: dict[str, str] = {}
+    for term in text.split("+"):
+        piece = term.strip()
+        match = _FILTER_TERM.match(piece)
+        if match is None:
+            raise FilterError(f"{piece!r} is not a filter term written as key:\"value\"")
+
+        key = match.group("key")
+        value = match.group("value")
+        if key not in SUPPORTED_FILTER_KEYS:
+            raise FilterError(
+                f"{key!r} is not a filter this phase reads "
+                f"(it reads: {', '.join(SUPPORTED_FILTER_KEYS)})"
+            )
+        if key in values:
+            raise FilterError(f"{key!r} was given twice")
+        values[key] = value
+
+    return AllocationFilter(
+        cluster=values.get("cluster"),
+        namespace=values.get("namespace"),
+        controller=values.get("controller"),
+    )
+
+
+def resolve_cluster(alloc_filter: AllocationFilter) -> str | None:
+    """The cluster the request selects.
+
+    A request that names no cluster gets the synthetic default cluster. A request
+    that names a cluster of the estate gets that cluster. A request that names a
+    cluster the estate does not have selects **nothing**: the answer is an empty one,
+    never a made-up cluster.
+
+    :returns: the cluster id, or ``None`` when the request selects no cluster.
+    """
+    if alloc_filter.cluster is None:
+        return CLUSTER
+    if alloc_filter.cluster not in estate_clusters():
+        return None
+    return alloc_filter.cluster
+
+
+def allocation_key(aggregate: str, cluster: str) -> str:
+    """The key the allocation is filed under.
+
+    The rule is the official one (``AllocationProperties.GenerateKey``,
+    ``core/pkg/opencost/allocationprops.go:361``): the key holds **the aggregated
+    properties only**, joined by ``"/"``. The controller enters the key when the
+    aggregation asks for it -- not because the allocation has it -- so
+    ``aggregate=namespace`` keys by ``payments`` and ``aggregate=namespace,controller``
+    keys by ``payments/api``.
+
+    The ``controllerKind`` does not prefix the controller here: the synthetic
+    allocation has no ``controllerKind``, and the official key only carries it when
+    the allocation has one.
+    """
+    if aggregate == "namespace":
+        return NAMESPACE
+    if aggregate == "namespace,controller":
+        return f"{NAMESPACE}/{CONTROLLER}"
+    if aggregate == "controller":
+        return CONTROLLER
+    return cluster
 
 
 def parse_window(raw: str) -> tuple[date, date]:
@@ -201,16 +365,19 @@ def figures(days: int) -> dict[str, Any]:
     return result
 
 
-def build_allocation(start: datetime, end: datetime, days: int) -> dict[str, Any]:
+def build_allocation(
+    start: datetime, end: datetime, days: int, cluster: str, key: str
+) -> dict[str, Any]:
     """The OpenCost allocation object for the window that runs from ``start`` to ``end``.
 
     ``days`` is the length of that window in days: one for a daily set, the length of
-    the whole request for an accumulated one.
+    the whole request for an accumulated one. ``cluster`` is the cluster the request
+    selected, and ``key`` is the key the aggregation files the allocation under.
     """
     allocation: dict[str, Any] = {
-        "name": ALLOCATION_KEY,
+        "name": key,
         "properties": {
-            "cluster": CLUSTER,
+            "cluster": cluster,
             "namespace": NAMESPACE,
             "controller": CONTROLLER,
         },
@@ -224,7 +391,11 @@ def build_allocation(start: datetime, end: datetime, days: int) -> dict[str, Any
 
 
 def allocation_sets(
-    start: date, end: date, accumulate: str = ACCUMULATE_NONE
+    start: date,
+    end: date,
+    accumulate: str = ACCUMULATE_NONE,
+    aggregate: str = DEFAULT_AGGREGATE,
+    alloc_filter: AllocationFilter | None = None,
 ) -> list[dict[str, Any]]:
     """The allocation sets for the window that runs from ``start`` to ``end``.
 
@@ -241,18 +412,30 @@ def allocation_sets(
       ``core/pkg/opencost/allocation.go:3330``).
     - ``ACCUMULATE_DAY`` and ``ACCUMULATE_NONE`` -- one set per day, which is the step
       this phase already fixed.
+
+    A request that selects no cluster -- because it named one the estate does not
+    have, or because it named a namespace or controller this estate does not carry --
+    gets **no set at all**: an empty list. The answer does not invent a cluster.
     """
+    alloc_filter = alloc_filter or AllocationFilter()
+
+    cluster = resolve_cluster(alloc_filter)
+    if cluster is None or not alloc_filter.matches_workload():
+        return []
+
+    key = allocation_key(aggregate, cluster)
+
     if accumulate == ACCUMULATE_ALL:
         window_start = datetime(start.year, start.month, start.day, tzinfo=UTC)
         window_end = datetime(end.year, end.month, end.day, tzinfo=UTC) + timedelta(days=1)
         days = (end - start).days + 1
-        return [{ALLOCATION_KEY: build_allocation(window_start, window_end, days)}]
+        return [{key: build_allocation(window_start, window_end, days, cluster, key)}]
 
     sets: list[dict[str, Any]] = []
     day = start
     while day <= end:
         day_start = datetime(day.year, day.month, day.day, tzinfo=UTC)
         day_end = day_start + timedelta(days=1)
-        sets.append({ALLOCATION_KEY: build_allocation(day_start, day_end, 1)})
+        sets.append({key: build_allocation(day_start, day_end, 1, cluster, key)})
         day += timedelta(days=1)
     return sets

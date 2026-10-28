@@ -1,7 +1,7 @@
-# Contrato OpenCost do `k8s-sim` (Fase S4a)
+# Contrato OpenCost do `k8s-sim` (Fases S4a e S4b1)
 
-> Idioma: **Português**. Sem gêmea `.en.md`: a allowlist da Fase S4a permite **apenas** este
-> arquivo em `docs/`. A gêmea em inglês fica como pendência (§9).
+> Idioma: **Português**. Sem gêmea `.en.md`: a allowlist permite **apenas** este arquivo em
+> `docs/`. A gêmea em inglês fica como pendência (§9).
 
 Levantamento executado em **2026-10-28**, por leitura somente-leitura das fontes oficiais do
 OpenCost. Este documento existe para que a forma do payload não dependa da memória de ninguém:
@@ -9,7 +9,9 @@ cada linha traz **a URL da fonte** e **o trecho que a sustenta**.
 
 **O que este documento é:** o contrato HTTP do serviço mínimo `k8s-sim` — o caminho
 `/allocation/compute`, o envelope, os campos de cada allocation e o comportamento dos
-parâmetros.
+parâmetros. Desde a **S4b1** ele cobre também os **clusters do estate** (o catálogo em
+`k8s_sim/fixtures/clusters.json`), o parâmetro `filter`, o parâmetro `step` e a rota
+`/clusterInfo`.
 
 **O que este documento NÃO é:** uma reconciliação de billing. **Os valores desta fase são
 SINTÉTICOS.** O `k8s-sim` não lê billing, não lê preço de nuvem e não lê o cluster AKS real; a
@@ -40,6 +42,11 @@ repositório na data da leitura), por `gh api` — a fonte de máquina, lida loc
 | F11 | OpenCost — a leitura booleana | `core/pkg/util/mapper/mapper.go:411-419` (`GetBool`) | `GetBool` usa `strconv.ParseBool`: aceita `1`, `t`, `T`, `TRUE`, `true`, `True` como verdadeiro (e `0`, `f`, `F`, `FALSE`, `false`, `False` como falso); o que não parseia devolve o valor padrão (`false`). É essa leitura que faz `accumulate=1` significar "a janela toda". |
 | F12 | OpenCost — como a acumulação soma | `core/pkg/opencost/allocation.go:1422-1456` (`Allocation.add`), `:1109-1140` (`CPUCores`, `RAMBytes`, `PVBytes`), `:3178-3214` (`AllocationSet.Accumulate`), `:3330-3340` (`accumulateByAll`) | A soma junta os campos **cumulativos** (`cpuCoreHours`, `ramByteHours`, `networkTransferBytes` e todos os custos). `cpuCores`, `ramBytes` e `pvBytes` **não** são somados: são derivados (horas somadas ÷ minutos somados ÷ 60), então um uso diário constante mantém as mesmas figuras. `AllocationSet.Accumulate` produz **um** set com o início e o fim do intervalo inteiro, e `accumulateByAll` devolve um único set. |
 | F13 | OpenCost — o agrupamento de calendário | `core/pkg/opencost/allocation.go:3393-3502` (`accumulateByMonth`, `accumulateByQuarter`, `accumulateByWeek`), `pkg/costmodel/aggregation.go:171-186` (`resolveQueryWindowForAccumulate`) | O agrupamento de calendário fecha o bucket no fim do mês, do trimestre e **no sábado** (a semana começa no domingo). Para servir essas opções, o handler **expande a janela consultada** para as bordas do bucket, de modo que a resposta passa a incluir dias que o chamador não pediu. |
+| F14 | **O consumidor** — provider `opencost` do CloudPilot | `backend/app/services/k8s_finops/providers/opencost.py` (leitura somente-leitura em `D:\cloudpilot-deploy`, 2026-10-28) | O que o consumidor **realmente envia**: `get_cluster_costs` (`:313-319`) → `aggregate=namespace,controller`, `step=1d`, `accumulate=false`, `filter=cluster:"<id>"`; `get_namespace_costs` (`:330-335`) → `aggregate=namespace`, `filter=cluster:"<id>"+namespace:"<ns>"`; `get_workload_costs` (`:350-356`) → `aggregate=controller`, `filter=cluster:"<id>"+namespace:"<ns>"+controller:"<w>"`; `get_cluster_health` (`:464-467`) → `GET /clusterInfo` com `filter=cluster:"<id>"`; `test_connection` (`:544-559`) → `GET /healthz` e, só se falhar, `/allocation/compute?window=1d&aggregate=cluster`. É a **fonte de verdade da S4b1**: o que esta fase implementa é o que o consumidor envia. |
+
+> **F14 não é fonte oficial do OpenCost** — é o **consumidor**. Ela fica registrada à parte
+> de propósito: o que o OpenCost publica é uma coisa (F1–F13); o que o CloudPilot envia é outra,
+> e é a segunda que define o escopo desta fase.
 
 ### 1.1 Onde as fontes oficiais discordam entre si
 
@@ -80,6 +87,20 @@ erro só.
 Rota extra: `GET /healthz` → `{"status":"ok","synthetic":true}`, como nos outros emuladores do
 simulador.
 
+Rota extra (S4b1): `GET /clusterInfo` → descreve **um** cluster, o que o `filter` nomear:
+
+```
+GET /clusterInfo?filter=cluster:"<id>"
+```
+
+Sucesso — HTTP 200, `{"code":200,"data":{"version":"synthetic"}}`. O cluster tem de ser um dos
+309 do estate (§6.1): um `filter` ausente → **400**; um cluster que o estate não tem → **400**;
+um `filter` que esta fase não lê → **400**. O corpo é **fixo**: nenhum `nodeCount`, nenhum
+`podCount`, nenhuma utilização — o estate não modela esses fatos, e publicá-los seria afirmar
+alguma coisa sobre um dado que o simulador não tem. (O consumidor lê `version` e usa
+`nodeCount`/`podCount` com **default 0** — `opencost.py:487-490` — então a ausência é lida
+como ausência, não como erro.)
+
 ---
 
 ## 3. Parâmetros
@@ -87,17 +108,25 @@ simulador.
 | Parâmetro | O que a fonte oficial publica | O que esta fase faz |
 |---|---|---|
 | `window` | **Obrigatório** (F1, F2, F5). Aceita palavras (`today`, `lastweek`), durações (`30m`, `7d`), pares RFC 3339 (`2021-01-02T15:04:05Z,2021-02-02T15:04:05Z`) e timestamps Unix (`1578002645,1580681045`). Erro de parse → **400** (F5:341). | **Implementado, estreitado.** Só lê `YYYY-MM-DD,YYYY-MM-DD`, com **as duas pontas inclusivas**: `2026-10-01,2026-10-02` devolve **2** sets, um por dia. Ausente, malformado, data inexistente ou fim antes do início → **400** com o envelope de erro. As outras grafias oficiais **não** são lidas: recusadas, nunca adivinhadas. |
-| `aggregate` | Aceita `cluster`, `node`, `namespace`, `controllerKind`, `controller`, `service`, `pod`, `container`, `label:LABEL_NAME`, `annotation:name`, listas separadas por vírgula, e `all` (F1, F5:32 `ParseAggregationProperties`). Valor inválido → 400 (F5:355). | **Implementado, estreitado.** Só serve `namespace`. Ausente ⇒ `namespace`. **Qualquer outro valor → 400**, nomeando o valor suportado. A recusa é deliberada: responder a `aggregate=cluster` com a visão de namespace é um downgrade silencioso, e o simulador não mente sobre o que respondeu. |
+| `aggregate` | Aceita `cluster`, `node`, `namespace`, `controllerKind`, `controller`, `service`, `pod`, `container`, `label:LABEL_NAME`, `annotation:name`, listas separadas por vírgula, e `all` (F1, F5:32 `ParseAggregationProperties`). Valor inválido → 400 (F5:355). | **Implementado, estreitado.** Serve exatamente quatro: `namespace`, `namespace,controller`, `controller` e `cluster` — as quatro que o consumidor envia (F14). Ausente ⇒ `namespace`. **Qualquer outro valor → 400**, nomeando os suportados. A recusa é deliberada: responder a `aggregate=node` com a visão de namespace é um downgrade silencioso, e o simulador não mente sobre o que respondeu. |
+| `filter` | F5 lista `filter` entre os parâmetros lidos pelo handler. O OpenCost aplica o filtro às propriedades da allocation. | **Implementado, estreitado.** A gramática é a que o consumidor envia (F14): termos `chave:"valor"` unidos por `+`. Só `cluster`, `namespace` e `controller` são lidos. `cluster` seleciona o cluster (§6.1); `namespace` e `controller` restringem ao workload sintético. Cluster que o estate não tem → **200 com `data: []`**. Filtro malformado ou com chave que esta fase não lê → **400** (§3.3). |
+| `step` | F1, F2, F5: define a duração de cada set; por default é igual à janela. `step` inválido → **400** (F5). | **Implementado, estreitado.** Só `1d` (e a ausência). O consumidor envia `step=1d` (F14). Outro valor → **400** (§3.1). |
 | `includeIdle` | Boolean, default `false` (F1; F5:360 `qp.GetBool("includeIdle", false)`). Controla a alocação `__idle__` do cluster. | **Aceito e ignorado.** O estate sintético não modela recurso ocioso — não há idle para incluir — então o payload **não muda** com o parâmetro. Isso é dito no payload: o que ele afirma sobre idle é verdade nos dois casos. |
 | `accumulate` | Boolean no Swagger (F2): *"If true, sums the entire window into a single result set."*. No handler (F5:363, F9): aceita `true`/`1` (⇒ `all`), `all`, `day`, `week`, `month`, `quarter`, `hour`, e `accumulateBy` com `quarter`/`none`. | **Implementado, no padrão do handler.** A resolução é a de F9/F10/F11: `all` (qualquer caixa) e qualquer valor booleano verdadeiro (`true`, `1`, `t`, `TRUE`, `True`) ⇒ **uma** janela com os custos do período somados; `day` ⇒ uma janela por dia; `false`/`0`/ausente ⇒ uma janela por dia; `week`/`month`/`quarter`/`hour` ⇒ uma janela por dia (§3.2). **Nenhum valor de `accumulate` é recusado** — o handler oficial também não recusa. |
 
-### 3.1 Parâmetro não servido: `step`
+### 3.1 O `step`: só o dia
 
 `step` (F1, F2, F5) define a duração de cada set e, no OpenCost, **por default é igual à janela**
 — o que devolve **um** set para a janela toda. Esta fase entrega **um set por dia** — ou seja,
-equivale a `step=1d` —, exceto quando o `accumulate` pede a janela inteira (§3.2). O parâmetro não
-é lido: a fase fixa o passo em um dia. Registrado aqui porque é a razão de
-`window=2026-10-01,2026-10-02` devolver dois sets em vez de um.
+equivale a `step=1d` —, exceto quando o `accumulate` pede a janela inteira (§3.2).
+
+**Desde a S4b1 o parâmetro é lido.** O consumidor envia `step=1d` (F14), e essa é a única
+grafia servida: `step=1d` e `step` ausente dão o mesmo passo de um dia; **qualquer outra
+grafia → 400**, com o envelope de erro (`Invalid 'step' parameter: this phase supports only
+'1d'.`). O passo de um dia é também o que o OpenCost usaria com `step=1d`, então aqui a
+fase coincide com ele — não é um estreitamento silencioso.
+
+`step=1h` e os buckets de calendário (`week`, `month`, `quarter`) ficam para a **S4b4**.
 
 ### 3.2 O que esta fase distingue de `accumulate`: a janela inteira, e o dia
 
@@ -127,6 +156,35 @@ set por dia usando o nome de um pedido de bucket de semana seria responder com o
 inventar uso fora da janela seria inventar dado. A fase aceita essas grafias e devolve um set por
 dia, e **isso está declarado** aqui, no contrato e no código — não é um silêncio. **Gap declarado
 para a S4b** (§9).
+
+### 3.3 O `filter`: o que esta fase lê, e o que ela recusa
+
+A gramática é a que o consumidor escreve (F14): termos `chave:"valor"` unidos por `+`.
+
+```
+filter=cluster:"<id>"
+filter=cluster:"<id>"+namespace:"<ns>"
+filter=cluster:"<id>"+namespace:"<ns>"+controller:"<w>"
+```
+
+| Termo | O que faz |
+|---|---|
+| `cluster` | **Seleciona o cluster.** O valor tem de ser um dos 309 do estate (§6.1). Cluster que o estate não tem → **200 com `data: []`** — o pedido não selecionou nada e nada é inventado para preenchê-lo. |
+| `namespace` | Restringe ao namespace do workload sintético. `namespace:"payments"` casa; qualquer outro valor não casa → **`data: []`**. |
+| `controller` | Restringe ao workload sintético. `controller:"api"` casa; qualquer outro valor → **`data: []`**. |
+
+**Um `filter` sem `cluster`** não seleciona cluster nenhum: o serviço responde pelo cluster
+sintético padrão (§6.1). Um `filter` **malformado** (termo sem aspas, aspas não fechadas,
+valor vazio, chave repetida) ou com uma **chave que esta fase não lê** (`pod`, `node`,
+`label:…`, `service`, …) → **400**.
+
+A recusa é deliberada, e é a mesma doutrina da recusa de `aggregate` (§3): **responder a um
+pedido filtrado por `pod` com um payload não filtrado seria mentir sobre o que foi
+servido.** A alternativa — ignorar o termo desconhecido — faria o consumidor receber custos de
+um pod que ele pediu para excluir. O simulador prefere recusar.
+
+A linguagem de filtro do OpenCost é muito mais larga (rótulos, anotações, `node`, `pod`,
+`container`, …). Esta fase lê as **três** chaves que o consumidor envia e recusa o resto.
 
 ---
 
@@ -160,17 +218,19 @@ HTTP, exatamente como `WriteData` e `WriteError` o escrevem.
 
 `data` é uma **lista de allocation sets**, um por dia da janela (F7: `AllocationSetRange` é um
 array; cada set é um **mapa** chave→allocation, F7:197). Cada set tem **uma** entrada, indexada
-pela chave da agregação — `payments`, para `aggregate=namespace` (§7):
+pela chave da agregação — `payments` para `aggregate=namespace`, `payments/api` para
+`aggregate=namespace,controller` (§7). O exemplo abaixo é o pedido do consumidor (F14):
+`aggregate=namespace,controller&filter=cluster:"<id>"&step=1d&accumulate=false`:
 
 ```json
 {
   "code": 200,
   "data": [
     {
-      "payments": {
-        "name": "payments",
+      "payments/api": {
+        "name": "payments/api",
         "properties": {
-          "cluster": "aks-synthetic-01",
+          "cluster": "006e5851-05b8-5852-a0d6-01450d7a4784",
           "namespace": "payments",
           "controller": "api"
         },
@@ -200,8 +260,8 @@ pela chave da agregação — `payments`, para `aggregate=namespace` (§7):
 
 | Campo | Origem do nome | Onde esta fase o preenche |
 |---|---|---|
-| `name` | F7 (`AllocationJSON.Name`) | A chave do allocation: `payments`. |
-| `properties.cluster` / `.namespace` / `.controller` | F8 (`AllocationProperties`, tags JSON em `:178`, `:181`, `:183`) | O cluster sintético, o namespace e o workload. |
+| `name` | F7 (`AllocationJSON.Name`) | A chave do allocation: `payments`, `payments/api`, `api` ou o id do cluster, conforme a agregação (§7). |
+| `properties.cluster` / `.namespace` / `.controller` | F8 (`AllocationProperties`, tags JSON em `:178`, `:181`, `:183`) | O cluster **selecionado** pelo `filter`, o namespace e o workload sintéticos. |
 | `window.start` / `window.end` | F2 (`Window`), F7 | As bordas do set, em RFC 3339 UTC. |
 | `start` / `end` | F7 (`AllocationJSON.Start`/`End`) | As mesmas bordas, no nível do allocation. O OpenCost os formata com `time.RFC3339` em UTC. |
 | `minutes` | F2, F7 | Duração do set em minutos: `1440.0` para um dia. |
@@ -243,14 +303,14 @@ wire**, na ordem em que o contrato nomeia os componentes.
 
 ## 6. O estate sintético e a aritmética
 
-O `k8s-sim` modela **um** cluster, **um** namespace e **um** workload:
+O `k8s-sim` modela **um** namespace e **um** workload — os mesmos em **todos** os clusters do
+estate:
 
 | | |
 |---|---|
-| cluster | `aks-synthetic-01` |
 | namespace | `payments` |
 | controller | `api` |
-| chave do allocation set | `payments` |
+| chave do allocation set | conforme a agregação (§7) |
 
 O uso e a taxa são **sintéticos**, declarados em `k8s_sim/projections/allocation.py` para que a
 conta possa ser refeita à mão:
@@ -270,6 +330,54 @@ preços é buscada. É isso que faz duas chamadas iguais devolverem bytes iguais
 **Estes preços não são preços do Azure.** Não há nenhuma relação com Azure Retail Prices, com o
 ledger do CloudPilot ou com qualquer linha de billing: são números redondos escolhidos para a
 aritmética ser conferível. Reconciliação é S4b.
+
+### 6.1 Os clusters do estate: o fixture `clusters.json`
+
+**O fixture é DADO, derivado do estate.** Ele mora em
+`emulators/k8s-sim/k8s_sim/fixtures/clusters.json` e é gerado por
+`emulators/k8s-sim/scripts/export_clusters.py`, a partir do `resources.parquet` canônico do
+perfil **`123-medium-USD`** (seed 123, profile `medium`), filtrando os três tipos de recurso de
+cluster Kubernetes: `eks_cluster`, `gke_cluster` e `aks_cluster`.
+
+| | |
+|---|---|
+| clusters | **309** |
+| EKS (AWS) | **75** |
+| GKE (GCP) | **111** |
+| AKS (Azure) | **123** |
+| campos por registro | `cluster_id`, `provider`, `region_id` |
+
+**O `cluster_id` é a identidade canônica do recurso — a coluna `uuid` do estate — e não o
+`resource_name`.** O gerador escreve ruído nos nomes (`TEMP-gke_cluster-0037`,
+`gke_cluster-0357 (do not delete)`), então um nome não é um identificador estável; o `uuid` é
+derivado deterministicamente da seed e é único no estate (medido: 309 ids, 309 distintos).
+
+**O serviço não importa o gerador.** O `k8s-sim` lê o arquivo; `tools.synthetic_clouds` não é
+dependência de runtime do pacote (o `pyproject.toml` do `k8s-sim` declara apenas `fastapi` e
+`uvicorn`). O exportador é ferramenta de desenvolvimento e usa `pyarrow`, que por isso não
+entra nas dependências do serviço.
+
+**Quando regenerar.** Sempre que o estate mudar. O fixture é ordenado por `cluster_id` e **não
+carimba horário**, então regerar a partir de um estate inalterado reproduz o arquivo byte a
+byte: um diff no fixture significa que o estate mudou.
+
+```powershell
+.\.venv\Scripts\python.exe emulators\k8s-sim\scripts\export_clusters.py
+```
+
+> **Medido em 2026-10-28:** os 309 ids são **idênticos** em todos os snapshots `123-medium-USD`
+> do estate (os diários de 2026-10-16 a 2026-10-27 e o snapshot `gcp-plane`). A escolha do
+> snapshot lido não muda o fixture.
+
+**O cluster padrão.** Um pedido **sem** `cluster` no `filter` é servido pelo cluster sintético
+`aks-synthetic-01` — o da fase anterior, que **não** é um cluster do estate e **não** está no
+fixture. Ele sobrevive porque é o que o contrato da S4a já publicava, e porque um `filter` sem
+`cluster` não seleciona cluster nenhum. `filter=cluster:"aks-synthetic-01"` é recusado: esse id
+não está no catálogo.
+
+**O workload é o mesmo em todos os clusters.** O fixture traz a **identidade** do cluster
+(provider e região), não o seu workload: o estate sintético carrega `payments/api` em todos
+eles. Por isso o custo é o mesmo em qualquer cluster — e isso é declarado, não descoberto.
 
 ---
 
@@ -293,18 +401,22 @@ O `controller` entra na chave **quando a agregação o pede**, e não porque a a
 Com `aggregate=namespace`, o `switch` só encontra `p.Namespace`: o `controller` fica em
 `properties`, como uma propriedade da allocation, e **não** na chave.
 
-| Agregação pedida | Chave no OpenCost oficial |
-|---|---|
-| `aggregate=namespace` | `payments` (só o namespace) |
-| `aggregate=namespace,controller` | `payments/api` — o `controllerKind` só entra como prefixo (`deployment:api`) quando a allocation **tem** `controllerKind` |
-| `aggregate` ausente | `cluster/node/namespace/pod/container` (F5:34, o default do `ParseAggregationProperties`) |
+| Agregação pedida | Chave no OpenCost oficial | Chave do `k8s-sim` |
+|---|---|---|
+| `aggregate=namespace` | `payments` (só o namespace) | `payments` |
+| `aggregate=namespace,controller` | `payments/api` — o `controllerKind` só entra como prefixo (`deployment:api`) quando a allocation **tem** `controllerKind` | `payments/api` (a allocation sintética **não** tem `controllerKind`) |
+| `aggregate=controller` | `api` | `api` |
+| `aggregate=cluster` | o id do cluster | o id do cluster selecionado |
+| `aggregate` ausente | `cluster/node/namespace/pod/container` (F5:34, o default do `ParseAggregationProperties`) | `namespace` (§3) |
 
-**O `k8s-sim` serve `aggregate=namespace`, e portanto serve a chave `payments`.** O mapa do
-allocation set é `{"payments": {...}}` e o `name` da allocation é `payments` — o `name` é a
-chave sob a qual a allocation é arquivada, não o nome do workload.
+**O `k8s-sim` serve as quatro agregações que o consumidor envia (F14), e a chave segue a regra
+oficial em todas elas.** O mapa do allocation set é `{"<chave>": {...}}` e o `name` da
+allocation é a chave sob a qual ela é arquivada — o `name` é a chave, não o nome do workload.
 
 O `controller` continua publicado em `properties.controller` (`api`), porque é uma propriedade
-real da allocation sintética — apenas não é parte da chave dessa agregação.
+real da allocation sintética — apenas não é parte da chave dessa agregação. O `cluster`
+selecionado continua publicado em `properties.cluster` em todas as agregações, pela mesma
+razão: as propriedades descrevem a allocation, e a agregação decide **a chave**.
 
 ---
 
@@ -321,6 +433,10 @@ Registro honesto do que **não** pôde ser lido na fonte, e portanto **não** fo
 | Semântica de `window` quando o fim é igual ao início | Nenhuma das fontes publica o comportamento de um intervalo de um único dia com bordas inclusivas. Esta fase devolve **1** set para `X,X` (implementação própria, por consequência da regra inclusiva do §3). |
 | Nomes de campo de `properties` além de `cluster`/`namespace`/`controller` | F8 publica `node`, `container`, `controllerKind`, `pod`, `services`, `providerID`, `labels`, `annotations`, `namespaceLabels`, `namespaceAnnotations`. Esta fase publica **só os três** que a fase exige; os demais não são preenchidos. |
 | Formato exato da mensagem de erro do `window` | O OpenCost escreve `Invalid 'window' parameter: %s` com o erro do parser Go (F5:341). O texto do parser **não** é reimplementado: a mensagem do `k8s-sim` é própria e o formato (`Invalid 'window' parameter: …`) é o oficial. |
+| `step` diferente de `1d` | F1, F2, F5 publicam o parâmetro e o 400 do `step` inválido (F5), mas não publicam a **gramática** do que o OpenCost aceita. Esta fase serve `1d` e a ausência; o resto é 400 (§3.1). Declarado, não silencioso. |
+| A linguagem de `filter` além de `cluster`, `namespace` e `controller` | F5 lista `filter` entre os parâmetros lidos, mas o **critério** com que o OpenCost casa um termo de filtro **não** foi lido nesta execução. A fase lê as três chaves que o consumidor envia e recusa as demais com 400 (§3.3). |
+| O corpo de `/clusterInfo` | As fontes F1–F13 **não** publicam o corpo dessa rota. A forma `{"code":200,"data":{"version":"synthetic"}}` é a que o consumidor lê (F14 — ele usa `data.version`, e `data.nodeCount`/`data.podCount` com default 0) e a que esta fase prescreve. Nenhum `nodeCount`/`podCount` é publicado: o estate não os modela, e publicá-los seria afirmar um fato que o simulador não tem. |
+| `window` na forma `1d` (o fallback do teste de conexão) | O consumidor, no `test_connection`, tenta `/healthz` **primeiro** (F14, `opencost.py:544`) e é por ele que a conexão é confirmada — o `k8s-sim` responde 200 em `/healthz`. O *fallback* (`window=1d&aggregate=cluster`, `opencost.py:556-559`) **não** é servido: uma janela de duração sem âncora exigiria ler o relógio, e o `k8s-sim` não lê relógio (§6). `aggregate=cluster` **é** servido, com a janela no formato desta fase. |
 
 ---
 
@@ -328,21 +444,25 @@ Registro honesto do que **não** pôde ser lido na fonte, e portanto **não** fo
 
 Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 
-- **Sem billing, sem reconciliação.** Os números são sintéticos (§6). S4b.
-- **Um cluster só.** `aks-synthetic-01`, um namespace, um workload. Multi-cluster é S4b.
-- **Sem `step`** e **sem `includeIdle` efetivo** (§3, §3.1). `includeIdle` é aceito e ignorado;
-  `accumulate` **é** servido, nas duas formas da §3.2.
-- **Sem agregações além de `namespace`** (§3).
-- **Sem** `Dockerfile`, `compose.k8s.yaml`, rede, TLS, URL do cluster, API server do Kubernetes,
-  Prometheus, Kubecost, UI ou migration.
-- **Sem spec de máquina** em `specs/` e **sem entrada na matriz de fidelidade** — S4b.
+- **Sem billing, sem reconciliação.** Os números são sintéticos (§6). **S4b3**.
+- **Sem workload por cluster.** O fixture traz a **identidade** do cluster (§6.1), não o seu
+  workload: `payments/api` é o mesmo em todos os 309. O uso e a taxa são os da §6, em todo
+  cluster.
+- **Sem `includeIdle` efetivo** (§3). `includeIdle` é aceito e ignorado; `accumulate` **é**
+  servido, nas duas formas da §3.2; `step=1d` **é** servido (§3.1).
+- **Sem `step` ≠ `1d`** (`1h`, `24h`, buckets de calendário) → **400**. **S4b4**.
+- **Sem `accumulate=week`/`month`/`quarter`/`hour` distintos** (§3.2): a fase devolve um set por
+  dia para essas grafias, onde o OpenCost agruparia por calendário. Declarado no contrato.
+  **S4b4**.
+- **Sem a linguagem de filtro do OpenCost** além de `cluster`, `namespace` e `controller**
+  (§3.3): as demais chaves são recusadas com 400, não servidas.
+- **Sem `Dockerfile`, `compose.k8s.yaml`, rede, TLS, URL do cluster, API server do Kubernetes,
+  Prometheus, Kubecost, UI ou migration**. **S4b2**.
+- **Sem spec de máquina** em `specs/` e **sem entrada na matriz de fidelidade**.
 - **Sem** wiring no provider do CloudPilot, **sem** rodar sync, **sem** validar tela. O CloudPilot
   não foi tocado.
 - **Sem gêmea `.en.md`** deste documento: a allowlist da fase permite só este arquivo em `docs/`.
   Pendência para quando a allowlist abrir.
-- **`accumulate=week`/`month`/`quarter`/`hour` não são distintos** (§3.2): a fase devolve um set
-  por dia para essas grafias, onde o OpenCost agruparia por calendário. Declarado no contrato;
-  S4b.
 
 ---
 
@@ -363,7 +483,7 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 | custos finitos e não negativos |
 | duas chamadas iguais devolvem o mesmo payload |
 | `window` inválido, ausente, invertido ou com data inexistente → 400 |
-| `aggregate` fora de `namespace` → 400 |
+| `aggregate` fora das quatro suportadas → 400 |
 | `accumulate=true` → 200 com **uma** janela cobrindo o período e os custos somados |
 | as grafias que o oficial lê como janela inteira (`true`, `1`, `t`, `T`, `TRUE`, `True`, `all`, `ALL`) → uma janela |
 | a janela acumulada tem `window`, `start`, `end` e `minutes` do período inteiro |
@@ -371,3 +491,17 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 | a identidade do total sobrevive à acumulação, no bit |
 | `accumulate=false` / `0` / `day` → os sets diários, como sem o parâmetro |
 | `includeIdle` não muda o payload |
+| **o fixture tem 309 clusters — 75 EKS, 111 GKE, 123 AKS — ordenados e sem repetição** |
+| **todo registro do fixture traz `cluster_id`, `provider` e `region_id`** |
+| `aggregate=namespace,controller` + `filter=cluster:"<id>"` + `step=1d` → chave `payments/api`, com `properties.namespace` e `properties.controller` |
+| `aggregate=namespace` + `filter=cluster:"<id>"` → chave `payments` |
+| `aggregate=controller` + `filter=cluster:"<id>"+namespace:"payments"+controller:"api"` → chave `api` |
+| `aggregate=cluster` + `filter=cluster:"<id>"` → chave `<id>` |
+| o `filter` nomeia o cluster que o payload carrega em `properties.cluster` |
+| um cluster que o estate não tem → **200 com `data: []`** |
+| duas chamadas iguais **com** `filter` devolvem o mesmo payload |
+| `step=1d` é aceito; `1h`, `24h`, `2d`, `1w`, `month` → 400 |
+| `accumulate=true`/`false` continuam valendo **com** `filter` |
+| `filter` malformado ou com chave que a fase não lê → 400 |
+| `/clusterInfo?filter=cluster:"<id>"` → 200 com `data == {"version": "synthetic"}` |
+| `/clusterInfo` sem `filter`, ou com cluster que o estate não tem → 400 |

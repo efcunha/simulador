@@ -1,6 +1,6 @@
-"""FastAPI app for k8s-sim: the OpenCost allocation contract for one synthetic AKS cluster.
+"""FastAPI app for k8s-sim: the OpenCost allocation contract for the estate's clusters.
 
-Two routes, and nothing else:
+Three routes, and nothing else:
 
 ``/healthz``
     The liveness probe the sibling sims (aws-sim, gcp-sim, azure-sim) expose, with the
@@ -11,8 +11,14 @@ Two routes, and nothing else:
     ``data`` -- and ``data`` is a list of allocation sets, one per day of the requested
     window, each a map from the allocation key to the allocation.
 
+``/clusterInfo``
+    The cluster the request asks about, described by the ``filter`` it carries.
+
 The app is stateless. There is no estate to build, no clock to read, no price list to
 fetch and no connection to open: every answer is a pure function of the query string.
+The estate's clusters are DATA -- the versioned fixture
+``k8s_sim/fixtures/clusters.json`` -- and the generator is not a dependency of the
+service.
 
 The wire shape, the sources it was read from, and the places where this phase narrows
 or deviates from OpenCost are documented in ``docs/k8s-sim-opencost-contract.md``.
@@ -54,14 +60,29 @@ def create_app() -> FastAPI:
         # string is the contract, and the query string is spelled ``includeIdle``.
         includeIdle: str | None = None,  # noqa: N803
         accumulate: str | None = None,
+        # ``step`` and ``filter`` are the OpenCost parameter names, spelled the way the
+        # CloudPilot provider sends them.
+        step: str | None = None,
+        filter: str | None = None,
     ) -> JSONResponse:
-        """The OpenCost allocation API for the synthetic cluster.
+        """The OpenCost allocation API for the estate's clusters.
 
         ``window`` is required and read as ``YYYY-MM-DD,YYYY-MM-DD``; it yields one
-        allocation set per day, both bounds included. ``aggregate`` is accepted, and
-        this phase serves exactly one aggregation -- ``namespace``. Another aggregation
-        is refused with a 400 rather than answered with the namespace view wearing the
-        other aggregation's name.
+        allocation set per day, both bounds included.
+
+        ``aggregate`` accepts exactly the four aggregations this phase serves --
+        ``namespace``, ``namespace,controller``, ``controller`` and ``cluster``. Any
+        other value is refused with a 400 rather than answered with another
+        aggregation's view wearing its name.
+
+        ``filter`` selects the cluster, and constrains the namespace and the
+        controller. The terms are written as ``key:"value"`` and joined with ``+``,
+        the way the CloudPilot provider writes them. A filter that names a cluster the
+        estate does not have is answered with an **empty** ``data``: the request
+        selected nothing, and nothing is invented to fill it.
+
+        ``step`` is accepted in its one-day form (``1d``) and left out; any other
+        step is refused with a 400.
 
         The parameters are taken as raw strings on purpose: FastAPI would answer 422
         for a malformed boolean, and this contract has exactly one error shape -- the
@@ -78,12 +99,26 @@ def create_app() -> FastAPI:
         fixed, one set per day. The official handler never refuses an ``accumulate``
         value, so neither does this one.
         """
-        requested = (aggregate or "").strip() or allocation.SUPPORTED_AGGREGATE
-        if requested != allocation.SUPPORTED_AGGREGATE:
+        requested = (aggregate or "").strip() or allocation.DEFAULT_AGGREGATE
+        if requested not in allocation.SUPPORTED_AGGREGATES:
             return _error(
                 400,
-                f"Invalid 'aggregate' parameter: this phase supports only '{allocation.SUPPORTED_AGGREGATE}'.",
+                f"Invalid 'aggregate' parameter: this phase supports only "
+                f"{', '.join(allocation.SUPPORTED_AGGREGATES)}.",
             )
+
+        requested_step = (step or "").strip()
+        if requested_step and requested_step != allocation.SUPPORTED_STEP:
+            return _error(
+                400,
+                f"Invalid 'step' parameter: this phase supports only "
+                f"'{allocation.SUPPORTED_STEP}'.",
+            )
+
+        try:
+            alloc_filter = allocation.parse_filter(filter)
+        except allocation.FilterError as exc:
+            return _error(400, f"Invalid 'filter' parameter: {exc}")
 
         accumulate_option = allocation.resolve_accumulate(accumulate)
 
@@ -98,8 +133,44 @@ def create_app() -> FastAPI:
             status_code=200,
             content={
                 "code": 200,
-                "data": allocation.allocation_sets(start, end, accumulate_option),
+                "data": allocation.allocation_sets(
+                    start, end, accumulate_option, requested, alloc_filter
+                ),
             },
         )
+
+    @app.get("/clusterInfo")
+    async def cluster_info(filter: str | None = None) -> JSONResponse:
+        """The cluster the request asks about.
+
+        The ``filter`` names the cluster, the way the CloudPilot provider names it:
+        ``cluster:"<id>"``. The cluster has to be one of the estate's -- the
+        versioned fixture is the catalog, and a cluster that is not in it does not
+        exist.
+
+        The answer says only what is true: this is a synthetic cluster. No node count
+        and no pod count are published, because the estate does not model them: a
+        number here would be a claim about a fact the simulator does not have.
+        """
+        try:
+            alloc_filter = allocation.parse_filter(filter)
+        except allocation.FilterError as exc:
+            return _error(400, f"Invalid 'filter' parameter: {exc}")
+
+        if alloc_filter.cluster is None:
+            return _error(
+                400,
+                "Invalid 'filter' parameter: the cluster is required, as "
+                'cluster:"<id>".',
+            )
+
+        if alloc_filter.cluster not in allocation.estate_clusters():
+            return _error(
+                400,
+                f"Invalid 'filter' parameter: {alloc_filter.cluster!r} is not a cluster "
+                "of the estate.",
+            )
+
+        return JSONResponse(status_code=200, content={"code": 200, "data": {"version": "synthetic"}})
 
     return app
