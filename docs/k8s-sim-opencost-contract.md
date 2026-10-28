@@ -35,6 +35,11 @@ repositório na data da leitura), por `gh api` — a fonte de máquina, lida loc
 | F6 | OpenCost — envelope HTTP | `core/pkg/protocol/http.go:87` (`HTTPResponse`), `:153` (`WriteData`), `:243` (`WriteError`) | `HTTPResponse{Code int "code"; Data interface{} "data"; Meta "meta,omitempty"; Message "message,omitempty"; Warning "warning,omitempty"}`. `WriteData` → HTTP 200 + `{"code":200,"data":…}`. `WriteError` → HTTP 400 + `{"code":400,"message":"…"}`. |
 | F7 | OpenCost — o allocation no wire | `core/pkg/opencost/allocation_json.go:13` (`AllocationJSON`), `:197` (`AllocationSet.MarshalJSON`), `:205` (`AllocationSetRange.MarshalJSON`) | A lista completa dos campos publicados, com os nomes JSON exatos (`name`, `properties`, `window`, `start`, `end`, `minutes`, `cpuCost`, `ramCost`, `pvCost`, `networkCost`, `sharedCost`, `externalCost`, `gpuCost`, `loadBalancerCost`, `totalCost`, …). `AllocationSet.MarshalJSON` faz `json.Marshal(as.Allocations)` — **o set é um mapa chave→allocation**; `AllocationSetRange.MarshalJSON` — **o `data` é um array de sets**. |
 | F8 | OpenCost — propriedades e regra da chave | `core/pkg/opencost/allocationprops.go:178` (`cluster`), `:181` (`controller`), `:183` (`namespace`), `:361` (`GenerateKey`), `:551` (`strings.Join(names, "/")`) | As tags JSON das propriedades de allocation. E a regra da chave: `GenerateKey` monta a chave com os valores das propriedades agregadas, unidos por **`"/"`**. |
+| F9 | OpenCost — resolução do `accumulate` | `pkg/costmodel/aggregation.go:84-96` (`resolveAccumulateFromQuery`), `:124-140` (`resolveDefaultStepFromAccumulate`), `:135-136` (`case AccumulateOptionAll: return window.Duration()`) | Resolve o parâmetro em três passos: `all` (sem distinção de caixa) ⇒ `AccumulateOptionAll`; `ParseAccumulate` para as opções nomeadas; e, para o resto, a leitura booleana. Com `all`, o **passo** passa a ser a duração da janela (`:135-136`), o que produz **um** set para a janela toda. O handler **nunca** recusa um valor de `accumulate`. |
+| F10 | OpenCost — as opções de acumulação | `core/pkg/opencost/query.go:47-79` (`AccumulateOption`, `ParseAccumulate`) | As opções são `all`, `hour`, `day`, `week`, `month`, `quarter` e `none` (vazio). `ParseAccumulate` normaliza para minúsculas e lê `quarter`, `month`, `week`, `day`, `hour` e `true`; o resto é `none`. |
+| F11 | OpenCost — a leitura booleana | `core/pkg/util/mapper/mapper.go:411-419` (`GetBool`) | `GetBool` usa `strconv.ParseBool`: aceita `1`, `t`, `T`, `TRUE`, `true`, `True` como verdadeiro (e `0`, `f`, `F`, `FALSE`, `false`, `False` como falso); o que não parseia devolve o valor padrão (`false`). É essa leitura que faz `accumulate=1` significar "a janela toda". |
+| F12 | OpenCost — como a acumulação soma | `core/pkg/opencost/allocation.go:1422-1456` (`Allocation.add`), `:1109-1140` (`CPUCores`, `RAMBytes`, `PVBytes`), `:3178-3214` (`AllocationSet.Accumulate`), `:3330-3340` (`accumulateByAll`) | A soma junta os campos **cumulativos** (`cpuCoreHours`, `ramByteHours`, `networkTransferBytes` e todos os custos). `cpuCores`, `ramBytes` e `pvBytes` **não** são somados: são derivados (horas somadas ÷ minutos somados ÷ 60), então um uso diário constante mantém as mesmas figuras. `AllocationSet.Accumulate` produz **um** set com o início e o fim do intervalo inteiro, e `accumulateByAll` devolve um único set. |
+| F13 | OpenCost — o agrupamento de calendário | `core/pkg/opencost/allocation.go:3393-3502` (`accumulateByMonth`, `accumulateByQuarter`, `accumulateByWeek`), `pkg/costmodel/aggregation.go:171-186` (`resolveQueryWindowForAccumulate`) | O agrupamento de calendário fecha o bucket no fim do mês, do trimestre e **no sábado** (a semana começa no domingo). Para servir essas opções, o handler **expande a janela consultada** para as bordas do bucket, de modo que a resposta passa a incluir dias que o chamador não pediu. |
 
 ### 1.1 Onde as fontes oficiais discordam entre si
 
@@ -44,10 +49,11 @@ Registrado porque o desacordo é real e muda o que se pode afirmar:
   código (F6) **não emite `status`**: emite `code`, `data`, `meta`, `message` e `warning`. A
   **fonte de máquina prevalece** e o `k8s-sim` emite o envelope do código (F6). O `status` do
   Swagger está **desatualizado** — registrado como `unverified` no §7.
-- **`accumulate` em `/allocation`.** O Swagger (F2) o publica como **boolean**; o handler (F5)
-  aceita **as duas** coisas: o `resolveAccumulateFromQuery` (`:84`) trata `all` como opção e
-  qualquer valor truthy (`true`/`1`) como `AccumulateOptionAll`, e o `ParseAccumulate` aceita
-  `day`/`week`/`month`. A página da API (F1) só documenta `accumulate` nas APIs de cloud cost.
+- **`accumulate` em `/allocation`.** O Swagger (F2) o publica como **boolean**; o handler (F5,
+  F9, F10, F11) aceita **as duas** coisas: o `resolveAccumulateFromQuery` (F9) trata `all`
+  como opção e qualquer valor truthy (`true`/`1`) como `AccumulateOptionAll`, e o
+  `ParseAccumulate` (F10) aceita `quarter`/`month`/`week`/`day`/`hour`/`true`. A página da
+  API (F1) só documenta `accumulate` nas APIs de cloud cost.
 - **`includeIdle` em `/allocation`.** A página da API (F1) documenta; o Swagger (F2) **não**.
 - **O caminho.** F1 e F2 documentam `/allocation`; F3, F4 e F5 usam `/allocation/compute`. São
   o mesmo serviço — `/allocation` é a rota que **agrega** o resultado e `/allocation/compute` é a
@@ -83,14 +89,44 @@ simulador.
 | `window` | **Obrigatório** (F1, F2, F5). Aceita palavras (`today`, `lastweek`), durações (`30m`, `7d`), pares RFC 3339 (`2021-01-02T15:04:05Z,2021-02-02T15:04:05Z`) e timestamps Unix (`1578002645,1580681045`). Erro de parse → **400** (F5:341). | **Implementado, estreitado.** Só lê `YYYY-MM-DD,YYYY-MM-DD`, com **as duas pontas inclusivas**: `2026-10-01,2026-10-02` devolve **2** sets, um por dia. Ausente, malformado, data inexistente ou fim antes do início → **400** com o envelope de erro. As outras grafias oficiais **não** são lidas: recusadas, nunca adivinhadas. |
 | `aggregate` | Aceita `cluster`, `node`, `namespace`, `controllerKind`, `controller`, `service`, `pod`, `container`, `label:LABEL_NAME`, `annotation:name`, listas separadas por vírgula, e `all` (F1, F5:32 `ParseAggregationProperties`). Valor inválido → 400 (F5:355). | **Implementado, estreitado.** Só serve `namespace`. Ausente ⇒ `namespace`. **Qualquer outro valor → 400**, nomeando o valor suportado. A recusa é deliberada: responder a `aggregate=cluster` com a visão de namespace é um downgrade silencioso, e o simulador não mente sobre o que respondeu. |
 | `includeIdle` | Boolean, default `false` (F1; F5:360 `qp.GetBool("includeIdle", false)`). Controla a alocação `__idle__` do cluster. | **Aceito e ignorado.** O estate sintético não modela recurso ocioso — não há idle para incluir — então o payload **não muda** com o parâmetro. Isso é dito no payload: o que ele afirma sobre idle é verdade nos dois casos. |
-| `accumulate` | Boolean no Swagger (F2): *"If true, sums the entire window into a single result set."*. No handler (F5:363, `:84`): aceita `true`/`1` (⇒ `all`), `all`, `day`, `week`, `month`, e `accumulateBy` com `quarter`/`none`. | **Recusado com 400.** Esta fase acumula **sempre por dia**. Honrar `accumulate=true` significaria devolver **um** set para a janela inteira em vez de **um por dia** — outra forma com o mesmo nome. A recusa diz *"esta fase não serve isso"*; o silêncio diria *"aqui está a resposta, mas não é a que você pediu"*. **Gap declarado para a S4b** (§9). |
+| `accumulate` | Boolean no Swagger (F2): *"If true, sums the entire window into a single result set."*. No handler (F5:363, F9): aceita `true`/`1` (⇒ `all`), `all`, `day`, `week`, `month`, `quarter`, `hour`, e `accumulateBy` com `quarter`/`none`. | **Implementado, no padrão do handler.** A resolução é a de F9/F10/F11: `all` (qualquer caixa) e qualquer valor booleano verdadeiro (`true`, `1`, `t`, `TRUE`, `True`) ⇒ **uma** janela com os custos do período somados; `day` ⇒ uma janela por dia; `false`/`0`/ausente ⇒ uma janela por dia; `week`/`month`/`quarter`/`hour` ⇒ uma janela por dia (§3.2). **Nenhum valor de `accumulate` é recusado** — o handler oficial também não recusa. |
 
 ### 3.1 Parâmetro não servido: `step`
 
 `step` (F1, F2, F5) define a duração de cada set e, no OpenCost, **por default é igual à janela**
-— o que devolve **um** set para a janela toda. Esta fase entrega **um set por dia**, ou seja,
-equivale a `step=1d`. O parâmetro não é lido: a fase fixa o passo em um dia. Registrado aqui
-porque é a razão de `window=2026-10-01,2026-10-02` devolver dois sets em vez de um.
+— o que devolve **um** set para a janela toda. Esta fase entrega **um set por dia** — ou seja,
+equivale a `step=1d` —, exceto quando o `accumulate` pede a janela inteira (§3.2). O parâmetro não
+é lido: a fase fixa o passo em um dia. Registrado aqui porque é a razão de
+`window=2026-10-01,2026-10-02` devolver dois sets em vez de um.
+
+### 3.2 O que esta fase distingue de `accumulate`: a janela inteira, e o dia
+
+A fase distingue **duas** formas de acumulação, e só duas:
+
+| Forma | Como se pede | O que volta |
+|---|---|---|
+| **A janela inteira** | `accumulate=true` (e `all`, `1`, `t`, `TRUE`, `True`) | **uma** janela, com `window`, `start`, `end` e `minutes` cobrindo o período pedido, e os custos somados |
+| **O dia** | `accumulate=day`, `false`, `0`, ausente, e qualquer outra grafia | **uma** janela por dia, o passo que a fase já fixava |
+
+A forma "janela inteira" é a que o Swagger (F2) descreve — *"If true, sums the entire window
+into a single result set"* — e é a que o handler produz: com `AccumulateOptionAll` o passo
+passa a ser a duração da janela (F9, `:135-136`) e os sets são fundidos em um só (F12).
+
+O que a soma **não** faz é somar os campos de capacidade: `cpuCores`, `ramBytes` e `pvBytes`
+são derivados das horas somadas divididas pelos minutos somados (F12), de modo que um uso
+diário constante **mantém as mesmas figuras** na janela acumulada. Só os campos cumulativos
+(`cpuCoreHours`, `ramByteHours`, `pvByteHours`, `networkTransferBytes` e os cinco custos) escalam
+com o número de dias.
+
+**As opções de calendário (`week`, `month`, `quarter`) e a opção `hour` não são distinguidas.**
+Servi-las como o OpenCost serviria exigiria **expandir a janela consultada** para as bordas do
+bucket de calendário (F13, `resolveQueryWindowForAccumulate`), de modo que a resposta passaria a
+incluir dias que o chamador **não pediu** — e a opção `hour` exigiria ainda uma distribuição do
+uso dentro do dia, que o estate sintético não modela (ele tem **um** número por dia). Devolver um
+set por dia usando o nome de um pedido de bucket de semana seria responder com outra forma;
+inventar uso fora da janela seria inventar dado. A fase aceita essas grafias e devolve um set por
+dia, e **isso está declarado** aqui, no contrato e no código — não é um silêncio. **Gap declarado
+para a S4b** (§9).
 
 ---
 
@@ -124,15 +160,15 @@ HTTP, exatamente como `WriteData` e `WriteError` o escrevem.
 
 `data` é uma **lista de allocation sets**, um por dia da janela (F7: `AllocationSetRange` é um
 array; cada set é um **mapa** chave→allocation, F7:197). Cada set tem **uma** entrada, indexada
-pela chave do workload:
+pela chave da agregação — `payments`, para `aggregate=namespace` (§7):
 
 ```json
 {
   "code": 200,
   "data": [
     {
-      "payments/api": {
-        "name": "payments/api",
+      "payments": {
+        "name": "payments",
         "properties": {
           "cluster": "aks-synthetic-01",
           "namespace": "payments",
@@ -164,7 +200,7 @@ pela chave do workload:
 
 | Campo | Origem do nome | Onde esta fase o preenche |
 |---|---|---|
-| `name` | F7 (`AllocationJSON.Name`) | A chave do allocation: `payments/api`. |
+| `name` | F7 (`AllocationJSON.Name`) | A chave do allocation: `payments`. |
 | `properties.cluster` / `.namespace` / `.controller` | F8 (`AllocationProperties`, tags JSON em `:178`, `:181`, `:183`) | O cluster sintético, o namespace e o workload. |
 | `window.start` / `window.end` | F2 (`Window`), F7 | As bordas do set, em RFC 3339 UTC. |
 | `start` / `end` | F7 (`AllocationJSON.Start`/`End`) | As mesmas bordas, no nível do allocation. O OpenCost os formata com `time.RFC3339` em UTC. |
@@ -214,7 +250,7 @@ O `k8s-sim` modela **um** cluster, **um** namespace e **um** workload:
 | cluster | `aks-synthetic-01` |
 | namespace | `payments` |
 | controller | `api` |
-| chave do allocation set | `payments/api` |
+| chave do allocation set | `payments` |
 
 O uso e a taxa são **sintéticos**, declarados em `k8s_sim/projections/allocation.py` para que a
 conta possa ser refeita à mão:
@@ -240,8 +276,22 @@ aritmética ser conferível. Reconciliação é S4b.
 ## 7. A chave do allocation set
 
 A regra oficial (F8) é: `GenerateKey` (`allocationprops.go:361`) monta a chave com os valores das
-propriedades agregadas e os une com **`"/"`** (`:551`). O que entra na chave depende da
-agregação pedida:
+propriedades agregadas e os une com **`"/"`** (`:551`). A chave carrega **só as propriedades que
+a agregação pediu** — e é isso que decide o formato dela.
+
+Lendo o `switch` de `GenerateKey` (F8, `:374-404`):
+
+| Propriedade agregada | O que entra na chave |
+|---|---|
+| `cluster` | `p.Cluster` |
+| `node` | `p.Node` |
+| `namespace` | `p.Namespace` |
+| `controller` | `p.Controller`, prefixado pelo `ControllerKind` quando a allocation o tem (`deployment:api`) |
+| `pod`, `container`, `service`, `label:`, `annotation:` | o valor correspondente |
+
+O `controller` entra na chave **quando a agregação o pede**, e não porque a allocation o tem.
+Com `aggregate=namespace`, o `switch` só encontra `p.Namespace`: o `controller` fica em
+`properties`, como uma propriedade da allocation, e **não** na chave.
 
 | Agregação pedida | Chave no OpenCost oficial |
 |---|---|
@@ -249,20 +299,12 @@ agregação pedida:
 | `aggregate=namespace,controller` | `payments/api` — o `controllerKind` só entra como prefixo (`deployment:api`) quando a allocation **tem** `controllerKind` |
 | `aggregate` ausente | `cluster/node/namespace/pod/container` (F5:34, o default do `ParseAggregationProperties`) |
 
-**Desvio D2 (o único desvio de conteúdo da fase).** A fase pede `aggregate=namespace` e exige a
-chave **`payments/api`**. No OpenCost oficial, `aggregate=namespace` produz **`payments`**. A
-fase entrega a chave **do workload** (`namespace/controller`), que é a forma de chave que o
-OpenCost produz para a agregação `namespace,controller` quando a allocation não tem
-`controllerKind` — e o `k8s-sim` não publica `controllerKind` (F8 lista-o, e a fase não o
-modela), de modo que `payments/api` **é** uma chave legítima do contrato oficial.
+**O `k8s-sim` serve `aggregate=namespace`, e portanto serve a chave `payments`.** O mapa do
+allocation set é `{"payments": {...}}` e o `name` da allocation é `payments` — o `name` é a
+chave sob a qual a allocation é arquivada, não o nome do workload.
 
-Por que a fase prefere a chave do workload: o consumer (o provider `opencost` do CloudPilot) lê
-`data` como lista de janelas e indexa a **custo por workload**, não por namespace agregado. A
-chave é a identidade do custo, e nesta fase o custo é de um workload.
-
-Este desvio é **deliberado, visível e fixado por teste** — não é um accidento de implementação.
-Uma fase futura que queira a chave de namespace pura deve trocar `WORKLOAD_KEY` e o teste que a
-fixa; o formato da chave (junção por `"/"`) continua sendo o do OpenCost.
+O `controller` continua publicado em `properties.controller` (`api`), porque é uma propriedade
+real da allocation sintética — apenas não é parte da chave dessa agregação.
 
 ---
 
@@ -274,7 +316,8 @@ Registro honesto do que **não** pôde ser lido na fonte, e portanto **não** fo
 |---|---|
 | `status` no envelope (`AllocationResponse`) | Publicado pelo Swagger (F2), **não emitido** pelo código (F6). Divergência entre as duas fontes oficiais; o código prevalece. Não é emitido pelo `k8s-sim`. |
 | `includeIdle` no Swagger de `/allocation` | A página da API publica (F1), o Swagger não (F2). O `k8s-sim` segue o comportamento do handler (F5:360), não o do Swagger. |
-| `accumulate` como boolean **em `/allocation`** | O Swagger publica boolean (F2); o handler aceita as duas grafias (F5:84). O `k8s-sim` recusa o parâmetro (§3), então não precisa resolver a ambiguidade. |
+| `accumulate` como boolean **em `/allocation`** | O Swagger publica boolean (F2); o handler aceita as duas grafias (F5:84, F9, F10, F11). O `k8s-sim` resolve pelo caminho do handler (§3) e serve as duas formas, de modo que a ambiguidade do Swagger não o afeta. |
+| `accumulate=week`/`month`/`quarter`/`hour` | O OpenCost agrupa por calendário e **expande a janela consultada** para as bordas do bucket (F13), de modo que a resposta inclui dias que o chamador não pediu; `hour` exige ainda uma distribuição intra-dia que o estate não modela. O `k8s-sim` **não distingue** essas opções: devolve um set por dia (§3.2). Declarado, não silencioso. |
 | Semântica de `window` quando o fim é igual ao início | Nenhuma das fontes publica o comportamento de um intervalo de um único dia com bordas inclusivas. Esta fase devolve **1** set para `X,X` (implementação própria, por consequência da regra inclusiva do §3). |
 | Nomes de campo de `properties` além de `cluster`/`namespace`/`controller` | F8 publica `node`, `container`, `controllerKind`, `pod`, `services`, `providerID`, `labels`, `annotations`, `namespaceLabels`, `namespaceAnnotations`. Esta fase publica **só os três** que a fase exige; os demais não são preenchidos. |
 | Formato exato da mensagem de erro do `window` | O OpenCost escreve `Invalid 'window' parameter: %s` com o erro do parser Go (F5:341). O texto do parser **não** é reimplementado: a mensagem do `k8s-sim` é própria e o formato (`Invalid 'window' parameter: …`) é o oficial. |
@@ -287,7 +330,8 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 
 - **Sem billing, sem reconciliação.** Os números são sintéticos (§6). S4b.
 - **Um cluster só.** `aks-synthetic-01`, um namespace, um workload. Multi-cluster é S4b.
-- **Sem `step`, sem `accumulate`, sem `includeIdle` efetivo** (§3). `accumulate` recusado com 400.
+- **Sem `step`** e **sem `includeIdle` efetivo** (§3, §3.1). `includeIdle` é aceito e ignorado;
+  `accumulate` **é** servido, nas duas formas da §3.2.
 - **Sem agregações além de `namespace`** (§3).
 - **Sem** `Dockerfile`, `compose.k8s.yaml`, rede, TLS, URL do cluster, API server do Kubernetes,
   Prometheus, Kubecost, UI ou migration.
@@ -296,9 +340,9 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   não foi tocado.
 - **Sem gêmea `.en.md`** deste documento: a allowlist da fase permite só este arquivo em `docs/`.
   Pendência para quando a allowlist abrir.
-- **`accumulate=true` quebra um consumer que o mande.** Um provider que envie
-  `accumulate=true` recebe 400 nesta fase. É um gap declarado, não um acidente: ou a S4b implementa
-  a acumulação, ou o consumer para de pedi-la.
+- **`accumulate=week`/`month`/`quarter`/`hour` não são distintos** (§3.2): a fase devolve um set
+  por dia para essas grafias, onde o OpenCost agruparia por calendário. Declarado no contrato;
+  S4b.
 
 ---
 
@@ -311,7 +355,8 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 | `/healthz` → 200 com o corpo dos emuladores irmãos |
 | envelope `code`/`data`; `data` é lista |
 | uma entrada por dia na janela `2026-10-01,2026-10-02` (2 janelas) |
-| cada janela é um dict com a chave `payments/api` |
+| cada janela é um dict com a chave `payments` |
+| o `name` da allocation é a chave sob a qual ela é arquivada |
 | `properties.cluster` / `.namespace` / `.controller` |
 | os cinco campos de custo presentes |
 | `totalCost == cpuCost + ramCost + pvCost + networkCost`, no bit |
@@ -319,5 +364,10 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 | duas chamadas iguais devolvem o mesmo payload |
 | `window` inválido, ausente, invertido ou com data inexistente → 400 |
 | `aggregate` fora de `namespace` → 400 |
-| `accumulate` presente → 400 |
+| `accumulate=true` → 200 com **uma** janela cobrindo o período e os custos somados |
+| as grafias que o oficial lê como janela inteira (`true`, `1`, `t`, `T`, `TRUE`, `True`, `all`, `ALL`) → uma janela |
+| a janela acumulada tem `window`, `start`, `end` e `minutes` do período inteiro |
+| os custos acumulados são a soma dos dias; `cpuCores`/`ramBytes`/`pvBytes` são a média, não a soma |
+| a identidade do total sobrevive à acumulação, no bit |
+| `accumulate=false` / `0` / `day` → os sets diários, como sem o parâmetro |
 | `includeIdle` não muda o payload |

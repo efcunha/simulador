@@ -1,7 +1,7 @@
 """The OpenCost allocation contract, exercised through FastAPI's TestClient.
 
 What these tests pin is the **wire contract**, not the implementation: the key
-``payments/api`` and the cost field names are written as literals here so that
+``payments`` and the cost field names are written as literals here so that
 changing a constant in the simulator breaks the test instead of silently redefining
 the contract.
 
@@ -22,10 +22,12 @@ from k8s_sim.app import create_app
 #: The window the phase prescribes: two consecutive days, one allocation set per day.
 _WINDOW = "2026-10-01,2026-10-02"
 
-#: The allocation-set key. OpenCost joins the aggregated property values with "/" (see
-#: ``AllocationProperties.GenerateKey`` in the official source); this simulator has a
-#: single workload, so the key names it.
-_WORKLOAD_KEY = "payments/api"
+#: The allocation-set key. OpenCost builds it by joining the aggregated property
+#: values with "/" (see ``AllocationProperties.GenerateKey`` in the official
+#: source); with ``aggregate=namespace`` the only aggregated property is the
+#: namespace, so the key is the namespace alone. The controller stays in
+#: ``properties`` -- it is not part of the aggregation.
+_ALLOCATION_KEY = "payments"
 
 #: The five cost fields the phase requires on every allocation.
 _COST_FIELDS = ("cpuCost", "ramCost", "pvCost", "networkCost", "totalCost")
@@ -75,18 +77,25 @@ def test_the_window_yields_one_allocation_set_per_day(client: Any) -> None:
 # ── the allocation set ───────────────────────────────────────────────────────
 
 
-def test_each_set_is_a_dict_keyed_by_the_workload(client: Any) -> None:
-    """Each window is a dict whose single key is the workload."""
+def test_each_set_is_a_dict_keyed_by_the_namespace(client: Any) -> None:
+    """Each window is a dict whose single key is the namespace."""
     response = _get(client, window=_WINDOW, aggregate="namespace")
     for window in response.json()["data"]:
         assert isinstance(window, dict)
-        assert list(window.keys()) == [_WORKLOAD_KEY]
+        assert list(window.keys()) == [_ALLOCATION_KEY]
+
+
+def test_the_allocation_is_named_after_its_key(client: Any) -> None:
+    """``name`` is the key the allocation is filed under."""
+    response = _get(client, window=_WINDOW, aggregate="namespace")
+    allocation = response.json()["data"][0][_ALLOCATION_KEY]
+    assert allocation["name"] == _ALLOCATION_KEY
 
 
 def test_the_allocation_carries_the_cluster_namespace_and_controller(client: Any) -> None:
     """The allocation names the cluster, the namespace and the controller."""
     response = _get(client, window=_WINDOW, aggregate="namespace")
-    allocation = response.json()["data"][0][_WORKLOAD_KEY]
+    allocation = response.json()["data"][0][_ALLOCATION_KEY]
 
     properties = allocation["properties"]
     assert properties["cluster"] == "aks-synthetic-01"
@@ -97,7 +106,7 @@ def test_the_allocation_carries_the_cluster_namespace_and_controller(client: Any
 def test_the_allocation_carries_the_five_cost_fields(client: Any) -> None:
     """Every cost field the phase names is present."""
     response = _get(client, window=_WINDOW, aggregate="namespace")
-    allocation = response.json()["data"][0][_WORKLOAD_KEY]
+    allocation = response.json()["data"][0][_ALLOCATION_KEY]
 
     for field in _COST_FIELDS:
         assert field in allocation, field
@@ -108,7 +117,7 @@ def test_the_total_is_the_exact_sum_of_its_components(client: Any) -> None:
     """``totalCost`` is the sum of the four component costs, to the bit."""
     response = _get(client, window=_WINDOW, aggregate="namespace")
     for window in response.json()["data"]:
-        allocation = window[_WORKLOAD_KEY]
+        allocation = window[_ALLOCATION_KEY]
         assert allocation["totalCost"] == (
             allocation["cpuCost"]
             + allocation["ramCost"]
@@ -121,7 +130,7 @@ def test_the_costs_are_finite_and_not_negative(client: Any) -> None:
     """No NaN, no infinity, no negative cost."""
     response = _get(client, window=_WINDOW, aggregate="namespace")
     for window in response.json()["data"]:
-        allocation = window[_WORKLOAD_KEY]
+        allocation = window[_ALLOCATION_KEY]
         for field in _COST_FIELDS:
             value = allocation[field]
             assert math.isfinite(value), field
@@ -133,11 +142,11 @@ def test_each_set_covers_the_day_it_names(client: Any) -> None:
     response = _get(client, window=_WINDOW, aggregate="namespace")
     data = response.json()["data"]
 
-    assert data[0][_WORKLOAD_KEY]["window"] == {
+    assert data[0][_ALLOCATION_KEY]["window"] == {
         "start": "2026-10-01T00:00:00Z",
         "end": "2026-10-02T00:00:00Z",
     }
-    assert data[1][_WORKLOAD_KEY]["window"] == {
+    assert data[1][_ALLOCATION_KEY]["window"] == {
         "start": "2026-10-02T00:00:00Z",
         "end": "2026-10-03T00:00:00Z",
     }
@@ -202,8 +211,91 @@ def test_include_idle_does_not_change_the_payload(client: Any) -> None:
     assert without_idle == with_idle
 
 
-def test_an_accumulate_request_is_refused(client: Any) -> None:
-    """This phase accumulates by day; another accumulation is refused, not faked."""
+def test_an_accumulate_request_is_served(client: Any) -> None:
+    """``accumulate`` is a valid OpenCost parameter: it is served, never refused."""
     response = _get(client, window=_WINDOW, aggregate="namespace", accumulate="true")
-    assert response.status_code == 400
-    assert response.json()["code"] == 400
+    assert response.status_code == 200
+    assert response.json()["code"] == 200
+
+
+@pytest.mark.parametrize("accumulate", ["true", "1", "t", "T", "TRUE", "True", "all", "ALL"])
+def test_every_spelling_of_the_whole_window_accumulates(client: Any, accumulate: str) -> None:
+    """Every value the official handler reads as the whole window is one set."""
+    response = _get(client, window=_WINDOW, aggregate="namespace", accumulate=accumulate)
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0][_ALLOCATION_KEY]["minutes"] == 2880.0
+
+
+def test_an_accumulated_window_is_a_single_set(client: Any) -> None:
+    """``accumulate=true`` sums the whole window into one set, as OpenCost does."""
+    response = _get(client, window=_WINDOW, aggregate="namespace", accumulate="true")
+    data = response.json()["data"]
+
+    assert len(data) == 1
+    assert list(data[0].keys()) == [_ALLOCATION_KEY]
+
+    allocation = data[0][_ALLOCATION_KEY]
+    assert allocation["window"] == {
+        "start": "2026-10-01T00:00:00Z",
+        "end": "2026-10-03T00:00:00Z",
+    }
+    assert allocation["start"] == "2026-10-01T00:00:00Z"
+    assert allocation["end"] == "2026-10-03T00:00:00Z"
+    assert allocation["minutes"] == 2880.0
+
+
+def test_the_accumulated_costs_are_the_sum_of_the_days(client: Any) -> None:
+    """Two days of the synthetic rate card, summed."""
+    response = _get(client, window=_WINDOW, aggregate="namespace", accumulate="true")
+    allocation = response.json()["data"][0][_ALLOCATION_KEY]
+
+    assert allocation["cpuCoreHours"] == 96.0
+    assert allocation["ramByteHours"] == 206158430208.0
+    assert allocation["pvByteHours"] == 1030792151040.0
+    assert allocation["networkTransferBytes"] == 107374182400.0
+
+    assert allocation["cpuCost"] == 3.84
+    assert allocation["ramCost"] == 1.152
+    assert allocation["pvCost"] == 0.768
+    assert allocation["networkCost"] == 2.0
+    assert allocation["totalCost"] == 7.76
+
+
+def test_the_accumulated_total_is_the_exact_sum_of_its_components(client: Any) -> None:
+    """The total identity survives the accumulation, to the bit."""
+    response = _get(client, window=_WINDOW, aggregate="namespace", accumulate="true")
+    allocation = response.json()["data"][0][_ALLOCATION_KEY]
+
+    assert allocation["totalCost"] == (
+        allocation["cpuCost"]
+        + allocation["ramCost"]
+        + allocation["pvCost"]
+        + allocation["networkCost"]
+    )
+
+
+def test_the_accumulated_usage_is_the_average_and_not_the_sum(client: Any) -> None:
+    """OpenCost derives ``cpuCores``/``ramBytes``/``pvBytes`` from the summed hours
+    divided by the summed minutes, so a constant estate keeps the same figures."""
+    response = _get(client, window=_WINDOW, aggregate="namespace", accumulate="true")
+    allocation = response.json()["data"][0][_ALLOCATION_KEY]
+
+    assert allocation["cpuCores"] == 2.0
+    assert allocation["ramBytes"] == 4294967296.0
+    assert allocation["pvBytes"] == 21474836480.0
+
+
+@pytest.mark.parametrize("accumulate", ["false", "0", "day"])
+def test_an_accumulation_that_is_not_the_whole_window_keeps_the_daily_sets(
+    client: Any, accumulate: str
+) -> None:
+    """Anything that does not ask for the whole window keeps one set per day."""
+    response = _get(client, window=_WINDOW, aggregate="namespace", accumulate=accumulate)
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert len(data) == 2
+    assert list(data[0].keys()) == [_ALLOCATION_KEY]

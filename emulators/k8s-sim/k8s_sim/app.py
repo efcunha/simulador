@@ -71,11 +71,12 @@ def create_app() -> FastAPI:
         resource, so there is no ``__idle__`` allocation to add and the answer does
         not change: what the payload says about idle is true either way.
 
-        ``accumulate`` is refused. This phase always accumulates by day, and honoring
-        ``accumulate=true`` would mean answering with ONE set for the whole window
-        instead of one per day -- a different shape wearing the same name. Refusing it
-        says "this phase does not serve that" instead of "here is the answer, but it is
-        not what you asked for".
+        ``accumulate`` is accepted and resolved the way the official handler
+        resolves it. ``accumulate=true`` (and the spellings that mean the same
+        thing) asks for the whole window in a single set with the costs summed, and
+        that is what it gets; the other options keep the step this phase already
+        fixed, one set per day. The official handler never refuses an ``accumulate``
+        value, so neither does this one.
         """
         requested = (aggregate or "").strip() or allocation.SUPPORTED_AGGREGATE
         if requested != allocation.SUPPORTED_AGGREGATE:
@@ -84,11 +85,7 @@ def create_app() -> FastAPI:
                 f"Invalid 'aggregate' parameter: this phase supports only '{allocation.SUPPORTED_AGGREGATE}'.",
             )
 
-        if (accumulate or "").strip():
-            return _error(
-                400,
-                "Invalid 'accumulate' parameter: this phase always accumulates by day and does not serve 'accumulate'.",
-            )
+        accumulate_option = allocation.resolve_accumulate(accumulate)
 
         if window is None:
             return _error(400, "Invalid 'window' parameter: the parameter is required.")
@@ -99,7 +96,10 @@ def create_app() -> FastAPI:
 
         return JSONResponse(
             status_code=200,
-            content={"code": 200, "data": allocation.allocation_sets(start, end)},
+            content={
+                "code": 200,
+                "data": allocation.allocation_sets(start, end, accumulate_option),
+            },
         )
 
     return app
