@@ -77,9 +77,13 @@ def create_app() -> FastAPI:
 
         ``filter`` selects the cluster, and constrains the namespace and the
         controller. The terms are written as ``key:"value"`` and joined with ``+``,
-        the way the CloudPilot provider writes them. A filter that names a cluster the
-        estate does not have is answered with an **empty** ``data``: the request
-        selected nothing, and nothing is invented to fill it.
+        the way the CloudPilot provider writes them. The ``cluster`` term accepts
+        three aliases of the same cluster -- its **name**, the estate's canonical
+        ``cluster_id`` and the **native id** the discovery publishes (the EKS ARN,
+        the AKS ARM resource id and the GKE ``selfLink``); whichever one the request
+        came in through, the payload publishes the name. A filter that names a
+        cluster the estate does not have is answered with an **empty** ``data``: the
+        request selected nothing, and nothing is invented to fill it.
 
         ``step`` is accepted in its one-day form (``1d``) and left out; any other
         step is refused with a 400.
@@ -146,8 +150,9 @@ def create_app() -> FastAPI:
         The ``filter`` names the cluster, the way the CloudPilot provider names it:
         ``cluster:"<name>"``. The cluster has to be one of the estate's -- the
         versioned fixture is the catalog, and a cluster that is not in it does not
-        exist. The estate's canonical id is accepted as an alias, exactly as in
-        ``/allocation/compute``.
+        exist. The estate's canonical id and the **native id** the discovery
+        publishes (the EKS ARN, the AKS ARM resource id and the GKE ``selfLink``) are
+        accepted as aliases, exactly as in ``/allocation/compute``.
 
         The answer says only what is true: this is a synthetic cluster. No node count
         and no pod count are published, because the estate does not model them: a

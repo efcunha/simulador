@@ -11,8 +11,11 @@ deviates from OpenCost are documented in ``docs/k8s-sim-opencost-contract.md``.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import math
+import subprocess
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -21,6 +24,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from k8s_sim.app import create_app
+from k8s_sim.projections import allocation as allocation_projection
 
 #: The window the phase prescribes: two consecutive days, one allocation set per day.
 _WINDOW = "2026-10-01,2026-10-02"
@@ -376,14 +380,27 @@ def test_the_names_repeat_across_scopes_and_the_catalog_keeps_every_cluster(
     assert len(set(names)) == 160
 
 
-def test_the_fixture_names_a_provider_and_a_region_for_every_cluster(
+def test_the_fixture_carries_every_field_the_catalog_publishes(
     estate_clusters: list[dict[str, str]],
 ) -> None:
-    """Every record carries the four fields the catalog publishes."""
+    """Every record carries the five fields the catalog publishes.
+
+    The ``native_id`` is the id the discovery publishes for the cluster -- the EKS ARN,
+    the AKS ARM resource id and the GKE ``selfLink``. It is in the fixture because the
+    consumer sends it in the ``filter`` (F14): a catalog that does not carry it cannot
+    answer the consumer it was built for.
+    """
     for cluster in estate_clusters:
-        assert set(cluster) == {"cluster_id", "cluster_name", "provider", "region_id"}
+        assert set(cluster) == {
+            "cluster_id",
+            "cluster_name",
+            "native_id",
+            "provider",
+            "region_id",
+        }
         assert cluster["cluster_id"]
         assert cluster["cluster_name"]
+        assert cluster["native_id"]
         assert cluster["provider"]
         assert cluster["region_id"]
 
@@ -403,6 +420,168 @@ def test_the_fixture_carries_the_name_the_discovery_returns(
     matching = [cluster for cluster in estate_clusters if cluster["cluster_name"] == cluster_name]
     assert matching, f"{cluster_name!r} is not in the catalog"
     assert {cluster["provider"] for cluster in matching} == {provider}
+
+
+# ── the native id: the identity the consumer holds ───────────────────────────
+
+
+@pytest.fixture(scope="module")
+def a_record_by_name(estate_clusters: list[dict[str, str]]) -> dict[str, dict[str, str]]:
+    """The first record of each name, in the fixture's own order."""
+    index: dict[str, dict[str, str]] = {}
+    for cluster in estate_clusters:
+        index.setdefault(cluster["cluster_name"], cluster)
+    return index
+
+
+@pytest.mark.parametrize(
+    ("cluster_name", "provider", "prefix"),
+    [
+        (_EKS_CLUSTER_NAME, "aws", "arn:aws:eks:"),
+        (_GKE_CLUSTER_NAME, "gcp", "projects/"),
+        (_AKS_CLUSTER_NAME, "azure", "/subscriptions/"),
+    ],
+)
+def test_the_fixture_carries_the_native_id_the_discovery_publishes(
+    estate_clusters: list[dict[str, str]],
+    cluster_name: str,
+    provider: str,
+    prefix: str,
+) -> None:
+    """The native id has the shape the provider's own discovery publishes.
+
+    The EKS discovery publishes the ARN, the AKS discovery the ARM resource id and the
+    GKE discovery the ``selfLink``. The fixture carries those values verbatim -- the
+    exporter derived them from the discoveries' own projections -- and a value in
+    another shape would be an id the consumer does not hold.
+    """
+    matching = [cluster for cluster in estate_clusters if cluster["cluster_name"] == cluster_name]
+    assert matching, f"{cluster_name!r} is not in the catalog"
+
+    for cluster in matching:
+        assert cluster["provider"] == provider
+        assert cluster["native_id"].startswith(prefix), cluster["native_id"]
+
+
+def test_the_native_ids_are_unique_and_disjoint_from_the_other_identities(
+    estate_clusters: list[dict[str, str]],
+) -> None:
+    """309 native ids for 309 clusters -- and they collide with nothing else.
+
+    The uniqueness is what makes the native id the alias that tells two homonyms in
+    different scopes apart; the disjointness is what makes the resolution
+    unambiguous: a value cannot be a name and an id at the same time.
+    """
+    native_ids = [cluster["native_id"] for cluster in estate_clusters]
+    assert len(set(native_ids)) == len(native_ids) == 309
+
+    names = {cluster["cluster_name"] for cluster in estate_clusters}
+    ids = {cluster["cluster_id"] for cluster in estate_clusters}
+    assert not set(native_ids) & names
+    assert not set(native_ids) & ids
+
+
+@pytest.mark.parametrize(
+    "cluster_name",
+    [_EKS_CLUSTER_NAME, _GKE_CLUSTER_NAME, _AKS_CLUSTER_NAME],
+)
+def test_the_native_id_selects_the_cluster_in_the_allocation(
+    client: Any, a_record_by_name: dict[str, dict[str, str]], cluster_name: str
+) -> None:
+    """The native id selects the cluster -- and the payload still publishes the NAME.
+
+    This is the request the CloudPilot consumer sends since the C-IDENT. The answer
+    carries the name, because the consumer reads ``properties.cluster`` as the
+    cluster's display name.
+    """
+    record = a_record_by_name[cluster_name]
+
+    response = _get(
+        client,
+        window=_WINDOW,
+        aggregate="namespace,controller",
+        filter=f'cluster:"{record["native_id"]}"',
+        step="1d",
+        accumulate="false",
+    )
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert data, "the native id selected no cluster"
+
+    payload = data[0][f"{_NAMESPACE}/{_CONTROLLER}"]
+    assert payload["properties"]["cluster"] == record["cluster_name"]
+    assert payload["properties"]["cluster"] != record["native_id"]
+
+
+@pytest.mark.parametrize(
+    "cluster_name",
+    [_EKS_CLUSTER_NAME, _GKE_CLUSTER_NAME, _AKS_CLUSTER_NAME],
+)
+def test_the_native_id_selects_the_cluster_in_the_cluster_info(
+    client: Any, a_record_by_name: dict[str, dict[str, str]], cluster_name: str
+) -> None:
+    """``/clusterInfo`` accepts the native id too -- the same cluster, same answer."""
+    record = a_record_by_name[cluster_name]
+
+    response = client.get("/clusterInfo", params={"filter": f'cluster:"{record["native_id"]}"'})
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["code"] == 200
+    assert body["data"] == {"version": "synthetic"}
+
+
+def test_the_cluster_aggregation_keys_by_the_name_through_the_native_id(
+    client: Any, a_record_by_name: dict[str, dict[str, str]]
+) -> None:
+    """``aggregate=cluster`` through the native id still keys by the name."""
+    record = a_record_by_name[_EKS_CLUSTER_NAME]
+
+    response = _get(
+        client,
+        window=_WINDOW,
+        aggregate="cluster",
+        filter=f'cluster:"{record["native_id"]}"',
+    )
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+    assert list(data[0].keys()) == [record["cluster_name"]]
+
+
+def test_two_clusters_that_share_a_name_are_told_apart_by_their_native_id(
+    estate_clusters: list[dict[str, str]],
+) -> None:
+    """A name is unique within a scope; the native id is unique across the estate.
+
+    The estate reuses names across scopes (the 309 clusters carry 160 distinct
+    names), so the name alone cannot say WHICH cluster the caller meant. The native
+    id can -- and it is the identity the consumer holds.
+    """
+    by_name: dict[str, list[dict[str, str]]] = {}
+    for cluster in estate_clusters:
+        by_name.setdefault(cluster["cluster_name"], []).append(cluster)
+
+    homonyms = {name: rows for name, rows in by_name.items() if len(rows) > 1}
+    assert homonyms, "the estate reuses names across scopes"
+
+    for name, rows in homonyms.items():
+        native_ids = {row["native_id"] for row in rows}
+        assert len(native_ids) == len(rows), f"{name!r} has two clusters with one native id"
+
+    # The two clusters of one name are two DIFFERENT clusters, and the resolution
+    # says so: each native id selects its own record.
+    _name, rows = sorted(homonyms.items())[0]
+    first, second = rows[0], rows[1]
+    assert first["cluster_id"] != second["cluster_id"]
+
+    first_record = allocation_projection.cluster_record(first["native_id"])
+    second_record = allocation_projection.cluster_record(second["native_id"])
+    assert first_record is not None
+    assert second_record is not None
+    assert first_record["cluster_id"] == first["cluster_id"]
+    assert second_record["cluster_id"] == second["cluster_id"]
 
 
 # ── the real OpenCost parameters ──────────────────────────────────────────────
@@ -773,3 +952,56 @@ def test_cluster_info_refuses_a_request_without_a_cluster(client: Any) -> None:
     response = client.get("/clusterInfo")
     assert response.status_code == 400
     assert response.json()["code"] == 400
+
+
+# ── the exporter: the fixture is reproducible ─────────────────────────────────
+
+
+#: The exporter, and the estate it reads. Both are development-time artifacts: the
+#: exporter is a tool (the service never imports the generator), and the canonical
+#: parquet it reads is **not versioned** -- it is an output of the generator.
+_EXPORT_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "export_clusters.py"
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+_ESTATE_GLOB = "tools/synthetic_clouds/out/**/123-medium-USD/canonical/resources.parquet"
+
+
+def _estate_parquet() -> Path | None:
+    """The canonical parquet the exporter would read, or ``None`` when it is absent."""
+    matches = [path for path in _REPO_ROOT.glob(_ESTATE_GLOB) if path.is_file()]
+    if not matches:
+        return None
+    return max(matches, key=lambda path: path.stat().st_mtime)
+
+
+#: Whether this checkout can regenerate the fixture at all: it needs the estate's
+#: canonical parquet (not versioned) and ``pyarrow`` (the exporter's dependency, and
+#: not one of the service's).
+_CAN_REGENERATE = _estate_parquet() is not None and importlib.util.find_spec("pyarrow") is not None
+
+
+@pytest.mark.skipif(
+    not _CAN_REGENERATE,
+    reason="this checkout has no estate parquet to regenerate the fixture from",
+)
+def test_the_fixture_is_idempotent(tmp_path: Path) -> None:
+    """Regenerating the fixture from an unchanged estate reproduces it byte for byte.
+
+    Two runs of the exporter, against the same estate, into two files: the files are
+    identical, and both are identical to the fixture that is committed. The first
+    statement is the idempotency; the second is that the committed fixture is what
+    the exporter produces -- a hand-edited fixture would fail here.
+    """
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+
+    for out in (first, second):
+        result = subprocess.run(
+            [sys.executable, str(_EXPORT_SCRIPT), "--out", str(out)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+
+    assert first.read_bytes() == second.read_bytes()
+    assert first.read_bytes() == _FIXTURE_PATH.read_bytes()

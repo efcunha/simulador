@@ -19,12 +19,21 @@ versioned fixture ``k8s_sim/fixtures/clusters.json``, derived from the estate by
 ``scripts/export_clusters.py``. The service reads that file; it never imports the
 generator, and it never invents a cluster that is not in the file.
 
-**The cluster's identity is its NAME.** The CloudPilot discovery returns the estate's
-``resource_name`` and the consumer sends it back as ``filter=cluster:"<name>"``, so the
-name is what the filter selects, what ``properties.cluster`` carries and what
-``aggregate=cluster`` keys by. The estate's canonical ``uuid`` is kept in the fixture as
-the auxiliary ``cluster_id`` and is accepted as an **alias** of the name in the filter --
-an alias is accepted, never published: the payload always carries the name.
+**The cluster's PUBLISHED identity is its NAME.** The payload carries the name in
+``properties.cluster`` and ``aggregate=cluster`` keys by it, because the consumer reads
+that field as the cluster's display name.
+
+**The filter accepts three aliases of that identity.** The CloudPilot consumer sends the
+id the discovery publishes -- the EKS ARN, the AKS ARM resource id and the GKE
+``selfLink`` -- as ``filter=cluster:"<id>"``, and the estate's canonical ``uuid`` is
+kept in the fixture as an auxiliary ``cluster_id``. All three are *aliases*: they are
+**accepted, never published**. A request answered through any of them carries the name,
+so it is indistinguishable from a request answered through the name itself.
+
+**Only the native id tells homonyms apart.** A name is unique within a scope, not across
+the estate: the 309 clusters carry 160 distinct names. The native id is unique across
+the estate (309 ids for 309 clusters), so it is what selects one of two clusters that
+share a name in different accounts.
 
 **The field names are OpenCost's, not this project's.** They were read from the
 official sources cited in ``docs/k8s-sim-opencost-contract.md``: the envelope from
@@ -144,8 +153,8 @@ class AllocationFilter:
     A term that is absent is not a constraint: ``None`` means "the request did not
     say", which is different from "the request said something that does not match".
 
-    The ``cluster`` term is kept **as written** -- the name the discovery returns, or
-    the estate's canonical id used as an alias. Resolving it is
+    The ``cluster`` term is kept **as written** -- the name the discovery returns, the
+    estate's canonical id, or the native id the discovery publishes. Resolving it is
     :func:`resolve_cluster_name`'s job, not the parser's.
     """
 
@@ -177,8 +186,11 @@ def estate_clusters() -> dict[str, dict[str, str]]:
     would make it depend on the file system as well.
 
     The index is keyed by the ``cluster_id`` -- the estate's canonical ``uuid`` --
-    because that is the one identity that is unique across the estate. Every cluster
+    because that is an identity that is unique across the estate. Every cluster
     of the estate is kept, including the ones that share a name.
+
+    Every record carries the cluster's ``native_id`` -- the id the discovery publishes
+    -- next to it, so the other two aliases are read off the same record.
 
     :raises FileNotFoundError: when the fixture is missing -- a deployment error, and
         it must not be papered over with an empty catalog.
@@ -191,12 +203,15 @@ def estate_clusters() -> dict[str, dict[str, str]]:
 def estate_clusters_by_name() -> dict[str, dict[str, str]]:
     """The estate's clusters, indexed by the name the discovery returns.
 
-    The name is the contract's identity, and the estate **reuses names across
+    The name is the **published** identity, and the estate **reuses names across
     scopes**: the 309 clusters carry 160 distinct names (measured on the canonical
     estate of 2026-10-28), so a name is unique within a scope, not across the
     estate. The index therefore keeps the first record of each name -- the catalog is
     sorted deterministically, so "first" is well defined -- and the payload publishes
     the name, which is the same for every cluster that shares it.
+
+    Two clusters that share a name are told apart by their **native id**, not by this
+    index (see :func:`estate_clusters_by_native_id`).
     """
     index: dict[str, dict[str, str]] = {}
     for record in estate_clusters().values():
@@ -204,26 +219,70 @@ def estate_clusters_by_name() -> dict[str, dict[str, str]]:
     return index
 
 
-def resolve_cluster_name(term: str) -> str | None:
-    """The name of the cluster a filter term names, or ``None``.
+@lru_cache(maxsize=1)
+def estate_clusters_by_native_id() -> dict[str, dict[str, str]]:
+    """The estate's clusters, indexed by the id the discovery publishes.
 
-    The term is read as the **name** first -- that is the identity the consumer
-    sends -- and as the estate's canonical ``cluster_id`` second, where it is an
-    accepted **alias**. An alias is only ever accepted: the answer carries the name,
-    so a request answered through the alias is indistinguishable from one answered
-    through the name.
+    The **native id** is the identifier each provider's own discovery publishes for a
+    cluster: the EKS ARN, the AKS ARM resource id and the GKE ``selfLink``. It is the
+    identity the CloudPilot consumer holds since the C-IDENT -- it keys its
+    configuration by it and sends it back as ``filter=cluster:"<id>"`` -- so the
+    simulator has to accept it.
 
-    A term that is neither names no cluster of the estate: the request selected nothing.
+    It is also the one identity that is **unique across the estate**: 309 clusters,
+    309 distinct native ids (measured on the canonical estate of 2026-10-29). That is
+    what makes it the alias that tells two homonyms in different scopes apart, where
+    the name cannot.
+
+    The values in the fixture were derived by the discoveries' **own** projections
+    (``scripts/export_clusters.py``), so the id here is byte for byte the one the
+    consumer holds.
+    """
+    return {record["native_id"]: record for record in estate_clusters().values()}
+
+
+def cluster_record(term: str) -> dict[str, str] | None:
+    """The estate's cluster a filter term names, or ``None``.
+
+    The term is read as the **name** first -- the identity the contract publishes --
+    then as the estate's canonical ``cluster_id``, then as the **native id** the
+    discovery publishes. All three are *aliases* of the same cluster: the answer
+    carries the name, so a request answered through any alias is indistinguishable
+    from one answered through the name.
+
+    The name is read first because it is what the estate publishes; the native id is
+    read last, and it is the only one of the three that names a single cluster
+    when two clusters share a name in different scopes.
+
+    A term that is none of the three names no cluster of the estate: the request
+    selected nothing.
     """
     record = estate_clusters_by_name().get(term)
     if record is not None:
-        return record["cluster_name"]
+        return record
 
     record = estate_clusters().get(term)
     if record is not None:
-        return record["cluster_name"]
+        return record
 
-    return None
+    return estate_clusters_by_native_id().get(term)
+
+
+def resolve_cluster_name(term: str) -> str | None:
+    """The name of the cluster a filter term names, or ``None``.
+
+    The term is read as the **name** first -- that is the identity the contract
+    publishes -- as the estate's canonical ``cluster_id`` second and as the **native
+    id** third, where both are accepted **aliases**. An alias is only ever accepted:
+    the answer carries the name, so a request answered through the alias is
+    indistinguishable from one answered through the name.
+
+    A term that is neither names no cluster of the estate: the request selected nothing.
+    """
+    record = cluster_record(term)
+    if record is None:
+        return None
+    return record["cluster_name"]
 
 
 def parse_filter(raw: str | None) -> AllocationFilter:
@@ -277,10 +336,10 @@ def resolve_cluster(alloc_filter: AllocationFilter) -> str | None:
     """The cluster the request selects, **by name**.
 
     A request that names no cluster gets the synthetic default cluster. A request
-    that names a cluster of the estate -- by its name, or by the canonical id used
-    as an alias -- gets that cluster's **name**. A request that names a cluster the
-    estate does not have selects **nothing**: the answer is an empty one, never a
-    made-up cluster.
+    that names a cluster of the estate -- by its name, by the canonical id or by the
+    native id, all of which are accepted aliases -- gets that cluster's **name**. A
+    request that names a cluster the estate does not have selects **nothing**: the
+    answer is an empty one, never a made-up cluster.
 
     :returns: the cluster's name, or ``None`` when the request selects no cluster.
     """
@@ -299,8 +358,9 @@ def allocation_key(aggregate: str, cluster: str) -> str:
     ``aggregate=namespace`` keys by ``payments`` and ``aggregate=namespace,controller``
     keys by ``payments/api``.
 
-    ``aggregate=cluster`` keys by the cluster's **name** -- the identity the consumer
-    sends and the one the estate carries.
+    ``aggregate=cluster`` keys by the cluster's **name** -- the identity the contract
+    publishes and the one the estate carries, whatever alias the request came in
+    through.
 
     The ``controllerKind`` does not prefix the controller here: the synthetic
     allocation has no ``controllerKind``, and the official key only carries it when

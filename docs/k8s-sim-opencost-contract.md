@@ -1,4 +1,4 @@
-# Contrato OpenCost do `k8s-sim` (Fases S4a, S4b1 e S4b1-C)
+# Contrato OpenCost do `k8s-sim` (Fases S4a, S4b1, S4b1-C e S4b1-E)
 
 > Idioma: **Português**. Sem gêmea `.en.md`: a allowlist permite **apenas** este arquivo em
 > `docs/`. A gêmea em inglês fica como pendência (§9).
@@ -11,8 +11,31 @@ cada linha traz **a URL da fonte** e **o trecho que a sustenta**.
 `/allocation/compute`, o envelope, os campos de cada allocation e o comportamento dos
 parâmetros. Desde a **S4b1** ele cobre também os **clusters do estate** (o catálogo em
 `k8s_sim/fixtures/clusters.json`), o parâmetro `filter`, o parâmetro `step` e a rota
-`/clusterInfo`. Desde a **S4b1-C** a **identidade do cluster é o `cluster_name`** — o nome que a
-descoberta devolve — e o `cluster_id` (o `uuid` do estate) é apenas auxiliar e alias (§6.1).
+`/clusterInfo`. Desde a **S4b1-C** a **identidade publicada do cluster é o `cluster_name`** — o
+nome que a descoberta devolve no campo `name` — e o `cluster_id` do **fixture** (o `uuid` do
+estate) é apenas auxiliar e alias (§6.1). Desde a **S4b1-E** o `filter` aceita um **terceiro
+alias**: o **id nativo** que a descoberta publica (ARN do EKS, ARM id do AKS, `selfLink` do GKE) —
+que é o id que o consumidor pós-C-IDENT manda — e o **nome continua sendo o valor publicado**
+(§3.3, §6.1). **Atenção ao homônimo:** o `cluster_id` do `DiscoveryResult` do consumidor é o
+**id nativo** (ARN/ARM id/`selfLink`), não o do fixture — a distinção está no §1.2.
+
+**Atualizado em 2026-10-29** (revisão `9533b901`, branch `feat/p76-security-posture-gcp-azure`).
+Duas coisas mudaram depois do levantamento, e as duas são datadas:
+
+1. **O produtor do nome do EKS.** Até 2026-10-28 o `aws-sim` publicava o EKS pelo id derivado;
+   desde `9533b901` publica o **nome do estate**, escopado pela conta da credencial (§6.1). Com
+   isso a descoberta devolve o mesmo nome que o fixture do `k8s-sim` carrega, também no EKS.
+2. **O consumidor** (F14) passou a mandar o **id nativo** no `filter`, e não o nome: o CloudPilot
+   implementou o C-IDENT depois da leitura de F14 (§1.2).
+
+**Fechado em 2026-10-29 pela S4b1-E:** o item 2 deixou de ser uma pendência. O fixture carrega
+agora o **id nativo** de cada cluster (§6.1) e o `filter` o aceita como alias (§3.3), de modo que
+o `k8s-sim` **serve** o consumidor pós-C-IDENT: o pedido sai 200 com `data` não vazio em
+`/allocation/compute` e 200 em `/clusterInfo`. O que o simulador **publica** não mudou: continua
+sendo o **nome**, que é o que o consumidor lê como display name (`opencost.py:209`).
+
+Os números do §6.1 e os testes do §10 foram reconferidos nesta data contra o código e o fixture;
+F1–F14 permanecem como foram lidas em 2026-10-28.
 
 **O que este documento NÃO é:** uma reconciliação de billing. **Os valores desta fase são
 SINTÉTICOS.** O `k8s-sim` não lê billing, não lê preço de nuvem e não lê o cluster AKS real; a
@@ -43,7 +66,7 @@ repositório na data da leitura), por `gh api` — a fonte de máquina, lida loc
 | F11 | OpenCost — a leitura booleana | `core/pkg/util/mapper/mapper.go:411-419` (`GetBool`) | `GetBool` usa `strconv.ParseBool`: aceita `1`, `t`, `T`, `TRUE`, `true`, `True` como verdadeiro (e `0`, `f`, `F`, `FALSE`, `false`, `False` como falso); o que não parseia devolve o valor padrão (`false`). É essa leitura que faz `accumulate=1` significar "a janela toda". |
 | F12 | OpenCost — como a acumulação soma | `core/pkg/opencost/allocation.go:1422-1456` (`Allocation.add`), `:1109-1140` (`CPUCores`, `RAMBytes`, `PVBytes`), `:3178-3214` (`AllocationSet.Accumulate`), `:3330-3340` (`accumulateByAll`) | A soma junta os campos **cumulativos** (`cpuCoreHours`, `ramByteHours`, `networkTransferBytes` e todos os custos). `cpuCores`, `ramBytes` e `pvBytes` **não** são somados: são derivados (horas somadas ÷ minutos somados ÷ 60), então um uso diário constante mantém as mesmas figuras. `AllocationSet.Accumulate` produz **um** set com o início e o fim do intervalo inteiro, e `accumulateByAll` devolve um único set. |
 | F13 | OpenCost — o agrupamento de calendário | `core/pkg/opencost/allocation.go:3393-3502` (`accumulateByMonth`, `accumulateByQuarter`, `accumulateByWeek`), `pkg/costmodel/aggregation.go:171-186` (`resolveQueryWindowForAccumulate`) | O agrupamento de calendário fecha o bucket no fim do mês, do trimestre e **no sábado** (a semana começa no domingo). Para servir essas opções, o handler **expande a janela consultada** para as bordas do bucket, de modo que a resposta passa a incluir dias que o chamador não pediu. |
-| F14 | **O consumidor** — provider `opencost` do CloudPilot | `backend/app/services/k8s_finops/providers/opencost.py` (leitura somente-leitura em `D:\cloudpilot-deploy`, 2026-10-28) | O que o consumidor **realmente envia**: `get_cluster_costs` (`:313-319`) → `aggregate=namespace,controller`, `step=1d`, `accumulate=false`, `filter=cluster:"<nome>"`; `get_namespace_costs` (`:330-335`) → `aggregate=namespace`, `filter=cluster:"<nome>"+namespace:"<ns>"`; `get_workload_costs` (`:350-356`) → `aggregate=controller`, `filter=cluster:"<nome>"+namespace:"<ns>"+controller:"<w>"`; `get_cluster_health` (`:464-467`) → `GET /clusterInfo` com `filter=cluster:"<nome>"`; `test_connection` (`:544-559`) → `GET /healthz` e, só se falhar, `/allocation/compute?window=1d&aggregate=cluster`. É a **fonte de verdade da S4b1**: o que esta fase implementa é o que o consumidor envia. O valor que o consumidor escreve em `cluster:"…"` é o **nome** que a descoberta devolve (`cluster_discovery.py`; o `ConfigTab.tsx:359-376` grava o mesmo nome em `config.clusters`), e o provider o lê de volta em `properties.cluster` (`opencost.py:209`). |
+| F14 | **O consumidor** — provider `opencost` do CloudPilot | `backend/app/services/k8s_finops/providers/opencost.py` (leitura somente-leitura em `D:\cloudpilot-deploy`, 2026-10-28) | O que o consumidor **realmente envia**: `get_cluster_costs` (`:313-319`) → `aggregate=namespace,controller`, `step=1d`, `accumulate=false`, `filter=cluster:"<nome>"`; `get_namespace_costs` (`:330-335`) → `aggregate=namespace`, `filter=cluster:"<nome>"+namespace:"<ns>"`; `get_workload_costs` (`:350-356`) → `aggregate=controller`, `filter=cluster:"<nome>"+namespace:"<ns>"+controller:"<w>"`; `get_cluster_health` (`:464-467`) → `GET /clusterInfo` com `filter=cluster:"<nome>"`; `test_connection` (`:544-559`) → `GET /healthz` e, só se falhar, `/allocation/compute?window=1d&aggregate=cluster`. É a **fonte de verdade da S4b1**: o que esta fase implementa é o que o consumidor envia. O valor que o consumidor escreve em `cluster:"…"` é o **nome** que a descoberta devolve (`cluster_discovery.py`; o `ConfigTab.tsx:359-376` grava o mesmo nome em `config.clusters`), e o provider o lê de volta em `properties.cluster` (`opencost.py:209`). **Ver §1.2:** em 2026-10-29 o mesmo consumidor passou a escrever ali o **id nativo** — o que a S4b1-E passou a aceitar. |
 
 > **F14 não é fonte oficial do OpenCost** — é o **consumidor**. Ela fica registrada à parte
 > de propósito: o que o OpenCost publica é uma coisa (F1–F13); o que o CloudPilot envia é outra,
@@ -67,6 +90,39 @@ Registrado porque o desacordo é real e muda o que se pode afirmar:
   o mesmo serviço — `/allocation` é a rota que **agrega** o resultado e `/allocation/compute` é a
   que **calcula**. O `k8s-sim` serve `/allocation/compute`, que é o caminho que o provider
   `opencost` do CloudPilot chama.
+
+### 1.2 O consumidor mudou depois deste levantamento (2026-10-29)
+
+A F14 foi lida em **2026-10-28** e registra o que o provider `opencost` enviava **naquele dia**:
+`filter=cluster:"<nome que a descoberta devolve>"`. Depois disso o CloudPilot implementou o
+**C-IDENT** (repositório `D:\cloudpilot-deploy`): o commit `dbd66cca` (2026-10-28) e os fechamentos
+`7e52f377`, `30b4e70c` e `385e9759` (2026-10-29). Verificado no código do consumidor em
+2026-10-29 (HEAD `b60bde8e`):
+
+- `DiscoveryResult.cluster_id` é o **identificador nativo** do cluster — o ARN do EKS, o ARM id do
+  AKS, o `selfLink` do GKE — e o nome continua sendo o rótulo
+  (`backend/app/schemas/k8s_finops.py:439-460`; a descoberta preenche em
+  `cluster_discovery.py:276`, `:356` e `:411`).
+- `config.clusters` e `cluster_account_map` passaram a ser **keyed por esse id**
+  (`cluster_discovery.py:131-137`; a UI grava a chave canônica em
+  `frontend/src/pages/finops/kubernetes/tabs/ConfigTab.tsx:329` e `:450`).
+- o provider `opencost` envia `filter=cluster:"<cluster_id>"`, onde `cluster_id` é esse id, nas
+  três leituras de custo — `get_cluster_costs` (`:318`), `get_namespace_costs` (`:334`) e
+  `get_workload_costs` (`:355`) — e lê o nome de volta de `properties.cluster` (`:209`).
+
+**Consequência para este contrato.** O `k8s-sim` resolve o `cluster` do `filter` por **três
+aliases** — o **nome**, o **uuid do estate** e o **id nativo** (ARN/ARM id/`selfLink`) — e
+**publica o nome** (§3.3). Uma configuração salva **antes** do C-IDENT (keyed by name) continua
+funcionando; uma configuração **nova** (keyed pelo id nativo) também: desde a **S4b1-E** o
+fixture carrega o id nativo de cada cluster (§6.1) e o `filter` o aceita, de modo que o pedido
+responde **200 com `data` não vazio** em `/allocation/compute` e **200** em `/clusterInfo`.
+
+> **Dois `cluster_id` diferentes — não confundir.** No fixture do `k8s-sim` (e nos §§6.1, 7 e 9),
+> `cluster_id` é o **`uuid` do estate**. No `DiscoveryResult` do consumidor (e no §1.2), `cluster_id`
+> é o **id nativo**. São o mesmo nome de campo para duas coisas distintas; este documento usa a
+> primeira acepção fora do §1.2 e diz qual é qual quando as duas aparecem juntas. O id nativo
+> entra no fixture com o nome **`native_id`** — para que nenhum leitor confunda os dois
+> `cluster_id`.
 
 ---
 
@@ -96,8 +152,9 @@ GET /clusterInfo?filter=cluster:"<nome>"
 
 Sucesso — HTTP 200, `{"code":200,"data":{"version":"synthetic"}}`. O cluster tem de ser um dos
 309 do estate (§6.1): um `filter` ausente → **400**; um cluster que o estate não tem → **400**;
-um `filter` que esta fase não lê → **400**. O `cluster_id` do estate é aceito como **alias** do
-nome, como em `/allocation/compute` (§3.3). O corpo é **fixo**: nenhum `nodeCount`, nenhum
+um `filter` que esta fase não lê → **400**. O `cluster_id` do estate e o **id nativo** (ARN do
+EKS, ARM id do AKS, `selfLink` do GKE) são aceitos como **alias** do nome, como em
+`/allocation/compute` (§3.3). O corpo é **fixo**: nenhum `nodeCount`, nenhum
 `podCount`, nenhuma utilização — o estate não modela esses fatos, e publicá-los seria afirmar
 alguma coisa sobre um dado que o simulador não tem. (O consumidor lê `version` e usa
 `nodeCount`/`podCount` com **default 0** — `opencost.py:487-490` — então a ausência é lida
@@ -171,20 +228,38 @@ filter=cluster:"<nome>"+namespace:"<ns>"+controller:"<w>"
 
 | Termo | O que faz |
 |---|---|
-| `cluster` | **Seleciona o cluster.** O valor tem de ser um dos 309 do estate (§6.1). Cluster que o estate não tem → **200 com `data: []`** — o pedido não selecionou nada e nada é inventado para preenchê-lo. |
+| `cluster` | **Seleciona o cluster.** O valor tem de ser um dos 309 do estate (§6.1), escrito por qualquer um dos **três aliases** aceitos: o **nome**, o `cluster_id` do estate (o `uuid`) ou o **id nativo** (ARN do EKS, ARM id do AKS, `selfLink` do GKE). Cluster que o estate não tem → **200 com `data: []`** — o pedido não selecionou nada e nada é inventado para preenchê-lo. |
 | `namespace` | Restringe ao namespace do workload sintético. `namespace:"payments"` casa; qualquer outro valor não casa → **`data: []`**. |
 | `controller` | Restringe ao workload sintético. `controller:"api"` casa; qualquer outro valor → **`data: []`**. |
 
-**A identidade do cluster é o NOME.** O consumidor escreve em `cluster:"…"` o nome que a
-descoberta devolveu (F14) — `aks_cluster-0133`, `TEMP-gke_cluster-0037`, `eks_cluster-0291` — e é
-esse valor que o `filter` seleciona, que `properties.cluster` carrega e que `aggregate=cluster`
-usa como chave (§6.1, §7).
+**A identidade PUBLICADA do cluster é o NOME.** `properties.cluster` carrega o nome e
+`aggregate=cluster` usa o nome como chave (§6.1, §7) — independentemente de qual alias o pedido
+trouxe.
 
-**O `cluster_id` do estate é aceito como ALIAS.** O `uuid` canônico do estate
-(`cluster_id` no fixture) também seleciona o cluster — mas um alias é **aceito, nunca
-publicado**: a resposta carrega sempre o **nome**, mesmo quando o pedido entrou pelo alias. Um
-pedido respondido pelo alias é, byte a byte, indistinguível de um respondido pelo nome: o
-simulador não publica duas identidades para o mesmo cluster.
+**O `filter` aceita TRÊS aliases, e publica um só.** O valor do termo `cluster` pode ser:
+
+| Alias | O que é | Quem o manda |
+|---|---|---|
+| **nome** | o `resource_name` do estate — `aks_cluster-0133`, `TEMP-gke_cluster-0037`, `eks_cluster-0291` | o consumidor de 2026-10-28 (F14) e o `DiscoveryResult.name` |
+| **`cluster_id`** | o `uuid` canônico do estate (o campo `cluster_id` do fixture) | rastreabilidade; aceito desde a S4b1-C |
+| **id nativo** | o id que a descoberta publica: ARN do EKS, ARM id do AKS, `selfLink` do GKE (o campo `native_id` do fixture) | o consumidor pós-C-IDENT (§1.2) |
+
+Os três são **aceitos, nunca publicados**: a resposta carrega sempre o **nome**, mesmo quando o
+pedido entrou por um alias. Um pedido respondido pelo id nativo é, byte a byte, indistinguível de
+um respondido pelo nome: o simulador não publica duas identidades para o mesmo cluster, e publica
+a que o consumidor lê como display name (`opencost.py:209`).
+
+**O id nativo é o único alias que separa homônimos.** Um nome é único dentro de um scope, não no
+estate (§6.1): os 309 clusters carregam 160 nomes distintos, e o mesmo nome aparece em contas
+diferentes. O id nativo é **único no estate** (309 ids para 309 clusters), então é ele — e só ele
+— que diz *qual* dos dois clusters o pedido quer. O serviço resolve o id nativo para o **cluster
+concreto**; como o payload publica o nome e o workload é o mesmo em todo cluster (§6), os dois
+homônimos produzem payloads idênticos — o que muda é *qual* cluster o pedido selecionou.
+
+> **Corrigido em 2026-10-29 (§1.2).** Até a S4b1-E o `k8s-sim` resolvia o `cluster` do `filter` pelo
+> **nome** e pelo **uuid do estate** — não pelo ARN/ARM id/`selfLink`, de modo que um pedido do
+> consumidor pós-C-IDENT não selecionava nenhum cluster e a resposta era **200 com `data: []`**. A
+> **S4b1-E** fechou isso: o fixture carrega o id nativo (§6.1) e o `filter` o aceita.
 
 **Um `filter` sem `cluster`** não seleciona cluster nenhum: o serviço responde pelo cluster
 sintético padrão (§6.1). Um `filter` **malformado** (termo sem aspas, aspas não fechadas,
@@ -193,6 +268,9 @@ valor vazio, chave repetida) ou com uma **chave que esta fase não lê** (`pod`,
 
 **Os nomes com espaço** (`aks_cluster-0160 (do not delete)`) são servidos: o valor do termo é
 lido até a aspa de fechamento, e o nome viaja intacto pela query string até o `filter` (§6.1).
+**Os ids nativos também viajam intactos**: nenhum deles contém `"` nem `+` — os dois caracteres
+que a gramática usa como separadores (§6.1). Eles **contêm** `:` e `/`, que a gramática aceita
+como parte do valor.
 
 A recusa é deliberada, e é a mesma doutrina da recusa de `aggregate` (§3): **responder a um
 pedido filtrado por `pod` com um payload não filtrado seria mentir sobre o que foi
@@ -361,33 +439,80 @@ cluster Kubernetes: `eks_cluster`, `gke_cluster` e `aks_cluster`.
 | EKS (AWS) | **75** |
 | GKE (GCP) | **111** |
 | AKS (Azure) | **123** |
-| campos por registro | `cluster_id`, `cluster_name`, `provider`, `region_id` |
+| campos por registro | `cluster_id`, `cluster_name`, `native_id`, `provider`, `region_id` |
 | nomes distintos | **160** (o estate reusa o nome entre scopes) |
+| ids nativos distintos | **309** (o id nativo é único no estate) |
 
-**A identidade de contrato do cluster é o `cluster_name`** — a coluna `resource_name` do estate,
-que é o que a descoberta do CloudPilot devolve e o que o consumidor manda de volta no `filter`
-(F14). O `cluster_id` — o `uuid` canônico do estate — é **auxiliar**: fica no fixture para
-rastreabilidade e é aceito como **alias** do nome no `filter`, mas nunca é publicado (§3.3).
+**A identidade PUBLICADA do cluster é o `cluster_name`** — a coluna `resource_name` do estate, que é
+o que a descoberta do CloudPilot devolve no campo `name`. O `cluster_id` — o `uuid` canônico do
+estate — é **auxiliar**: fica no fixture para rastreabilidade e é aceito como **alias** do nome no
+`filter`, mas nunca é publicado (§3.3).
+
+**O `native_id` é o id que a descoberta publica**, e é aceito como **alias** pelo mesmo motivo: é
+o valor que o consumidor pós-C-IDENT manda no `filter` (§1.2). Ele entra no fixture com esse nome
+— e não como `cluster_id` — porque `cluster_id` já significa outra coisa no `DiscoveryResult` do
+consumidor (§1.2).
+
+**O `native_id` é derivado das PRÓPRIAS projeções das descobertas, não reimpresso.** O exportador
+é ferramenta de desenvolvimento, então pode importar os pacotes dos emuladores e pergunta a cada
+descoberta o id que ela publica:
+
+| Provider | Descoberta | Função | Forma do id |
+|---|---|---|---|
+| EKS (AWS) | `DescribeCluster` | `aws_sim.projections.eks.cluster_arn` | `arn:aws:eks:<region>:<account>:cluster/<nome>` |
+| GKE (GCP) | listagem de clusters | `gcp_sim.projections.container.cluster(...)["selfLink"]` | `projects/<projeto>/locations/<região>/clusters/<nome>` |
+| AKS (Azure) | `managedClusters.list` | `azure_sim.projections.arm.resource_id_for` | `/subscriptions/<guid>/resourceGroups/<rg>/providers/Microsoft.ContainerService/managedClusters/<nome>` |
+
+Reimplementar os três formatos no exportador seria o caminho para um id que **divergiria** das
+descobertas — e um id divergente é um id que o consumidor não tem. A regra do exportador é, então:
+**perguntar à descoberta**.
+
+O GUID da subscription do AKS **não é inventado**: o ARM id carrega o GUID que
+`azure_subscription_guid(seed, scope)` minta, e o `seed` é lido do `meta.json` do próprio snapshot
+do estate (o sidecar que o serializador escreve ao lado do parquet), não assumido. Um GUID mintado
+de outro seed nomearia uma subscription que não existe — e o id estaria errado de um jeito que
+ninguém veria.
+
+> **Medido em 2026-10-29:** os 309 `native_id` do fixture são **byte a byte** iguais aos ids que as
+> descobertas publicam sobre os **mesmos** clusters do estate reconstruído (`build_estate(seed=123,
+> profile="medium", currency="USD")` + `apply_all`), comparados um a um por `uuid`: 309/309 iguais.
+> São **309 valores distintos**, e nenhum deles colide com um nome ou com um `uuid` do estate.
 
 **O nome não é único no estate, e isso é medido, não suposto.** Os 309 clusters carregam **160**
 nomes distintos: o gerador reusa um nome entre scopes (o mesmo `aks_cluster-0133` aparece em
-`sub-01`, `sub-02` e `sub-03`, com três `uuid` diferentes). Medido em 2026-10-28 no
-`resources.parquet` canônico: `unique (nome, scope) == 309`, `unique (nome, região) == 160`,
-nenhum nome atravessa dois provedores ou duas regiões, e os 309 `uuid` são distintos. Por isso o
-catálogo guarda **todos os 309 clusters** — um registro por cluster do estate — e o nome identifica
-o cluster **dentro do seu scope**. Nenhum nome é inventado: os 160 são os que o estate publica.
+`sub-01`, `sub-02` e `sub-03`, com três `uuid` diferentes). Medido em 2026-10-28 e reconferido em
+2026-10-29 sobre o snapshot `2026-10-27` do `resources.parquet` canônico:
+`unique (nome, scope) == 309`, `unique (nome, região) == 160`, nenhum nome atravessa dois
+provedores ou duas regiões, e os 309 `uuid` são distintos. Por isso o catálogo guarda **todos os
+309 clusters** — um registro por cluster do estate — e o nome identifica o cluster **dentro do
+seu scope**. Nenhum nome é inventado: os 160 são os que o estate publica.
 
 **Os nomes são ruidosos, e o ruído é contrato.** O gerador escreve `TEMP-gke_cluster-0037`,
 `aks_cluster-0160 (do not delete)`, `*_FINAL_v2`, `*COPY` — **15** nomes distintos carregam
 espaço (17 registros, porque dois deles se repetem entre scopes). O simulador carrega o nome
 **verbatim**: é esse o valor que o consumidor tem em mãos, e um nome "corrigido" seria um cluster
 que o consumidor não reconhece. Nenhum nome do estate contém `"`, `+` ou `/` — os três caracteres
-que a gramática do `filter` usa como separadores (§3.3).
+que a gramática do `filter` usa como separadores (§3.3). **O mesmo vale para o `native_id`**:
+nenhum dos 309 contém `"` nem `+`, de modo que o id nativo atravessa o `filter` sem precisar de
+escape. Eles **contêm** `:` e `/` (o ARN, o ARM id e o `selfLink` têm os dois), e a gramática os
+aceita como parte do valor — nenhuma mudança de parsing foi necessária.
+
+**Homônimos entre scopes: o nome não basta, o id nativo basta.** Quando dois registros do fixture
+compartilham o nome, o `filter` com **nome** seleciona o **primeiro na ordem do fixture** (por
+nome, depois por id) — determinístico, e o payload é indistinguível entre os dois homônimos porque
+o workload é o mesmo em todo cluster (§6). O `filter` com **id nativo** seleciona o cluster
+**concreto**: o id nativo carrega o scope (a conta no ARN, a subscription no ARM id, o projeto no
+`selfLink`), então ele diz qual dos dois o pedido quer. No EKS isso é medido: os **75** clusters
+carregam **40** nomes distintos — 25 por conta, únicos dentro da conta — e o `9533b901` é
+justamente o que fez a descoberta passar a devolver esses nomes um a um, escopada pela conta.
 
 **O serviço não importa o gerador.** O `k8s-sim` lê o arquivo; `tools.synthetic_clouds` não é
 dependência de runtime do pacote (o `pyproject.toml` do `k8s-sim` declara apenas `fastapi` e
 `uvicorn`). O exportador é ferramenta de desenvolvimento e usa `pyarrow`, que por isso não
-entra nas dependências do serviço.
+entra nas dependências do serviço. O mesmo vale para os **projeções dos emuladores**: o
+exportador os importa (é ele que deriva o `native_id` perguntando a cada descoberta), e para isso
+acrescenta as raízes de `emulators/aws-sim`, `emulators/gcp-sim` e `emulators/azure-sim` ao
+`sys.path` — o serviço em runtime não faz isso e não precisa.
 
 **Quando regenerar.** Sempre que o estate mudar. O fixture é ordenado por `cluster_name` (com o
 `cluster_id` desempatando) e **não carimba horário**, então regerar a partir de um estate
@@ -397,23 +522,38 @@ inalterado reproduz o arquivo byte a byte: um diff no fixture significa que o es
 .\.venv\Scripts\python.exe emulators\k8s-sim\scripts\export_clusters.py
 ```
 
-> **Medido em 2026-10-28:** as tuplas `(uuid, resource_name, provider, region_id)` dos 309
-> clusters são **idênticas** em todos os snapshots `123-medium-USD` do estate (os diários de
-> 2026-10-16 a 2026-10-27 e o snapshot `gcp-plane`). A escolha do snapshot lido não muda o
-> fixture.
+> **Medido em 2026-10-28, reconferido em 2026-10-29:** as tuplas
+> `(uuid, resource_name, provider, region_id)` dos 309 clusters são **idênticas** em todos os
+> snapshots `123-medium-USD` do estate (os diários de 2026-10-16 a 2026-10-27 e o snapshot
+> `gcp-plane`). A escolha do snapshot lido não muda o fixture; o exportador, rodado nesta data
+> com `--out` para um arquivo temporário, reproduziu o fixture **byte a byte**.
+>
+> **Idempotência medida em 2026-10-29 (S4b1-E):** duas execuções do exportador contra o mesmo
+> estate produziram arquivos com o **mesmo SHA-256**
+> (`579fddcd20ad4885688ff21cb23a58af583e1e2c5127433a9231e0f4df3c8419`), e esse hash é o do fixture
+> **commitado** — ou seja, o fixture versionado é exatamente o que o exportador produz a partir do
+> estate. O teste `test_the_fixture_is_idempotent` fixa essa propriedade (ele é pulado quando o
+> checkout não tem o parquet do estate, que não é versionado).
 
-> **Divergência medida entre simuladores (fora do escopo desta fase).** O `aws-sim` publica o
-> EKS pelo **id derivado** (`cluster-<17 hex>`, de `aws_resource_id("eks_cluster", uuid)`) e não
-> pelo `resource_name`; o `azure-sim` e o `gcp-sim` publicam o `resource_name`. Ou seja: o nome
-> que a descoberta do CloudPilot trará para o EKS **não** será `eks_cluster-0291` enquanto o
-> `aws-sim` não mudar. O `k8s-sim` responde ao nome que **o estate** publica (§6.1) — o
-> `aws-sim` está fora da allowlist desta fase, e a correção é dele. **S4b4**.
+> **As três descobertas publicam o `resource_name` do estate (verificado em 2026-10-29).** O
+> `azure-sim` e o `gcp-sim` já publicavam o nome; desde `9533b901` o `aws-sim` também publica o
+> EKS pelo **nome do estate** (`Resource.resource_name`), com a superfície **escopada pela conta
+> da credencial** — o mesmo nome que o `k8s-sim` carrega no fixture. O id derivado
+> (`cluster-<17 hex>`) deixou de ser publicado como nome e continua **aceito como alias** dentro
+> da conta (`emulators/aws-sim/aws_sim/projections/eks.py:124-150`).
+>
+> **Cuidado com a leitura (ver §1.2).** "A descoberta devolve o `resource_name`" é verdade sobre o
+> **campo `name`** do `DiscoveryResult`; o campo **`cluster_id`** é o id nativo, e é **ele** que o
+> consumidor pós-C-IDENT manda no `filter`. Desde a **S4b1-E** o id nativo **também** está no
+> fixture do `k8s-sim` — no campo `native_id` — e é aceito no `filter` (§3.3). A lacuna que o §1.2
+> descrevia está fechada.
 
 **O cluster padrão.** Um pedido **sem** `cluster` no `filter` é servido pelo cluster sintético
 `aks-synthetic-01` — o da fase anterior, que **não** é um cluster do estate e **não** está no
 fixture. Ele sobrevive porque é o que o contrato da S4a já publicava, e porque um `filter` sem
-`cluster` não seleciona cluster nenhum. `filter=cluster:"aks-synthetic-01"` é recusado: esse
-nome não está no catálogo.
+`cluster` não seleciona cluster nenhum. `filter=cluster:"aks-synthetic-01"` **não seleciona
+nada**: a rota do allocation responde 200 com `data: []` (§3.3) e o `/clusterInfo` recusa com
+400 (§2) — esse nome não está no catálogo.
 
 **O workload é o mesmo em todos os clusters.** O fixture traz a **identidade** do cluster (o
 nome, o provider e a região), não o seu workload: o estate sintético carrega `payments/api` em
@@ -492,12 +632,8 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   `controller`, `namespace`, `node`, `container`, `controllerKind`, `pod`, `services`,
   `providerID`, `labels`, `annotations` — e **nenhum** campo de id do cluster. A identidade que o
   contrato publica é o **nome**; o `cluster_id` do estate fica no fixture como auxiliar e como
-  alias do filtro (§6.1, §3.3). Publicar um `clusterId` seria inventar um campo que a fonte não
-  publica.
-- **Sem a correção do nome do EKS no `aws-sim`.** O `aws-sim` publica o id derivado
-  (`cluster-<17 hex>`) e não o `resource_name` (§6.1). O `k8s-sim` já responde pelo nome que o
-  estate publica; o que falta é o produtor do nome publicar o `resource_name`. O `aws-sim` está
-  fora da allowlist desta fase. **S4b4**.
+  alias do filtro (§6.1, §3.3), e o `native_id` também — nenhum dos dois é publicado. Publicar um
+  `clusterId` seria inventar um campo que a fonte não publica.
 - **Sem `includeIdle` efetivo** (§3). `includeIdle` é aceito e ignorado; `accumulate` **é**
   servido, nas duas formas da §3.2; `step=1d` **é** servido (§3.1).
 - **Sem `step` ≠ `1d`** (`1h`, `24h`, buckets de calendário) → **400**. **S4b4**.
@@ -510,15 +646,28 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   Prometheus, Kubecost, UI ou migration**. **S4b2**.
 - **Sem spec de máquina** em `specs/` e **sem entrada na matriz de fidelidade**.
 - **Sem** wiring no provider do CloudPilot, **sem** rodar sync, **sem** validar tela. O CloudPilot
-  não foi tocado.
-- **Sem gêmea `.en.md`** deste documento: a allowlist da fase permite só este arquivo em `docs/`.
-  Pendência para quando a allowlist abrir.
+  não foi tocado **por esta fase**; ele evoluiu depois por conta própria (C-IDENT, §1.2).
+- **Sem gêmea `.en.md`** deste documento — verificado em 2026-10-29: `docs/k8s-sim-opencost-contract.en.md`
+  não existe. A allowlist da fase S4b1 permitia só este arquivo em `docs/`; a gêmea fica como
+  pendência declarada.
+
+**Fechado depois do levantamento.** O nome do EKS no `aws-sim` deixou de ser pendência: desde
+`9533b901` o `aws-sim` publica o nome do estate, escopado pela conta da credencial (§6.1), e o
+nome que a descoberta devolve é o que o fixture do `k8s-sim` carrega — sem tradução. O valor que
+o consumidor manda no `filter`, porém, mudou com o C-IDENT (§1.2) — **e a S4b1-E fechou essa
+parte**: o fixture carrega o **id nativo** de cada cluster (§6.1) e o `filter` o aceita como
+alias (§3.3), de modo que o `k8s-sim` serve o consumidor pós-C-IDENT. O resto da lista acima
+continua valendo; em particular o billing (S4b3), `step≠1d` e os buckets de calendário (S4b4) e
+a gêmea `.en.md`.
 
 ---
 
 ## 10. Onde o contrato é testado
 
-`emulators/k8s-sim/k8s_sim/tests/test_allocation.py`, via `fastapi.testclient.TestClient`:
+`emulators/k8s-sim/k8s_sim/tests/test_allocation.py`, via `fastapi.testclient.TestClient`.
+Medido em **2026-10-29** (após a S4b1-E): `pytest emulators\k8s-sim\k8s_sim\tests -q -p no:cacheprovider` →
+**91 passed** em 11,2 s (1 aviso de depreciação do `TestClient` com `httpx`) — os 78 testes da
+S4b1-C mais **13** da S4b1-E.
 
 | O que o teste fixa |
 |---|
@@ -542,9 +691,11 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 | `accumulate=false` / `0` / `day` → os sets diários, como sem o parâmetro |
 | `includeIdle` não muda o payload |
 | **o fixture tem 309 clusters — 75 EKS, 111 GKE, 123 AKS — ordenados por nome e sem repetição de id** |
-| **todo registro do fixture traz `cluster_id`, `cluster_name`, `provider` e `region_id`** |
+| **todo registro do fixture traz `cluster_id`, `cluster_name`, `native_id`, `provider` e `region_id`** |
 | **os 309 clusters carregam 160 nomes distintos — o estate reusa o nome entre scopes** |
 | **o fixture traz o nome que a descoberta devolve, com o provedor certo (`aks_cluster-0133`/azure, `TEMP-gke_cluster-0037`/gcp, `eks_cluster-0291`/aws)** |
+| **o `native_id` de cada cluster tem a forma que a descoberta daquele provedor publica (`arn:aws:eks:` / `projects/` / `/subscriptions/`)** |
+| **os 309 `native_id` são distintos e não colidem com nenhum nome nem com nenhum `uuid` do estate** |
 | `aggregate=namespace,controller` + `filter=cluster:"<nome>"` + `step=1d` → chave `payments/api`, com `properties.namespace` e `properties.controller` |
 | `aggregate=namespace` + `filter=cluster:"<nome>"` → chave `payments` |
 | `aggregate=controller` + `filter=cluster:"<nome>"+namespace:"payments"+controller:"api"` → chave `api` |
@@ -554,6 +705,10 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 | **`aggregate=cluster` devolve o NOME como chave, não o `uuid`** |
 | **o `cluster_id` do estate é aceito como alias — e a resposta carrega o NOME, não o id** |
 | **`aggregate=cluster` pelo alias também chaveia pelo nome** |
+| **o `native_id` (ARN do EKS, ARM id do AKS, `selfLink` do GKE) seleciona o cluster em `/allocation/compute` → 200 com `data` não vazio, e `properties.cluster` = o NOME** |
+| **o `native_id` seleciona o cluster em `/clusterInfo` → 200 com a mesma resposta** |
+| **`aggregate=cluster` pelo `native_id` também chaveia pelo nome** |
+| **dois clusters que compartilham o nome são clusters diferentes: cada `native_id` resolve para o seu próprio registro** |
 | **um nome que o estate não tem → 200 com `data: []`** |
 | **um nome com espaço no meio (`aks_cluster-0160 (do not delete)`) viaja intacto pelo `filter`** |
 | um cluster que o estate não tem → **200 com `data: []`** |
@@ -564,3 +719,4 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
 | `/clusterInfo?filter=cluster:"<nome>"` → 200 com `data == {"version": "synthetic"}` |
 | `/clusterInfo?filter=cluster:"<cluster_id>"` (alias) → 200 com a mesma resposta |
 | `/clusterInfo` sem `filter`, ou com cluster que o estate não tem → 400 |
+| **o fixture é idempotente: duas execuções do exportador contra o mesmo estate produzem o mesmo arquivo, byte a byte — e esse arquivo é o fixture commitado** (teste pulado quando o checkout não tem o parquet do estate, que não é versionado) |
