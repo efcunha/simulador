@@ -1387,6 +1387,24 @@ resposta do caminho frio com **`data_source: "focus_cost_records"`. O volume con
 lugares: `EffectiveCost` do parquet entregue **54.143,544220** = `focus_cost_records` do período
 2026-10 **54.143,54** = `/costs/unified` **54.143,54**.
 
+**Efeito colateral declarado.** A prova do caminho do agendado rodou a entrega oficial com os
+**três** alvos (é a chamada do `tick --deliver`, que não filtra alvo): **2.268 linhas** no BigQuery
+emulado (1.134 por tabela, dia 2026-10-26) e a janela do `azure-sim` estendida até **303 dias**.
+A conta `HOMOLOGATION GCP [sim]` saiu de `0.0` para **14.613,94** e o `total_cost` do workspace
+saiu de **113.517,05** para **128.130,99** — o AWS ficou em **54.143,54** nas duas medições, e o
+`data_source: "focus_cost_records"` continua valendo. Nada foi revertido: é o comportamento
+correto da entrega diária, e a conta de homologação é o destino declarado para validação que
+escreve.
+
+**Um incidente na reingestão (não determinístico).** Na **segunda** execução da ingestão do
+mesmo dia, o worker do uvicorn do backend morreu no meio da promoção (`Child process [34]
+died`, sem traceback; o container **não** foi OOM-killed — `OOMKilled=false`,
+`RestartCount=0`, sem limite de memória) e o uvicorn reergueu o worker sozinho. O estado ficou
+**íntegro** (`focus_cost_records` com as mesmas 84.042 linhas / US$ 220.348,01,
+`cur_last_ingest_error` vazio) e a **terceira** execução passou (exit 0, 25,8 s,
+`rows_promoted=54096` de novo). É fragilidade do **lado do CloudPilot**, fora da allowlist
+desta fase, e **não** é efeito da mudança daqui.
+
 **O que continua aberto.** O nome do export continua em **dois** lugares independentes (o default
 da entrega e o `cur_config.export_name` do CloudPilot) e nada os amarra — a correção alinha os
 dois, mas **não** impede a divergência de voltar, e o guard que impediria isso é do lado do

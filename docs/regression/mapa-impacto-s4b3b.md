@@ -319,7 +319,39 @@ normal:
 }
 ```
 
-### 4.5 O volume é o do artefato entregue — conferido nos três lugares
+(O `gcp: 0.0` e o `total_cost: 113517.05` desta leitura são os de **antes** de os dados do alvo
+`gcp` da entrega aparecerem para o conector — ver §4.5.)
+
+### 4.5 O efeito colateral dos alvos `gcp` e `azure` — e por que o total do workspace se move
+
+O §4.1 rodou a entrega oficial com **os três alvos** (é a chamada do caminho do agendado, que não
+filtra alvo). Isso **escreveu** fora do S3:
+
+| Alvo | Efeito medido |
+|---|---|
+| `gcp` | **2.268 linhas** inseridas no BigQuery emulado (1.134 na tabela padrão + 1.134 na de recurso), dia `2026-10-26`; o emulador soma `cost = 14627.533293999992` e `cost_at_effective_price_default = 14627.574` para esse dia |
+| `azure` | janela do estate do `azure-sim` estendida até **303 dias** (`POST /admin/estate/refresh`) |
+
+A consequência no consumidor é **visível e precisa ser dita**: a conta `HOMOLOGATION GCP [sim]`
+do workspace de homologação saiu de `0.0` para **14.613,94** (o valor do conector difere em
+~13,59 do total do emulador pelo filtro/janela do próprio conector), e o `total_cost` do
+workspace saiu de **113.517,05** para **128.130,99** — **não** por causa da mudança do AWS, que
+ficou em **54.143,54** nas duas medições. O `data_source: "focus_cost_records"` continua
+valendo:
+
+```
+total_cost = 128130.99
+data_source = focus_cost_records
+HOMOLOGATION AZURE [conta real]: 59373.5
+HOMOLOGATION AWS [sim]:           54143.54
+HOMOLOGATION GCP [sim]:           14613.94
+```
+
+Nada foi revertido: a escrita é o **comportamento correto** da entrega diária (é o que o
+`tick --deliver` faz), e a conta de homologação é o destino declarado para validação que escreve.
+O que se registra aqui é o **estado** em que o workspace de homologação ficou.
+
+### 4.6 O volume é o do artefato entregue — conferido nos três lugares
 
 | Onde | Valor |
 |---|---|
@@ -381,6 +413,16 @@ que faz a promoção ser *fail-closed* quando ausente.
   **morto**. Ela não faz mais parte desta fase (o alvo é a conta `HOMOLOGATION AWS [sim]`), mas
   é a mesma dívida, em outra conta: se alguém rodar a entrega para o namespace antigo, é essa
   conta que volta a receber.
+- **Uma reingestão matou o worker do backend do CloudPilot — uma vez, e de forma não
+  determinística.** Na segunda execução da ingestão do mesmo dia, o worker do uvicorn morreu no
+  meio da promoção (`INFO: Child process [34] died`, sem traceback). Não foi OOM do container
+  (`OOMKilled=false`, `RestartCount=0`, sem limite de memória) e o uvicorn reergueu o worker
+  sozinho (`Started server process [1110]`). **O estado ficou íntegro**: `focus_cost_records` com
+  as mesmas 84.042 linhas / US$ 220.348,01, `cur_last_ingest_error` vazio, `cur_last_ingested_at`
+  no valor da execução bem-sucedida. A terceira execução passou (exit 0, 25,8 s,
+  `rows_promoted=54096` de novo), então **não** é determinístico. É fragilidade do lado do
+  CloudPilot, fora da allowlist desta fase — e **não** é efeito da mudança daqui: o repositório
+  do CloudPilot não foi tocado, e o que a entrega faz é publicar um objeto no S3.
 
 ## 6. Reproduzir
 

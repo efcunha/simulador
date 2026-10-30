@@ -1404,6 +1404,24 @@ the cold-path response with **`data_source: "focus_cost_records"`**. The volume 
 three places: the delivered parquet's `EffectiveCost` **54,143.544220** = `focus_cost_records`
 for period 2026-10 **54,143.54** = `/costs/unified` **54,143.54**.
 
+**Declared side effect.** The scheduled-path proof ran the official delivery with **all three**
+targets (that is the `tick --deliver` call, which filters no target): **2,268 rows** into the
+emulated BigQuery (1,134 per table, day 2026-10-26) and the `azure-sim` window extended to
+**303 days**. The `HOMOLOGATION GCP [sim]` account moved from `0.0` to **14,613.94** and the
+workspace's `total_cost` moved from **113,517.05** to **128,130.99** — AWS stayed at **54,143.54**
+in both measurements, and `data_source: "focus_cost_records"` still holds. Nothing was reverted:
+that is the correct behaviour of the daily delivery, and the homologation account is the
+designated destination for validation that writes.
+
+**One incident on re-ingestion (not deterministic).** On the **second** ingestion run of the
+same day, the backend's uvicorn worker died mid-promotion (`Child process [34] died`, no
+traceback; the container was **not** OOM-killed — `OOMKilled=false`, `RestartCount=0`, no memory
+limit) and uvicorn brought the worker back on its own. The state stayed **consistent**
+(`focus_cost_records` with the same 84,042 rows / US$ 220,348.01, `cur_last_ingest_error` empty)
+and the **third** run passed (exit 0, 25.8 s, `rows_promoted=54096` again). That is a fragility
+on the **CloudPilot** side, outside this phase's allowlist, and it is **not** an effect of this
+phase's change.
+
 **What is still open.** The export name still lives in **two** independent places (the delivery's
 default and CloudPilot's `cur_config.export_name`) and nothing binds them — the fix aligns the
 two but **does not** prevent the divergence from coming back, and the guard that would prevent it
