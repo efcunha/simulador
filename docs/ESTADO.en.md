@@ -1260,6 +1260,7 @@ connected`, `connection check gcp = connected`, `connection check azure = connec
   (small), while the `aws-sim`'s API surfaces already serve the `medium` estate. The
   difference is in **volume**, not identity (the account ids are the same). Re-rendering is
   the natural next step and needs a phase that includes `scripts/**`.
+  **(Closed by S4b3-A — see the section below.)**
 - **The 2 `org_member` accounts in the `[SYNTH]` workspace** (`AWS Account 1`,
   `AWS Account 2`) show *"Credential resolution failed"* because they **have no credential**
   (key columns of size 0). **Pre-existing** — their last check is from 2026-10-28 — and
@@ -1278,3 +1279,68 @@ connected`, `connection check gcp = connected`, `connection check azure = connec
 
 Detail in [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) §7 (dated
 revision of 2026-10-30).
+
+## S4b3-A — the `aws-sim` FOCUS/S3 tree on the `medium` profile (2026-10-30)
+
+**The `aws-sim` was serving two volumes: the APIs on `medium`, the billing export on `small`.**
+S4b2-D wrote that down as debt — the FOCUS/S3 tree had been rendered for the `small` profile
+because the uploader (`scripts/synthetic-clouds/aws-up.ps1`) resolved the AWS plane's namespace
+**from the process environment only**, with a `small` default. This phase re-renders the tree in
+the `medium` profile, publishes it, and closes the loop through `/costs/unified`.
+
+**Three causes, all measured on this host.**
+
+1. **The uploader read the namespace from the wrong place.** `compose.aws.yaml` reads
+   `${AWS_SIM_PROFILE:-small}` and compose interpolates the `.env` of the compose directory —
+   where the installation pins `AWS_SIM_PROFILE=medium`. The generator, however, runs **on the
+   host**: the script only looked at the process environment, and an `aws-up.ps1` without an
+   export rendered `small`. Measured: `tools/synthetic_clouds/out/aws-plane/123-small-USD`
+   (mtime 2026-10-29 20:21).
+2. **The consumer read an export name the renderer does not emit.** The renderer pins
+   `EXPORT_NAME = "synthetic-focus12-daily-full"`; the homologation account was configured with
+   `export_name = cloudpilot-focus12-daily-full` (the name of the renderer **before** the
+   standalone publish, the one that wrote a `Manifest.json` into the export). The reader looks
+   for `f"{s3_prefix}/{export_name}/"` — and measured **0 keys** in the consumer's bucket.
+3. **The CUR promotion is fail-closed without a 12-digit account id.** The
+   `HOMOLOGATION AWS [sim]` account had an **empty** `external_account_id`; the error ("CUR
+   payer account configuration must be a 12-digit AWS account ID") is swallowed and the
+   promotion returns `cost_promotion_status: "skipped"` with **zero** rows. Pre-existing: the
+   2026-10-28 ingestion promoted nothing either.
+
+**What `aws-up.ps1` now does** (the file this phase allowed): it reads the installation's
+`.env` (process environment first, file second), uses the repository **venv**, **replaces** the
+tree in the volume instead of merging, **does not rebuild** images by default (`-Build` is
+explicit), and **verifies** the tree through the `aws-sim`'s own S3 surface.
+
+**Measured.** `.\scripts\synthetic-clouds\aws-up.ps1` → **exit 0**, with the running containers
+reused (no rebuild, no recreate). The tree in the volume (`synthetic-clouds_aws_sim_render`):
+**6 objects / 14,011,803 B**, `_provenance.json` with `"profile": "medium"`, **130,236 rows**
+across 5 parquet files (2026-01 → 2026-04) and **966** distinct `ResourceId`s — exactly the
+**966** AWS resources **with** a billing line in the canonical estate
+(`apply_all(build_estate(123, "medium", "USD"))`: **1,110** AWS resources, **474,390** billing
+lines, **118,366** of them AWS). The `s3mock` publishes the 6 keys under
+`focus12-full/synthetic-focus12-daily-full/data/billing_period=...`.
+
+**On CloudPilot (homologation account).** Two **configuration** changes, none of them in a file
+of its repo: `cur_config.export_name` → `synthetic-focus12-daily-full` (through
+`PUT /api/v1/cur-ingestion/accounts/{id}/config`) and `external_account_id` → `911368690069`
+(the estate's payer account; bucket, prefix and `endpoint_url` did not change). The ingestion
+through the official mechanism (`POST /api/v1/cur-ingestion/accounts/{id}/ingest`) →
+`status: ok`, 2 periods (2026-03, 2026-04), `total_billed_cost: 166204.470549`; the promotion
+log records `rows_promoted=58926`. In `/costs/unified` (window 2026-01-01 → 2026-04-30):
+`total_cost: 166204.47`, `by_account: aws · HOMOLOGATION AWS [sim] · 166204.47`,
+`data_source: focus_cost_records`; in the browser, `/costs` with *Year to Date* → **US$ 225,578**
+and **HOMOLOGATION AWS [sim] · US$ 166,204.47 (73.7%)**.
+
+**What is still open.** The daily delivery (FR-22) still publishes to the
+`cloudpilot-focus12-daily-full` bucket with the `cloudpilot-focus12-daily-full` export — a
+namespace the consumer does not read (`tools/**` outside this phase's allowlist); the tree
+covers the **profile's window** (2026-01-01 → 2026-04-30), not "through today"; the consumer
+ingests the **2 newest** periods (`CUR_INGEST_LOOKBACK_PERIODS`); the homologation account is
+**one** for the estate's **three** accounts; the `PROFILE: small` default in
+`compose.aws.yaml` is still there (outside the allowlist), now with double protection (the
+`.env` plus the uploader); the `aws-sim` image is older than the emulator sources (the script
+warns; rebuilding is its own phase); and the `s3mock` store is **in memory** (recreating the
+container empties the bucket).
+
+Detail in [regression/mapa-impacto-s4b3a.md](regression/mapa-impacto-s4b3a.md).

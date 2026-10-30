@@ -154,6 +154,21 @@ rest of the stack. The emulator's `sts` is reached through the **per-account end
 hijack — a global hijack would break the real AWS accounts CloudPilot also consumes.
 Detail in [regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md) §7.
 
+**How CloudPilot reaches the `aws-sim` CUR.** The CUR reader uses the **per-account**
+`endpoint_url` (`cur_config.endpoint_url`): in this installation, `http://s3mock:9090` in
+path style, on the `AWS_SIM_BUCKET` bucket (`synthetic-focus12-daily-full`), under the
+prefix `focus12-full/<export_name>/`. The `export_name` has to be the name the **renderer
+emits** (`synthetic-focus12-daily-full`); `cloudpilot-focus12-daily-full` belongs to the
+renderer from **before** the standalone publish (the one that wrote a `Manifest.json` into
+the export) and **does not find the published keys** — measured in S4b3-A. The `aws-sim`
+exposes the **same tree** through its REST S3 surface (the `aws_sim_render` volume,
+`AWS_SIM_S3_STORE_DIR=/render/aws_focus`); the `s3mock` store is **in memory**, so
+recreating the container empties the bucket and `aws-up.ps1` has to run again. Measured in
+S4b3-A: the FOCUS/S3 tree was re-rendered in the **`medium`** profile (130.236 rows, 966
+resources with billing), published and **ingested** — 58.926 rows / US$ 166,204.47 in the
+homologation account's `/costs/unified`. Detail in
+[regression/mapa-impacto-s4b3a.md](docs/regression/mapa-impacto-s4b3a.md).
+
 **Debts on this front.** The Kubernetes plane still has **no** real hostname and no
 certificate (TLS is the rest of S4b2); `scripts/synthetic-clouds/up.ps1` does **not**
 bring that plane up (it comes up with the integration, which owns the link); and

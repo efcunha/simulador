@@ -152,6 +152,20 @@ hostname `sts.amazonaws.com` — hijack global quebraria as contas AWS reais que
 CloudPilot tambem consome. Detalhe em
 [regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md) §7.
 
+**Como o CloudPilot alcanca o CUR do `aws-sim`.** O leitor de CUR usa o `endpoint_url` **por
+conta** (`cur_config.endpoint_url`): nesta instalacao, `http://s3mock:9090` em *path style*,
+no bucket `AWS_SIM_BUCKET` (`synthetic-focus12-daily-full`), com o prefixo
+`focus12-full/<export_name>/`. O `export_name` precisa ser o nome que o **renderer emite**
+(`synthetic-focus12-daily-full`); o `cloudpilot-focus12-daily-full` pertence ao renderer
+anterior ao *standalone publish* (o que escrevia `Manifest.json` no export) e **nao encontra as
+chaves publicadas** — medido na S4b3-A. O `aws-sim` expoe a **mesma arvore** pela superficie S3
+REST (volume `aws_sim_render`, `AWS_SIM_S3_STORE_DIR=/render/aws_focus`); o store do `s3mock` e
+em memoria, entao recriar o container esvazia o bucket e o `aws-up.ps1` precisa rodar de novo.
+Medido na S4b3-A: a arvore FOCUS/S3 foi re-renderizada no perfil **`medium`** (130.236 linhas,
+966 recursos com faturamento), publicada e **ingerida** — 58.926 linhas / US$ 166.204,47 no
+`/costs/unified` da conta de homologacao. Detalhe em
+[regression/mapa-impacto-s4b3a.md](docs/regression/mapa-impacto-s4b3a.md).
+
 **Debitos desta frente.** O plano Kubernetes ainda **nao tem** hostname real nem
 certificado (TLS e o restante da S4b2); `scripts/synthetic-clouds/up.ps1` **nao** sobe esse
 plano (ele sobe pela integracao, que e o dono do vinco); e

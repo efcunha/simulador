@@ -29,14 +29,17 @@ rede do CloudPilot** pelo `integration/ensure-cloudpilot.ps1`, que cria o alias 
 
 - Podman com a máquina rodando (`podman machine start`) e `podman compose`.
 - PowerShell 7 (`pwsh`) para os scripts de `scripts/synthetic-clouds/` e `integration/`.
-- O venv do repositório ativo: `gcp-up.ps1` e `aws-up.ps1` chamam **`python` puro** para
-  gerar o estado na máquina. Sem o venv ativo, o `python` do PATH é outro (medido nesta
-  máquina: `C:\Python314\python.exe`), sem as dependências do gerador. Ative antes:
+- O venv do repositório ativo: `gcp-up.ps1` chama **`python` puro** para gerar o estado na
+  máquina. Sem o venv ativo, o `python` do PATH é outro (medido nesta máquina:
+  `C:\Python314\python.exe`), sem as dependências do gerador. Ative antes:
 
   ```powershell
   cd <raiz-do-repo>
   & .\.venv\Scripts\Activate.ps1
   ```
+
+  O `aws-up.ps1` (S4b3-A) **não depende** disso: ele usa `.venv\Scripts\python.exe` quando o
+  venv existe e só cai no `python` do PATH como último recurso.
 
 - O front TLS depende da rede do CloudPilot (`cloudpilot-deploy_cloudpilot_net`), criada
   pela stack do CloudPilot; nenhum dos quatro planos a cria. É a integração que anexa os
@@ -69,9 +72,13 @@ O que cada plano faz além do `compose up`:
   emulador + `gcp-sim`, espera o emulador responder, copia os artefatos para os **volumes
   nomeados** com `podman cp` (nunca bind mount de `C:\Projetos\`), roda o `gcp-bq-provision`
   (DDL + `insertAll`) e reinicia o `gcp-sim` para carregar os fixtures.
-- **AWS** (`aws-up.ps1`): gera o FOCUS 1.2, sobe `s3mock` + `aws-sim`, espera o `GET /` do
-  S3 (ListBuckets) responder, copia a árvore renderizada para o volume `aws_sim_render` e
-  roda `python -m aws_sim.upload` **dentro** do `aws-sim` para publicar no `s3mock`.
+- **AWS** (`aws-up.ps1`): gera o FOCUS 1.2 **no perfil que o `.env` da instalação declara**
+  (`AWS_SIM_PROFILE`; o ambiente de processo ainda sobrescreve), sobe `s3mock` + `aws-sim`
+  **sem rebuild** (os containers em execução são reutilizados; `-Build` é explícito), espera o
+  `GET /` do S3 (ListBuckets) responder, **substitui** a árvore renderizada no volume
+  `aws_sim_render` (remove e copia — nunca mescla) e roda `python -m aws_sim.upload` **dentro**
+  do `aws-sim` para publicar no `s3mock`. No fim ele **confere** a árvore pela superfície S3 do
+  próprio `aws-sim` e falha se a lista vier vazia.
 
 Para um único plano, chame o sub-script direto (`.\scripts\synthetic-clouds\gcp-up.ps1`).
 Cada um aceita `-DryRun`.
@@ -198,6 +205,10 @@ Quatro blocos no template:
   pilha, com o mesmo seed (medido na S4b2-D: `small` = 237 recursos AWS / 37.922 linhas de
   faturamento; `medium` = 1.110 / 474.390). Os **ids de conta são os mesmos** nos dois
   perfis — eles derivam de `(seed, índice)`, não do perfil.
+  **Desde a S4b3-A o `aws-up.ps1` lê o mesmo `.env`**: o namespace do plano AWS deixou de
+  depender só do ambiente de processo, e a árvore FOCUS/S3 saiu de `small` para `medium`
+  (medido: `_provenance.json` com `"profile": "medium"`, 130.236 linhas, 966 recursos com
+  faturamento — ver [`docs/regression/mapa-impacto-s4b3a.md`](../../docs/regression/mapa-impacto-s4b3a.md)).
 - **Kubernetes** — `K8S_SIM_PORT` (porta do host para o container 8089; a porta do
   container é fixa) e a URL `K8S_SIM_URL` documentada e comentada. O plano é
   autocontido: não há seed, perfil nem provisioning.
@@ -228,11 +239,24 @@ mesmo perfil** declarado pelo namespace do plano AWS: sem ele, o `aws-sim` sobe 
   `tools/synthetic_clouds`, `specs` e `emulators/*`; `deploy/synthetic-clouds/Containerfile.dockerignore`
   corta caches e `out/` (`**/out` — o `out/` do gerador chegou a 5,67 GB/133.748 arquivos
   num build lento, medido em 2026-10-28).
-- **`s3mock` é o alvo do upload, não o que o FinOps lê.** Como o `boto3` não tem override por
-  serviço, o cliente S3 do consumidor cai no `aws-sim`, que serve a superfície S3 REST a
-  partir da mesma árvore (`AWS_SIM_S3_STORE_DIR=/render/aws_focus`); o `s3mock` prova que o
-  upload funciona contra uma implementação S3 real. MinIO não é obtenível (os `podman pull`
-  oficiais falham — medido), e é por isso que o mock é `adobe/s3mock`.
+- **`s3mock` é o alvo do upload, e é o que o consumidor de CUR lê.** O cliente S3 do CloudPilot
+  usa o `endpoint_url` **por conta** (`cur_config.endpoint_url`), que nesta instalação aponta
+  para `http://s3mock:9090` com *path style*; o bucket é o `AWS_SIM_BUCKET`
+  (`synthetic-focus12-daily-full`) e o prefixo do export é `focus12-full/<export_name>/`. O
+  `aws-sim` serve a **mesma árvore** pela superfície S3 REST a partir do volume
+  (`AWS_SIM_S3_STORE_DIR=/render/aws_focus`), o que prova o conteúdo sem passar pelo mock.
+  MinIO não é obtenível (os `podman pull` oficiais falham — medido), e é por isso que o mock
+  é `adobe/s3mock`.
+- **O store do `s3mock` é em memória.** Recriar o container esvazia o bucket (medido em
+  2026-10-30: `KeyCount=0` logo depois de o container ser recriado), e o leitor de CUR passa a
+  não encontrar nada. Publicar a árvore é parte do trabalho: `.\scripts\synthetic-clouds\aws-up.ps1`
+  a republica.
+- **O `export_name` que o consumidor lê é o que o renderer emite** —
+  `synthetic-focus12-daily-full` (`tools/synthetic_clouds/render/focus_aws.py`). O nome
+  `cloudpilot-focus12-daily-full` pertence ao renderer **anterior** ao *standalone publish* (o
+  que escrevia `Manifest.json` no export); um consumidor configurado com ele não acha as
+  chaves publicadas. Medido e corrigido na S4b3-A — ver
+  [`docs/regression/mapa-impacto-s4b3a.md`](../../docs/regression/mapa-impacto-s4b3a.md) §2.2.
 - **Azurite com `--skipApiVersionCheck`.** A imagem fixa do Azurite recusa o `x-ms-version`
   mais novo do SDK de blob do `azure-sim`; o flag é a exceção documentada pelo próprio
   Azurite e só vale para este ambiente local.
