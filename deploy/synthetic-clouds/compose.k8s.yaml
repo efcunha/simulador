@@ -1,0 +1,71 @@
+# compose.k8s.yaml -- Kubernetes side of the synthetic-clouds simulator (S4b2).
+#
+# Podman-compatible. The k8s-sim serves the OpenCost allocation contract
+# (/allocation/compute, /clusterInfo, /healthz) -- the wire shape, the sources it
+# was read from and the places this phase narrows it are in
+# docs/k8s-sim-opencost-contract.md.
+#
+# Run from this directory:
+#   podman compose -f compose.k8s.yaml up -d
+# Validate the schema without running:
+#   podman compose -f compose.k8s.yaml config
+#
+# The service is self-contained: the synthetic workload is declared in
+# k8s_sim.projections.allocation and the estate's clusters are DATA (the versioned
+# fixture k8s_sim/fixtures/clusters.json). The service never imports the generator,
+# so nothing of tools/ or specs/ is baked in.
+
+services:
+  k8s-sim:
+    # The image is named explicitly because the already-built artifact is
+    # localhost/k8s-sim:latest, NOT the project-prefixed name compose would
+    # derive from a build-only service. Naming it keeps `up -d` on the existing
+    # image instead of building a second copy.
+    image: localhost/k8s-sim:latest
+    build:
+      # Build context = the k8s-sim package dir, NOT the worktree root (the
+      # sibling sims bake tools/ and specs/ because their generator is imported as
+      # the namespace path tools.synthetic_clouds.*). This one imports no
+      # generator, so the package dir is the whole context.
+      context: ../../emulators/k8s-sim
+      dockerfile: Containerfile
+    networks:
+      synthclouds_k8s:
+      synthclouds_net:
+        aliases:
+          - k8s-sim
+    ports:
+      # Host port is configurable; the container port is fixed at 8089 (the
+      # Containerfile's EXPOSE and its uvicorn --port).
+      - "${K8S_SIM_PORT:-8089}:8089"
+    environment:
+      # The container port, pinned exactly like the sibling sims pin theirs
+      # (AWS_SIM_PORT: "8086", API_PORT: "8080"). The image's own liveness probe
+      # reads this variable, and so does the compose healthcheck below.
+      K8S_SIM_PORT: "8089"
+    healthcheck:
+      # SAME probe as the Containerfile's HEALTHCHECK, declared HERE because
+      # `podman build` in the OCI image format discards the image HEALTHCHECK
+      # ("HEALTHCHECK is not supported for OCI image format and will be
+      # ignored") -- a service-level healthcheck is the only one that runs.
+      # stdlib urllib, so the slim image needs no curl/wget.
+      test: ["CMD", "python", "-c", "import os,urllib.request,sys; p=os.environ.get('K8S_SIM_PORT','8089'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/healthz', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+networks:
+  # Dedicated network for this plane, like synthclouds_aws and synthclouds_gcp.
+  synthclouds_k8s:
+    driver: bridge
+
+  # Shared network for the simulators, the one the sibling planes compose-owned
+  # under the same project. It is declared EXTERNAL here on purpose: compose
+  # would otherwise try to REMOVE it on `down`, and podman refuses ("Resource is
+  # still in use") because the azure/gcp/aws planes are attached to it -- the
+  # teardown of this plane must not reach the other planes' network.
+  synthclouds_net:
+    external: true
+    name: synthetic-clouds_synthclouds_net
