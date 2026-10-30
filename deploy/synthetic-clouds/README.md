@@ -191,6 +191,13 @@ Quatro blocos no template:
   `S3_PORT`, `AWS_SIM_BUCKET`, `AWS_SIM_PORT`, `AWS_SIM_SEED`, `AWS_SIM_PROFILE`,
   `AWS_SIM_REGION`; `AWS_SIM_S3_STORE_DIR` documentado e comentado (comentado = a
   superfície S3 do `aws-sim` lista buckets sem objetos).
+  **O plano AWS tem o seu próprio namespace:** `compose.aws.yaml` lê
+  `SEED: "${AWS_SIM_SEED:-123}"` e `PROFILE: "${AWS_SIM_PROFILE:-small}"` — **não** os
+  nomes genéricos `SEED`/`PROFILE` que os planos Azure/GCP leem. Com `AWS_SIM_PROFILE`
+  ausente, o `aws-sim` cai no default `small` e serve um **estate diferente** do resto da
+  pilha, com o mesmo seed (medido na S4b2-D: `small` = 237 recursos AWS / 37.922 linhas de
+  faturamento; `medium` = 1.110 / 474.390). Os **ids de conta são os mesmos** nos dois
+  perfis — eles derivam de `(seed, índice)`, não do perfil.
 - **Kubernetes** — `K8S_SIM_PORT` (porta do host para o container 8089; a porta do
   container é fixa) e a URL `K8S_SIM_URL` documentada e comentada. O plano é
   autocontido: não há seed, perfil nem provisioning.
@@ -202,10 +209,13 @@ são consumidos por nenhum serviço desta pilha. Não existe, hoje, código de o
 endpoint no simulador — quem aponta o FinOps para o simulador é a configuração de rede/TLS
 descrita em `docs/INTEGRACAO-CLOUDPILOT-TLS.md`.
 
-Nesta instalação o `.env` local (git-ignored, leitura de 2026-10-29) fixa
-`SEED=123`, `PROFILE=medium`, `WINDOW_DAYS=297`, `API_PORT=8080`, `API_PAGE_SIZE=20000`.
+Nesta instalação o `.env` local (git-ignored, leitura de 2026-10-30) fixa
+`SEED=123`, `PROFILE=medium`, `AWS_SIM_SEED=123`, `AWS_SIM_PROFILE=medium`,
+`WINDOW_DAYS=297`, `API_PORT=8080`, `API_PAGE_SIZE=20000`.
 `SEED=123` e `PROFILE=medium` são os mesmos valores que a config do agendador usa — ver
-[`docs/AGENDAMENTO.md`](../../docs/AGENDAMENTO.md).
+[`docs/AGENDAMENTO.md`](../../docs/AGENDAMENTO.md). O par `AWS_SIM_*` é o **mesmo seed e o
+mesmo perfil** declarado pelo namespace do plano AWS: sem ele, o `aws-sim` sobe em `small`
+(default do compose) enquanto o resto da pilha sobe em `medium`.
 
 ## Operação
 

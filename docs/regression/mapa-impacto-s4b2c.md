@@ -138,25 +138,71 @@ num worktree descartável (`git worktree add --detach`), produz **a mesma linha*
 [INFO] connection check azure = connected
 ```
 
-**Causa raiz medida.** O container `synthetic-clouds-aws-sim-1` está no ar com
-`PROFILE=small` (`podman inspect … --format '{{range .Config.Env}}{{println .}}{{end}}'`),
-enquanto o `.env` documentado da instalação diz `PROFILE=medium` (`SEED=123` nos dois). As
-access keys do estate derivam do perfil: o `aws-sim` re-renderizado com outro perfil gera
-**outro conjunto de chaves**, e a credencial guardada no CloudPilot — que aponta para o
-estate `medium` — deixa de existir para o `aws-sim` atual. Daí o `InvalidClientTokenId`.
+**Causa raiz medida — REVISÃO DATADA DE 2026-10-30 (S4b2-D).** A leitura original desta
+seção afirmava que *"as access keys do estate derivam do perfil"*. **Isso é falso**, e o
+`-Smoke` não falhava por causa do perfil: o `InvalidClientTokenId` vinha do **AWS real**,
+não do emulador.
 
-**Por que esta fase não corrige.** Recriar o `aws-sim` com o perfil correto é *restart dos
-outros emuladores*, que a fase lista como **fora de escopo** e whose integrity is an
-acceptance criterion ("os 7 containers dos outros planos e o front intactos"). E a
-credencial mora em `C:\Projetos\cloudpilot-deploy`, **fora da allowlist**. A correção
-cabe numa fase de deployment própria: recriar o `aws-sim` com o `.env` do diretório
-(`podman compose -f compose.aws.yaml up -d`, a partir de `deploy/synthetic-clouds/`, onde o
-`.env` é lido) e refazer a credencial da conta `f4b259ca-3a0d-49bb-ade9-bf75101317c8`.
+**Prova de que o erro vinha da AWS real.** O log do backend mostra o `botocore` resolvendo o
+endpoint por conta própria — `Looking for endpoint for sts via: environment_service /
+environment_global / config_service / config_global / No configured endpoint found` — e a
+chamada seguindo para `https://sts.us-east-1.amazonaws.com`. A **mesma** credencial
+decifrada, testada contra os dois destinos: `http://aws-sim:8086` → **200**, conta
+`911368690069`; AWS real → `InvalidClientTokenId`, a mensagem exata gravada em
+`cloud_accounts.connection_error`.
 
-**Efeito no critério de aceite:** `ensure-cloudpilot.ps1 -Smoke -SkipEstate` sai com **1**
-(esse), e não com 0, por causa do item pré-existente acima. As medições **desta fase** — o
-probe do `k8s-sim` por dentro do backend, o alias na bridge e o `network inspect` — estão
-todas verdes.
+**Prova de que o perfil não é a identidade.** O `aws-sim` **não valida** a chave que chega:
+o `GetCallerIdentity` decodifica o formato `ASIA<12 dígitos>SYNT` e, sem chave
+decodificável, **cai na primeira conta do estate**. E o id de conta deriva de
+`aws_account_id(seed, "acct-NN")` — seed e índice, **não** o perfil. Medido com o mesmo
+seed 123: `small` e `medium` produzem os **mesmos três** ids (`911368690069`,
+`969191373337`, `995394606788`). O perfil muda o **volume**, não a identidade: 237 → 1.110
+recursos AWS e 37.922 → 474.390 linhas de faturamento.
+
+**A causa raiz real: o override de endpoint por conta estava inerte.** A conta tem
+`cur_config.endpoint_overrides.sts = http://aws-sim:8086` — o caminho que o front TLS
+deliberadamente **não** publica (um hijack de `sts.amazonaws.com` quebraria as contas AWS
+reais que o mesmo CloudPilot consome). Esse override só é lido por um backend que tenha
+`endpoint_overrides.py` e propague `sts_endpoint_url` ao validador — e a imagem em
+execução **não tinha**: medido, o container não tinha
+`app/services/providers/endpoint_overrides.py`, e `connection_check.py` e
+`connection_validator.py` vinham sem `sts_endpoint_url`. O desvio contra o `HEAD` do repo
+era de **3 arquivos ausentes + 15 diferentes** (de 742 `.py`). A imagem tinha sido
+construída em **2026-10-27 17:11 UTC** (label `acd18722`), **antes** de `dbd66cca`
+(2026-10-28 20:29), que introduziu o feature e **é** ancestral do `HEAD`.
+
+**A correção (fase S4b2-D, medida).**
+
+1. `.env` local com o **namespace do plano AWS** — `AWS_SIM_SEED=123` e
+   `AWS_SIM_PROFILE=medium`. O `compose.aws.yaml` lê `${AWS_SIM_SEED:-123}` /
+   `${AWS_SIM_PROFILE:-small}`, **não** os nomes genéricos `SEED`/`PROFILE` dos planos
+   Azure/GCP; sem o par `AWS_SIM_*` o `aws-sim` cai no default `small` e serve um estate
+   **diferente** do resto da pilha. O `compose.aws.yaml` **não** foi editado (fora da
+   allowlist): o default `small` continua lá, e é o `.env` que fixa o perfil da
+   instalação. `.env.example` agora **documenta** o par e o seu motivo.
+2. `aws-sim` recriado pelo compose oficial → `PROFILE=medium`, `SEED=123`, healthy.
+3. **Imagem do backend do CloudPilot reconstruída a partir do `HEAD`** (`3da29e76`) e os
+   **5 containers Python recriados** — `podman cp` não servia: `pyproject.toml`/`uv.lock`
+   também mudaram (597+/427−), então um patch de arquivos deixaria o `.venv` desalinhado.
+   Resultado: `[PARITY] Code parity OK (742 .py files, host == 5 running container(s))`.
+4. **Defeito colateral encontrado e corrigido na configuração local.** A reconstrução subiu
+   um backend em **crash-loop**: `ModuleNotFoundError: No module named 'psycopg'`. Causa:
+   `1299fa0d` afrouxou o pin do SQLAlchemy para `<2.2` e o lock resolveu **2.1.6**, que
+   trocou o driver default de `postgresql://` para o **psycopg3** — e o lock só entrega
+   `psycopg2-binary`. Como `scripts/compose-local.ps1:339` monta `LOCAL_DATABASE_URL_SYNC`
+   **sem driver**, o container recebia a URL crua e o `alembic upgrade head` da entrypoint
+   morria. Corrigido **só na configuração local** (`backend/.env.local`, git-ignored):
+   `LOCAL_DATABASE_URL_SYNC=postgresql+psycopg2://…`, o mesmo valor que o arquivo já
+   declarava em `DATABASE_URL_SYNC`. **O repo do CloudPilot não foi editado** — o defeito
+   de dependência lá é dele e está declarado no registro da fase (`docs/ESTADO.md`,
+   seção S4b2-D).
+5. Credencial **re-mintada** na forma que o emulador decodifica —
+   `ASIA<conta>SYNT` / `synthetic-secret-<conta>` — pela UI, com a conta de homologação.
+   Assim o `GetCallerIdentity` devolve **exatamente** a conta declarada
+   (`911368690069`), sem depender da queda para a primeira conta do estate.
+
+**Efeito no critério de aceite:** `ensure-cloudpilot.ps1 -Smoke` sai com **0** e
+`summary: integration OK (0 problems)`, com `connection check aws = connected`.
 
 ## 8. O que esta fase **não** faz
 

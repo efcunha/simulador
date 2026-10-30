@@ -143,6 +143,15 @@ idempotentemente por `deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1`
 tambem cria o container a partir de `compose.k8s.yaml` quando ele falta — sem rebuild.
 Detalhe em [regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md).
 
+**Como o CloudPilot alcanca o `aws-sim`.** O plano AWS tem o **proprio namespace** de
+variaveis: `compose.aws.yaml` le `AWS_SIM_SEED`/`AWS_SIM_PROFILE`, nao os nomes genericos
+`SEED`/`PROFILE` dos planos Azure/GCP. Sem o par `AWS_SIM_*`, o `aws-sim` cai no default
+`small` e serve um estate **diferente** do resto da pilha. O `sts` do emulador e alcancado
+pelo **endpoint por conta** (`cur_config.endpoint_overrides.sts`), e nao por um hijack do
+hostname `sts.amazonaws.com` — hijack global quebraria as contas AWS reais que o
+CloudPilot tambem consome. Detalhe em
+[regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md) §7.
+
 **Debitos desta frente.** O plano Kubernetes ainda **nao tem** hostname real nem
 certificado (TLS e o restante da S4b2); `scripts/synthetic-clouds/up.ps1` **nao** sobe esse
 plano (ele sobe pela integracao, que e o dono do vinco); e

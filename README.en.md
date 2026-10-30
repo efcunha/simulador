@@ -145,6 +145,15 @@ which also creates the container from `compose.k8s.yaml` when it is missing — 
 a rebuild. Detail in
 [regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md).
 
+**How CloudPilot reaches the `aws-sim`.** The AWS plane has its **own** variable
+namespace: `compose.aws.yaml` reads `AWS_SIM_SEED`/`AWS_SIM_PROFILE`, not the generic
+`SEED`/`PROFILE` names the Azure/GCP planes read. Without the `AWS_SIM_*` pair, the
+`aws-sim` falls back to the `small` default and serves a **different** estate from the
+rest of the stack. The emulator's `sts` is reached through the **per-account endpoint**
+(`cur_config.endpoint_overrides.sts`), not through a `sts.amazonaws.com` hostname
+hijack — a global hijack would break the real AWS accounts CloudPilot also consumes.
+Detail in [regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md) §7.
+
 **Debts on this front.** The Kubernetes plane still has **no** real hostname and no
 certificate (TLS is the rest of S4b2); `scripts/synthetic-clouds/up.ps1` does **not**
 bring that plane up (it comes up with the integration, which owns the link); and

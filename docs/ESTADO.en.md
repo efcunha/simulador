@@ -1185,3 +1185,95 @@ to it, and the documentation that said "out of compose".
   versioned wrapper already points at `C:\Projetos\Simulador\...`; what is stale is the
   **registered action**, and the fix is to re-register it
   (`register-ensure-task.ps1 -RunNow`).
+
+## S4b2-D — the `aws-sim` on the `medium` profile and the AWS connection check (2026-10-30)
+
+**The residue was the variable namespace — and the root cause S4b2-C measured was wrong.**
+The `-Smoke` failed on the AWS account with `InvalidClientTokenId`. The original reading
+said *"the estate's access keys change with the profile"*. **They do not**: the account id
+comes from `aws_account_id(seed, "acct-NN")` — seed and index, **not** the profile.
+Measured, with the same seed 123: `small` and `medium` produce the **same three** ids
+(`911368690069`, `969191373337`, `995394606788`); the profile changes the **volume**
+(237 → 1,110 AWS resources; 37,922 → 474,390 billing lines). And the `aws-sim` does **not**
+validate the key it receives: `GetCallerIdentity` decodes `ASIA<12 digits>SYNT` and, with no
+decodable key, falls back to the estate's first account. The error came from the **real
+AWS** — the backend log shows botocore resolving `https://sts.us-east-1.amazonaws.com`, and
+the same decrypted credential answers **200** against `http://aws-sim:8086` and
+`InvalidClientTokenId` against the real AWS.
+
+**The real root cause: the per-account endpoint override was inert.** The account stores
+`cur_config.endpoint_overrides.sts = http://aws-sim:8086` — the path the TLS front
+deliberately does not publish, because hijacking the `sts.amazonaws.com` hostname would
+break the real AWS accounts the same CloudPilot consumes. That override is only read by a
+backend that has `endpoint_overrides.py` and forwards `sts_endpoint_url` to the validator.
+The running image **did not**: the container had no
+`app/services/providers/endpoint_overrides.py`, and `connection_check.py`/
+`connection_validator.py` came without `sts_endpoint_url` — a drift of **3 missing files +
+15 different ones** against the `HEAD` (742 `.py`). The image was built on **2026-10-27
+17:11 UTC** (label `acd18722`), **before** `dbd66cca` (2026-10-28 20:29), which introduced
+the feature and **is** an ancestor of the `HEAD`.
+
+**What this phase delivers.**
+
+| Piece | What it does |
+|---|---|
+| `deploy/synthetic-clouds/.env` (local, git-ignored) | pins the **AWS plane's namespace**: `AWS_SIM_SEED=123` and `AWS_SIM_PROFILE=medium`. `compose.aws.yaml` reads `${AWS_SIM_SEED:-123}`/`${AWS_SIM_PROFILE:-small}` — **not** the generic `SEED`/`PROFILE` names the Azure/GCP planes read. Without the `AWS_SIM_*` pair, the `aws-sim` falls back to the `small` default and serves a **different** estate from the rest of the stack |
+| `deploy/synthetic-clouds/.env.example` | **documents** the `AWS_SIM_*` pair and why the namespace is separate; the example value becomes `medium`, the profile of the installation recorded in `docs/AGENDAMENTO.md` |
+| `deploy/synthetic-clouds/README.md` | names the AWS plane's namespace, the compose's `small` default, and the measured fact that the **account ids are the same** on both profiles (the profile changes volume) |
+| `README.md` / `README.en.md` | how CloudPilot reaches the `aws-sim`: the **per-account** endpoint, not a hostname hijack |
+
+**What was done outside this repo, and measured.**
+
+1. `aws-sim` recreated through the official compose → `PROFILE=medium`, `SEED=123`, healthy.
+   No image was rebuilt, and the other planes (Azure, GCP, Kubernetes, TLS front, s3mock,
+   bigquery) were left untouched — same container ids.
+2. **The CloudPilot backend image rebuilt from the `HEAD`** (`3da29e76`) and the **5 Python
+   containers recreated** (`backend`, `celery_worker`, `celery_worker_drift`, `celery_beat`,
+   `celery_worker_k8s`). `podman cp` would not do: `pyproject.toml`/`uv.lock` changed too
+   (597+/427−), so a file patch would leave the `.venv` mismatched. Result:
+   `[PARITY] Code parity OK (742 .py files, host == 5 running container(s))`.
+3. **A collateral defect was found and fixed in the local configuration.** The rebuild came
+   up with a **crash-looping** backend (`ModuleNotFoundError: No module named 'psycopg'`):
+   `1299fa0d` widened the SQLAlchemy pin to `<2.2`, the lock resolved **2.1.6**, and that
+   version changed the default driver of a plain `postgresql://` URL to **psycopg3** — which
+   the lock does not ship (only `psycopg2-binary` is there). Because
+   `scripts/compose-local.ps1:339` builds `LOCAL_DATABASE_URL_SYNC` **without a driver**, the
+   container got the bare URL and the entrypoint's `alembic upgrade head` died. Fixed
+   **only** in `backend/.env.local` (git-ignored): `LOCAL_DATABASE_URL_SYNC=postgresql+psycopg2://…`,
+   the same value the file already declared in `DATABASE_URL_SYNC`. **No file in the
+   CloudPilot repo was edited.**
+4. Credential **re-minted** through the UI, with the homologation account, in the shape the
+   emulator decodes (`ASIA<account>SYNT` / `synthetic-secret-<account>`): `GetCallerIdentity`
+   now returns **exactly** the declared account (`911368690069`) instead of relying on the
+   fallback to the estate's first account. `Verificar Conexão` → **connected**.
+
+**Measured on this host.** `ensure-cloudpilot.ps1 -Smoke` → `connection check aws =
+connected`, `connection check gcp = connected`, `connection check azure = connected`,
+`unified total 1042849 stale False`, `summary: integration OK (0 problems)`, **exit 0**.
+
+**What stays open:**
+
+- **The FOCUS/S3 tree served by the `aws-sim` was rendered for the `small` profile** and was
+  **not** re-rendered: the uploader is `scripts/synthetic-clouds/aws-up.ps1`, and `scripts/**`
+  is outside this phase's allowlist. The CUR the CloudPilot ingests comes from that tree
+  (small), while the `aws-sim`'s API surfaces already serve the `medium` estate. The
+  difference is in **volume**, not identity (the account ids are the same). Re-rendering is
+  the natural next step and needs a phase that includes `scripts/**`.
+- **The 2 `org_member` accounts in the `[SYNTH]` workspace** (`AWS Account 1`,
+  `AWS Account 2`) show *"Credential resolution failed"* because they **have no credential**
+  (key columns of size 0). **Pre-existing** — their last check is from 2026-10-28 — and
+  **outside** this phase's scope, which covers the Payer account (`[SYNTH] AWS acct-01`).
+- **The CloudPilot dependency defect (SQLAlchemy 2.1 without psycopg3) was not fixed in its
+  repo** — the CloudPilot repo is prohibited in this phase. The local workaround lives in
+  `backend/.env.local`, and the next `compose-local.ps1 -Build` **needs** it or the crash
+  loop repeats. The structural fix (declaring `psycopg` in the lock, or pinning the driver
+  in `compose-local.ps1`) belongs to the CloudPilot project.
+- **The `small` default in `compose.aws.yaml` is still there** — `compose.aws.yaml` is
+  outside this phase's allowlist. The protection is the installation's `.env` plus the
+  `.env.example` documentation; hardening the default (or failing the boot when the profile
+  diverges) is its own phase.
+- **The scheduled task `CloudPilot-Simulator-Ensure`** (drive `D:\Simulador\...`) is still
+  stale — pre-existing, untouched here.
+
+Detail in [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) §7 (dated
+revision of 2026-10-30).
