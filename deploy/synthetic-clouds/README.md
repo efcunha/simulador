@@ -1,14 +1,15 @@
-# synthetic-clouds — stack local dos emuladores (Azure, GCP e AWS)
+# synthetic-clouds — stack local dos emuladores (Azure, GCP, AWS e Kubernetes)
 
-> Última atualização: **2026-10-29** (revisão `9533b901`).
+> Última atualização: **2026-10-30** (revisão `9ccbc71c`).
 
-Quatro arquivos compose, um por lado da pilha, em `deploy/synthetic-clouds/`:
+Cinco arquivos compose, um por lado da pilha, em `deploy/synthetic-clouds/`:
 
 | Compose | Serviços | Portas no host | Volumes | Sobe com |
 |---|---|---|---|---|
 | `compose.yaml` | `azurite` + `azure-sim` | `10000` (blob; `${AZURITE_BLOB_PORT}`) · `8080` (API; `${API_PORT}`) — o `azure-sim` também escuta **443 TLS** dentro da rede | `azurite-data` | `scripts/synthetic-clouds/up.ps1` (plano Azure) |
 | `compose.gcp.yaml` | `bigquery-emulator` + `gcp-sim` + `gcp-bq-provision` (one-shot) | `9050`/`9060` (BigQuery REST/gRPC; `${GCP_BQ_REST_PORT}`/`${GCP_BQ_GRPC_PORT}`) · `8085` (gcp-sim REST) · `8087` (monitoring gRPC) | `gcp_provision`, `gcp_sim_fixtures` | `scripts/synthetic-clouds/gcp-up.ps1` |
 | `compose.aws.yaml` | `s3mock` + `aws-sim` | `9090` (S3; `${S3_PORT}`) · `8086` (aws-sim; `${AWS_SIM_PORT}`) | `aws_sim_render` | `scripts/synthetic-clouds/aws-up.ps1` |
+| `compose.k8s.yaml` | `k8s-sim` (OpenCost) | `8089` (`${K8S_SIM_PORT}`) | — (o fixture do estate vai na imagem) | `integration/ensure-cloudpilot.ps1` (plano Kubernetes) |
 | `compose.tls-front.yaml` | `tls-front` (nginx 1.27-alpine) | **nenhuma publicada** — escuta 443 (TLS) e 80 (healthz) dentro da rede do CloudPilot | — (monta `../../emulators/azure-sim/tls` em `/certs:ro`) | `integration/ensure-cloudpilot.ps1` / `integration/cold-start.ps1` |
 
 O plano GCP também sobe o **plano gRPC do SCC** na porta **8088**, dentro do processo do
@@ -16,8 +17,10 @@ O plano GCP também sobe o **plano gRPC do SCC** na porta **8088**, dentro do pr
 consome é o front TLS, pela rede compartilhada (ver
 [`docs/INTEGRACAO-CLOUDPILOT-TLS.md`](../../docs/INTEGRACAO-CLOUDPILOT-TLS.md#hostnames-e-destinos)).
 
-O `k8s-sim` **não está no compose** e não tem Containerfile: é um app FastAPI/uvicorn
-separado (ver [k8s-sim](#k8s-sim-fora-do-compose)).
+O `k8s-sim` **entra no compose** (`compose.k8s.yaml`, entregue pela S4b2-B) e é **anexado à
+rede do CloudPilot** pelo `integration/ensure-cloudpilot.ps1`, que cria o alias `k8s-sim`:
+é assim que o backend alcança o contrato OpenCost em `http://k8s-sim:8089` (ver
+[k8s-sim](#plano-kubernetes--k8s-sim)).
 
 > **Podman, não Docker.** Os compose usam o schema que `podman compose` aceita. Os comandos
 > abaixo assumem `podman compose`; troque por `podman-compose` se for o que a máquina tem.
@@ -36,7 +39,8 @@ separado (ver [k8s-sim](#k8s-sim-fora-do-compose)).
   ```
 
 - O front TLS depende da rede do CloudPilot (`cloudpilot-deploy_cloudpilot_net`), criada
-  pela stack do CloudPilot; nenhum dos três planos a cria.
+  pela stack do CloudPilot; nenhum dos quatro planos a cria. É a integração que anexa os
+  emuladores a ela — inclusive o `k8s-sim`, com o alias `k8s-sim`.
 
 ## Quick start — os três planos
 
@@ -72,6 +76,11 @@ O que cada plano faz além do `compose up`:
 Para um único plano, chame o sub-script direto (`.\scripts\synthetic-clouds\gcp-up.ps1`).
 Cada um aceita `-DryRun`.
 
+> **O plano Kubernetes não está no `up.ps1`.** Ele é autocontido (o fixture do estate vai na
+> imagem) e sobe pelo `integration/ensure-cloudpilot.ps1`, que também é quem cria o alias
+> `k8s-sim` na rede do CloudPilot — o `up.ps1` é dono dos três planos de nuvem. Ver
+> [Plano Kubernetes](#plano-kubernetes--k8s-sim).
+
 ## TLS front (separado, na rede do CloudPilot)
 
 O `compose.tls-front.yaml` **não** é iniciado pelo `up.ps1`: ele é external à rede
@@ -94,25 +103,67 @@ Hostnames roteados, upstreams e a decisão de **não** publicar `sts.*` estão e
 
 `deploy/synthetic-clouds/integration/` reaplica o que não sobrevive a restart/recriação de
 container (aliases DNS, CA confiável, folha do front, janela do estate) e é o que **anexa**
-os emuladores à rede do CloudPilot. O `cold-start.ps1` encadeia máquina → stack CloudPilot →
+os emuladores à rede do CloudPilot — incluindo o `k8s-sim`, com o alias `k8s-sim`. É também
+o que **cria** o container do plano Kubernetes, quando ele não existe (a partir de
+`compose.k8s.yaml`, sem rebuild). O `cold-start.ps1` encadeia máquina → stack CloudPilot →
 planos → integração, tolera a corrida de "already running" entre o GUI do Podman, a tarefa
 agendada e o CLI, e termina mostrando endpoints e containers. Detalhes, flags e log em
 [`integration/README.md`](integration/README.md).
 
-## k8s-sim (fora do compose)
+## Plano Kubernetes — k8s-sim
 
 `emulators/k8s-sim/` serve o contrato **OpenCost** (`/allocation/compute`, `/clusterInfo`,
-`/healthz`). Não tem `Containerfile` nem serviço de compose: é um app FastAPI/uvicorn com
-`pyproject.toml` próprio e fixture versionada (`k8s_sim/fixtures/clusters.json`). O contrato
-HTTP e os parâmetros estão em
-[`docs/k8s-sim-opencost-contract.md`](../../docs/k8s-sim-opencost-contract.md). Rode a partir
-do diretório do pacote, com um ambiente que tenha `fastapi`/`uvicorn` (o venv do gerador
-**não** tem `uvicorn`):
+`/healthz`). Desde a **S4b2-B** ele tem `Containerfile` e serviço de compose
+(`compose.k8s.yaml`); desde a **S4b2-C** ele é **anexado à rede do CloudPilot** com o alias
+`k8s-sim`, e o backend passa a alcançá-lo pelo nome, em **`http://k8s-sim:8089`**.
+
+O plano é **autocontido**: o fixture do estate (`k8s_sim/fixtures/clusters.json`) vai dentro
+da imagem, então não há provisioning a fazer — só `compose up`. O contrato HTTP e os
+parâmetros estão em
+[`docs/k8s-sim-opencost-contract.md`](../../docs/k8s-sim-opencost-contract.md).
+
+**Quem sobe.** O `scripts/synthetic-clouds/up.ps1` é dono dos **três planos de nuvem**
+(Azure, GCP, AWS) e **não** sobe este. O `k8s-sim` é criado e anexado pelo
+`integration/ensure-cloudpilot.ps1`, a partir de `compose.k8s.yaml` e **sem rebuild**
+(`--no-deps --no-build` sobre a imagem `localhost/k8s-sim:latest`):
+
+```powershell
+# idempotente: cria o container se faltar, cria o alias se faltar, probe no -Smoke
+.\deploy\synthetic-clouds\integration\ensure-cloudpilot.ps1 -Smoke -SkipEstate
+```
+
+Ou, direto no compose (só o container — **sem** o alias da bridge):
+
+```powershell
+cd deploy\synthetic-clouds
+podman compose -f compose.k8s.yaml up -d --no-build
+```
+
+**A URL, e por que ela só funciona pelo alias:**
+
+| Contexto | URL |
+|---|---|
+| do backend do CloudPilot | `http://k8s-sim:8089` — o host `k8s-sim` é o **alias de rede** na bridge `cloudpilot-deploy_cloudpilot_net` |
+| do host, para o operador | `http://localhost:8089/healthz` (porta `${K8S_SIM_PORT:-8089}`) |
+
+Sem o alias, o nome não resolve e o pedido falha com
+`URLError: <urlopen error [Errno -2] Name or service not known>`.
+
+**Sem TLS.** A URL é HTTP puro na bridge: o plano Kubernetes não tem hostname real nem
+certificado (o front TLS serve os hostnames `*.googleapis.com` do plano GCP). O TLS para
+este plano é o restante da S4b2.
+
+<details>
+<summary>Rodar o serviço direto, sem container (modo desenvolvimento)</summary>
+
+Com um ambiente que tenha `fastapi`/`uvicorn` (o venv do gerador **não** tem `uvicorn`):
 
 ```powershell
 cd emulators\k8s-sim
 python -m uvicorn k8s_sim.app:app      # a porta é escolha de quem sobe; o contrato não fixa uma
 ```
+
+</details>
 
 ## Configuração (`.env`)
 
@@ -123,7 +174,7 @@ variáveis são opcionais e os defaults produzem uma pilha `small` funcional).
 Copy-Item deploy\synthetic-clouds\.env.example deploy\synthetic-clouds\.env   # opcional
 ```
 
-Três blocos no template:
+Quatro blocos no template:
 
 - **Azure** — settings do `azure_sim/config.py` (`SEED`, `PROFILE`, `CURRENCY`,
   `AGREEMENT`, `EXPORTS`, `FORMAT`, `SCHEDULE`, `LATENCY_HOURS`, `MAX_ROWS_PER_PART`,
@@ -140,6 +191,9 @@ Três blocos no template:
   `S3_PORT`, `AWS_SIM_BUCKET`, `AWS_SIM_PORT`, `AWS_SIM_SEED`, `AWS_SIM_PROFILE`,
   `AWS_SIM_REGION`; `AWS_SIM_S3_STORE_DIR` documentado e comentado (comentado = a
   superfície S3 do `aws-sim` lista buckets sem objetos).
+- **Kubernetes** — `K8S_SIM_PORT` (porta do host para o container 8089; a porta do
+  container é fixa) e a URL `K8S_SIM_URL` documentada e comentada. O plano é
+  autocontido: não há seed, perfil nem provisioning.
 
 O bloco **"Phase-4 override contract"** do `.env.example` (`AZURE_MANAGEMENT_ENDPOINT`,
 `AZURE_AUTHORITY_HOST`, `AZURE_BLOB_ENDPOINT`) está **documentado, não implementado por
@@ -175,8 +229,9 @@ Nesta instalação o `.env` local (git-ignored, leitura de 2026-10-29) fixa
 - **Nomes de container.** O `integration/ensure-cloudpilot.ps1` procura os containers do
   projeto compose padrão (`synthetic-clouds-azure-sim-1`, `synthetic-clouds-gcp-sim-1`,
   `synthetic-clouds-aws-sim-1`, `synthetic-clouds-bigquery-emulator-1`,
-  `synthetic-clouds-s3mock-1`, `synthetic-clouds-tls-front`). Mudar `SYNTHCLOUDS_PROJECT`
-  no `up.ps1` tira os containers desses nomes e a integração passa a não encontrá-los.
+  `synthetic-clouds-s3mock-1`, `synthetic-clouds-k8s-sim-1`, `synthetic-clouds-tls-front`).
+  Mudar `SYNTHCLOUDS_PROJECT` no `up.ps1` tira os containers desses nomes e a integração passa
+  a não encontrá-los.
 
 Validar, subir e derrubar um compose individual:
 

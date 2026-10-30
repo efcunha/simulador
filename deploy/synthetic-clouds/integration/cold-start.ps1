@@ -15,6 +15,10 @@
         (`cloudpilot-deploy_cloudpilot_net`) with their DNS aliases, or the
         TLS front crash-loops with `host not found in upstream
         "bigquery-emulator:9050"`. `ensure-cloudpilot.ps1` owns that step.
+      * The k8s-sim plane is NOT part of `scripts/synthetic-clouds/up.ps1`
+        (that script owns the three cloud planes). It is created and started
+        by `ensure-cloudpilot.ps1`, from `compose.k8s.yaml` and without a
+        rebuild -- so the last step of this script brings it up too.
       * There are THREE controllers for the same machine on this host: the
         Podman Desktop GUI, the scheduled task `CloudPilot-Simulator-Ensure`
         and the CLI. Two of them starting the machine at the same time makes
@@ -29,7 +33,9 @@
     emulators to that bridge).
 
 .PARAMETER SkipSimulators
-    Only bring back the CloudPilot stack (no azure/gcp/aws simulators).
+    Only bring back the CloudPilot stack (no azure/gcp/aws simulators). The
+    k8s-sim plane is NOT part of this flag: it is created and started by the
+    integration step (ensure-cloudpilot.ps1), so it comes up with it.
 
 .PARAMETER SkipIntegration
     Skip the ensure-cloudpilot step (aliases/CA/estate).
@@ -154,7 +160,8 @@ function Show-Summary {
         @{ label = 'CIP API';             url = 'http://localhost:8001/health' },
         @{ label = 'azure-sim';           url = 'http://localhost:8080/healthz' },
         @{ label = 'gcp-sim';             url = 'http://localhost:8085/healthz' },
-        @{ label = 'aws-sim';             url = 'http://localhost:8086/healthz' }
+        @{ label = 'aws-sim';             url = 'http://localhost:8086/healthz' },
+        @{ label = 'k8s-sim';             url = 'http://localhost:8089/healthz' }
     )
     foreach ($r in $rows) {
         try {
@@ -196,7 +203,7 @@ if (-not $SkipSimulators) {
 }
 
 if (-not $SkipIntegration) {
-    Invoke-Step 'integracao CloudPilot <-> simulador (aliases/CA/estate)' $EnsureScript @('-Quiet') | Out-Null
+    Invoke-Step 'integracao CloudPilot <-> simulador (aliases/CA/estate/k8s-sim)' $EnsureScript @('-Quiet') | Out-Null
 } else {
     Write-Step 'integracao (pulada)'
 }

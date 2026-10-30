@@ -1,6 +1,6 @@
 # Automação da integração CloudPilot ↔ simulador
 
-> Última atualização: **2026-10-29** (revisão `9533b901`).
+> Última atualização: **2026-10-30** (revisão `9ccbc71c`).
 
 Esta pasta contém os scripts que reaplicam, de forma idempotente, o que **não**
 sobrevive a restart/recriação de container.
@@ -8,7 +8,7 @@ sobrevive a restart/recriação de container.
 | Arquivo | Papel |
 |---|---|
 | `cold-start.ps1` | **começo frio em um comando**: sobe a máquina podman (limpando proxy órfão), a stack CloudPilot+CIP, os planos de nuvem sintética e a integração; tolera `already running`; no fim mostra endpoints e containers (`exit 0` ok, `1` problemas, `2` a máquina não subiu) |
-| `ensure-cloudpilot.ps1` | garante podman machine, containers dos emuladores, aliases DNS na rede do CloudPilot, CA confiável nos containers, folha do front (reassina com a mesma CA se o SAN estiver atrás dos aliases), janela do estate até o dia UTC atual e (com `-Smoke`) “Verificar Conexão” + `/costs/unified` (`exit 0` ok, `1` problemas, `2` podman indisponível) |
+| `ensure-cloudpilot.ps1` | garante podman machine, containers dos emuladores (cria o `k8s-sim` a partir de `compose.k8s.yaml` quando falta), aliases DNS na rede do CloudPilot (incluindo o `k8s-sim`), CA confiável nos containers, folha do front (reassina com a mesma CA se o SAN estiver atrás dos aliases), janela do estate até o dia UTC atual e (com `-Smoke`) o probe do `k8s-sim` por dentro do backend + “Verificar Conexão” + `/costs/unified` (`exit 0` ok, `1` problemas, `2` podman indisponível) |
 | `register-ensure-task.ps1` | registra a tarefa `CloudPilot-Simulator-Ensure` (logon + repetição a cada 30 min) via XML **por usuário**; `-RunNow` executa uma vez após registrar |
 | `run-ensure.cmd` | wrapper que a tarefa agendada executa |
 | `README.md` | este arquivo |
@@ -58,13 +58,13 @@ Opções: `-SkipSimulators`, `-SkipIntegration`, `-SkipMachine`.
 
 | Script | Flag | Efeito |
 |---|---|---|
-| `ensure-cloudpilot.ps1` | `-Smoke` | roda "Verificar Conexão" das 3 contas e `/costs/unified` (minta um JWT curto dentro do backend; nada é lido/escrito em disco) |
+| `ensure-cloudpilot.ps1` | `-Smoke` | roda o probe do `k8s-sim` **de dentro do backend** (`/healthz` e `/clusterInfo` com um cluster real do estate), “Verificar Conexão” das 3 contas e `/costs/unified` (minta um JWT curto dentro do backend; nada é lido/escrito em disco) |
 | | `-ForceRefresh` | reconstrói o estate mesmo com a janela em dia |
 | | `-SkipEstate` | não mexe na janela do estate |
 | | `-Quiet` | console só com problemas; linhas `INFO` (inclusive o “summary OK”) vão só para o log |
 | | `-LogPath` | caminho do log (padrão `%LOCALAPPDATA%\synthetic-clouds\integration.log`) |
-| `cold-start.ps1` | `-SkipSimulators` | sobe só a stack CloudPilot (sem os planos Azure/GCP/AWS) |
-| | `-SkipIntegration` | não roda o `ensure-cloudpilot.ps1` no fim |
+| `cold-start.ps1` | `-SkipSimulators` | sobe só a stack CloudPilot (sem os planos Azure/GCP/AWS). O plano **Kubernetes não é afetado**: ele sobe com a integração, que é o passo seguinte |
+| | `-SkipIntegration` | não roda o `ensure-cloudpilot.ps1` no fim (e então o `k8s-sim` **não** sobe) |
 | | `-SkipMachine` | assume a máquina podman já no ar |
 | `register-ensure-task.ps1` | `-TaskName` | nome da tarefa (padrão `CloudPilot-Simulator-Ensure`) |
 | | `-EveryMinutes` | intervalo da repetição (padrão 30; mínimo 5, máximo 1440) |
@@ -76,7 +76,7 @@ Saída do `ensure-cloudpilot.ps1`: `0` = tudo OK; `1` = há problema (lista no f
 
 ## Agendamento
 
-**Na leitura de 2026-10-29 a tarefa não está registrada nesta máquina** (`schtasks /Query
+**Na leitura de 2026-10-30 a tarefa não está registrada nesta máquina** (`schtasks /Query
 /TN CloudPilot-Simulator-Ensure` responde "O sistema não pode encontrar o caminho
 especificado"). Registre (ou re-registre) com:
 
@@ -84,6 +84,17 @@ especificado"). Registre (ou re-registre) com:
 .\deploy\synthetic-clouds\integration\register-ensure-task.ps1 -RunNow
 Get-ScheduledTaskInfo -TaskName CloudPilot-Simulator-Ensure
 ```
+
+> **Débito de 2026-10-30: a tarefa registrada aponta para um caminho morto.** Quando ela
+> **existe**, a ação registrada ainda é
+> `cmd.exe /c "D:\Simulador\deploy\synthetic-clouds\integration\run-ensure.cmd"` — o
+> repositório migrou de `D:\` para `C:\Projetos\Simulador` e o drive `D:` **não existe mais**
+> neste host (`Test-Path 'D:\'` → `False`). O wrapper **versionado**
+> (`run-ensure.cmd`) já aponta para `C:\Projetos\Simulador\...`; o que está desatualizado é
+> a **ação registrada**, e é por isso que a tarefa termina com `LastTaskResult=1` sem rodar
+> nada. A correção é **re-registrar** (`register-ensure-task.ps1 -RunNow`), não editar o
+> wrapper. A mesma coisa vale para a tarefa `simulador-nuvem-daily`, que também aponta
+> para `D:\Simulador\...`.
 
 O XML usa `LogonTrigger` com `<UserId>DOMAIN\user</UserId>`, `RunLevel=LeastPrivilege`,
 `MultipleInstancesPolicy=IgnoreNew`, `StartWhenAvailable=true` e
@@ -121,8 +132,15 @@ Para remover: `schtasks /Delete /TN CloudPilot-Simulator-Ensure /F`.
   documentação (`docs/INTEGRACAO-CLOUDPILOT-TLS.md`).
 - Não sobe os planos GCP/AWS: se `gcp-sim`, `aws-sim`, `s3mock` ou `bigquery-emulator` não
   existirem, ele reporta como problema (rode `scripts/synthetic-clouds/up.ps1`). Só o
-  `azure-sim` e o `tls-front` ele recria a partir dos composes quando o container sumiu — e
-  o front só depois que os aliases dos upstreams existem.
+  `azure-sim`, o `tls-front` e o `k8s-sim` ele recria a partir dos composes quando o
+  container sumiu — e o front só depois que os aliases dos upstreams existem. O `k8s-sim` é
+  criado a partir de `compose.k8s.yaml` com `--no-deps --no-build`: a imagem
+  (`localhost/k8s-sim:latest`) é reaproveitada, **nunca** reconstruída.
+- Não recria o `k8s-sim` se ele estiver parado mas existir: nesse caso ele só o inicia e
+  espera o healthcheck. A criação a partir do compose é só quando o container **não existe**.
+- Não publica o `k8s-sim` por hostname real nem por TLS: o alcance é o alias de rede
+  `k8s-sim` na bridge, em `http://k8s-sim:8089` (HTTP puro). TLS para o plano Kubernetes é o
+  restante da S4b2.
 
 ## Limite do gatilho “ao logon”
 

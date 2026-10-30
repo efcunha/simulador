@@ -1,4 +1,4 @@
-# Contrato OpenCost do `k8s-sim` (Fases S4a, S4b1, S4b1-C e S4b1-E)
+# Contrato OpenCost do `k8s-sim` (Fases S4a, S4b1, S4b1-C, S4b1-E e S4b2-C)
 
 > Idioma: **Português**. Sem gêmea `.en.md`: a allowlist permite **apenas** este arquivo em
 > `docs/`. A gêmea em inglês fica como pendência (§9).
@@ -33,6 +33,14 @@ agora o **id nativo** de cada cluster (§6.1) e o `filter` o aceita como alias (
 o `k8s-sim` **serve** o consumidor pós-C-IDENT: o pedido sai 200 com `data` não vazio em
 `/allocation/compute` e 200 em `/clusterInfo`. O que o simulador **publica** não mudou: continua
 sendo o **nome**, que é o que o consumidor lê como display name (`opencost.py:209`).
+
+**Atualizado em 2026-10-30 pela S4b2-C** (revisão-base `9ccbc71c`): o contrato HTTP **não
+mudou** — o que fechou foi o **caminho de rede** até ele. O `k8s-sim` passou a ser anexado à
+bridge do CloudPilot com o alias `k8s-sim`, e a URL **`http://k8s-sim:8089`** (§2.1) passou a
+resolver **de dentro do backend do CloudPilot**. O §9 ("sem Dockerfile, compose, rede, URL") foi
+corrigido: o que ainda falta é **TLS**, API server do Kubernetes, Prometheus, Kubecost, UI e
+migration — o restante da S4b2. Detalhe no
+[mapa de impacto](regression/mapa-impacto-s4b2c.md).
 
 Os números do §6.1 e os testes do §10 foram reconferidos nesta data contra o código e o fixture;
 F1–F14 permanecem como foram lidas em 2026-10-28.
@@ -159,6 +167,32 @@ EKS, ARM id do AKS, `selfLink` do GKE) são aceitos como **alias** do nome, como
 alguma coisa sobre um dado que o simulador não tem. (O consumidor lê `version` e usa
 `nodeCount`/`podCount` com **default 0** — `opencost.py:487-490` — então a ausência é lida
 como ausência, não como erro.)
+
+### 2.1 A URL de deploy (S4b2-C, 2026-10-30)
+
+O contrato HTTP acima é o que o `k8s-sim` serve; **onde** ele atende é uma questão de
+deployment, e ela está fechada desde a S4b2-C:
+
+| Contexto | URL | Quem a usa |
+|---|---|---|
+| **Do backend do CloudPilot** | **`http://k8s-sim:8089`** | o provider `opencost` — `http://` puro, **sem TLS** |
+| Do host, para o operador | `http://localhost:8089/healthz` | o resumo do `cold-start.ps1` e a conferência manual |
+
+**O host `k8s-sim` é um alias de rede**, criado pelo
+`deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1` na bridge
+`cloudpilot-deploy_cloudpilot_net`. Não é o nome do container
+(`synthetic-clouds-k8s-sim-1`) nem `localhost`: do backend, só o **alias** resolve. Sem ele
+o pedido falha com `URLError: <urlopen error [Errno -2] Name or service not known>` — é o
+sintoma medido **antes** da fase (ver o
+[mapa de impacto](regression/mapa-impacto-s4b2c.md) §4).
+
+A porta **8089** é a do container, fixa em `compose.k8s.yaml` (`K8S_SIM_PORT: "8089"`) e
+exposta pelo `Containerfile`. No host ela é `${K8S_SIM_PORT:-8089}`, declarada em
+`deploy/synthetic-clouds/.env.example`.
+
+**Esta URL não passa pelo front TLS.** Os hostnames `*.googleapis.com` do front são do
+plano GCP; o plano Kubernetes não tem hostname real nem certificado — o TLS para ele é o
+restante da S4b2 (§9).
 
 ---
 
@@ -644,6 +678,12 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   (§3.3): as demais chaves são recusadas com 400, não servidas.
 - **Sem `Dockerfile`, `compose.k8s.yaml`, rede, TLS, URL do cluster, API server do Kubernetes,
   Prometheus, Kubecost, UI ou migration**. **S4b2**.
+  **Atualizado em 2026-10-30 (S4b2-C):** a primeira metade dessa frase foi **fechada** — o
+  `Containerfile` e o `compose.k8s.yaml` chegaram na S4b2-A/B, e a S4b2-C integratei o
+  `k8s-sim` à rede do CloudPilot com o alias `k8s-sim` e a URL **`http://k8s-sim:8089`**
+  (§2.1 e o [mapa de impacto](regression/mapa-impacto-s4b2c.md)). Continuam **abertos**, e
+  são o restante da S4b2: **TLS** (a URL interna é HTTP puro na bridge, sem hostname real e
+  sem certificado), API server do Kubernetes, Prometheus, Kubecost, UI e migration.
 - **Sem spec de máquina** em `specs/` e **sem entrada na matriz de fidelidade**.
 - **Sem** wiring no provider do CloudPilot, **sem** rodar sync, **sem** validar tela. O CloudPilot
   não foi tocado **por esta fase**; ele evoluiu depois por conta própria (C-IDENT, §1.2).

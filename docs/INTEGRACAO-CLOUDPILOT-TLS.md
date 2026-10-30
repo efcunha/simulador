@@ -1,6 +1,6 @@
 # Integração CloudPilot ↔ simulador sem código de simulador no CloudPilot
 
-> Última atualização: **2026-10-29** (revisão `9533b901`). A decisão de 2026-10-28 que
+> Última atualização: **2026-10-30** (revisão `9ccbc71c`). A decisão de 2026-10-28 que
 > removeu o sequestro do `sts.*` continua valendo.
 
 Este documento registra a configuração que faz o CloudPilot falar com o
@@ -20,11 +20,25 @@ hostname de produção. Quem se adapta é esta stack.
 | Simulador | `deploy/synthetic-clouds/compose.aws.yaml` | `s3mock` (9090) e `aws-sim` (8086) |
 | Simulador | `deploy/synthetic-clouds/compose.tls-front.yaml` | front nginx para os **sete** hostnames `*.googleapis.com` servidos ao CloudPilot |
 | Simulador | `deploy/synthetic-clouds/tls-front/nginx.conf` | roteia cada hostname para o emulador certo |
+| Simulador | `deploy/synthetic-clouds/compose.k8s.yaml` | `k8s-sim` — contrato **OpenCost** em `http://k8s-sim:8089`, HTTP puro na bridge, **sem** front TLS |
 
-Os quatro composes e a ordem de subida estão no quick-start
+Os cinco composes e a ordem de subida estão no quick-start
 [`deploy/synthetic-clouds/README.md`](../deploy/synthetic-clouds/README.md). O front TLS
 **não** é iniciado pelo `scripts/synthetic-clouds/up.ps1` — ele depende da rede do CloudPilot
 e dos upstreams já anexados (ver [Ordem de subida](#ordem-de-subida)).
+
+### O plano Kubernetes é o único que **não** tem hostname real
+
+Todos os outros emuladores são alcançados por um **hostname real** (o do Cloud na nuvem) e,
+quando o plano é GCP, pelo front TLS. O `k8s-sim` é o exceção: ele é alcançado por um
+**alias de rede**, `k8s-sim`, na própria bridge `cloudpilot-deploy_cloudpilot_net`, e a URL
+é **`http://k8s-sim:8089`** — HTTP puro, sem certificado e sem hostname de nuvem. O alias é
+criado pelo `ensure-cloudpilot.ps1`, junto com `gcp-sim`, `aws-sim`, `s3mock` e
+`bigquery-emulator`; sem ele o backend falha com
+`URLError: <urlopen error [Errno -2] Name or service not known>`.
+
+O TLS para o plano Kubernetes é o **restante da S4b2** e está declarado como pendência em
+[`docs/k8s-sim-opencost-contract.md`](k8s-sim-opencost-contract.md) (§2.1 e §9).
 
 ## Hostnames e destinos
 
@@ -148,10 +162,15 @@ Equivalente manual, na mesma ordem:
    (Azure, GCP, AWS; ver o quick-start de `deploy/synthetic-clouds/`).
 3. **Integração**: `deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1`. Ele anexa
    `azure-sim` com os dois aliases Azure, anexa o front com os sete hostnames `.googleapis.com`
-   e anexa `gcp-sim`, `bigquery-emulator`, `aws-sim` e `s3mock` com os nomes que o nginx
-   resolve. **O front é iniciado só depois dos aliases**: o nginx resolve os upstreams no
-   *startup*, então subi-lo antes queima o timeout inteiro em restart loop (defeito medido
-   em 2026-10-28, corrigido no `ensure-cloudpilot.ps1`).
+   e anexa `gcp-sim`, `bigquery-emulator`, `aws-sim`, `s3mock` e **`k8s-sim`** com os nomes que
+   o nginx — e o backend — resolvem. **O front é iniciado só depois dos aliases**: o nginx
+   resolve os upstreams no *startup*, então subi-lo antes queima o timeout inteiro em restart
+   loop (defeito medido em 2026-10-28, corrigido no `ensure-cloudpilot.ps1`).
+
+   O **plano Kubernetes é criado aqui**, a partir de `compose.k8s.yaml` e **sem rebuild**
+   (`--no-deps --no-build`), quando o container não existe — `scripts/synthetic-clouds/up.ps1`
+   é dono dos três planos de nuvem e não sobe este. Por isso o `k8s-sim` já está no ar quando o
+   alias é criado, e o alias já existe quando o backend precisa dele.
 
 O `azure-sim` leva ~1–2 min para construir o estate (nesta instalação, `.env` com
 `PROFILE=medium`, `SEED=123`, `WINDOW_DAYS=297`) antes de abrir 8080/443; a entrega diária
@@ -162,9 +181,10 @@ isso até o dia UTC atual.
 
 `deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1` reaplica, de forma
 idempotente, containers/aliases DNS, CA confiável, folha do front (reassina se o SAN
-estiver atrás dos aliases), janela do estate e (com `-Smoke`) "Verificar Conexão" +
-`/costs/unified`. Ele só reconecta uma rede quando falta um alias e só reconstrói o estate
-quando a janela está vencida.
+estiver atrás dos aliases), janela do estate e (com `-Smoke`) o probe do `k8s-sim` por
+dentro do backend, "Verificar Conexão" + `/costs/unified`. Ele só reconecta uma rede quando
+falta um alias, só reconstrói o estate quando a janela está vencida e só cria o container do
+`k8s-sim` (a partir de `compose.k8s.yaml`, sem rebuild) quando ele não existe.
 
 A tarefa `CloudPilot-Simulator-Ensure` (logon + a cada 30 min) é registrada por
 `register-ensure-task.ps1` com XML **por usuário** (`LogonTrigger` com `UserId`), que é o

@@ -5,13 +5,16 @@
 
 .DESCRIPTION
     Re-applies the operational steps that do NOT survive a restart/recreate:
-      1. podman machine up; emulator containers running
+      1. podman machine up; emulator containers running (azure, gcp, aws and
+         the k8s-sim, which is created from compose.k8s.yaml when missing)
       2. DNS aliases on the CloudPilot bridge (management/login on azure-sim,
-         GCP/AWS hostnames on the TLS front, emulator names for the front)
+         GCP/AWS hostnames on the TLS front, emulator names for the front,
+         and `k8s-sim` so the backend reaches the OpenCost contract by name)
       3. CA trust present in the CloudPilot containers (env + /certs mount)
       4. azure-sim estate window reaches the current UTC day
-      5. optional end-to-end smoke: "Verificar Conexão" on the three accounts
-         and /costs/unified with stale=false
+      5. optional end-to-end smoke: the k8s-sim reached by name from the
+         backend, "Verificar Conexão" on the three accounts and
+         /costs/unified with stale=false
 
     Safe to run on a schedule: it only reconnects a network endpoint when an
     alias is missing, and only rebuilds the estate when the window is stale.
@@ -59,6 +62,19 @@ $GcpSim = 'synthetic-clouds-gcp-sim-1'
 $AwsSim = 'synthetic-clouds-aws-sim-1'
 $S3Mock = 'synthetic-clouds-s3mock-1'
 $BqEmu = 'synthetic-clouds-bigquery-emulator-1'
+$K8sSim = 'synthetic-clouds-k8s-sim-1'
+
+# The k8s-sim plane is self-contained: the estate fixture is baked into the
+# image, so there is nothing to provision -- only `compose up`. The compose
+# file lives next to the other planes and is NOT edited by this script.
+$K8sSimCompose = 'compose.k8s.yaml'
+
+# The URL the CloudPilot backend uses for the OpenCost contract. The host is
+# the NETWORK ALIAS on the CloudPilot bridge (not the container name, not
+# localhost): the backend resolves `k8s-sim` only if this script attached
+# the container to the bridge with that alias. The port is the container
+# port, pinned by compose.k8s.yaml (K8S_SIM_PORT) and by the Containerfile.
+$K8sSimUrl = 'http://k8s-sim:8089'
 
 $AzureHostAliases = @('management.azure.com', 'login.microsoftonline.com')
 # NO STS hostname here on purpose. The CloudPilot network also carries REAL AWS
@@ -147,6 +163,49 @@ function Start-Container {
     return (Wait-Healthy $Name)
 }
 
+function Ensure-K8sSimContainer {
+    <#
+      .SYNOPSIS
+        Makes sure the k8s-sim container exists and is healthy.
+
+      .DESCRIPTION
+        The k8s-sim plane needs no provisioning step -- the estate fixture is
+        baked into the image -- so `compose up` is the whole bring-up. The
+        container is created with --no-build on purpose: the image
+        (localhost/k8s-sim:latest) is an artifact of the S4b2-B phase, and
+        this script must not rebuild it.
+
+        --no-deps keeps the compose from touching any other service of the
+        project, and the external shared network (synthclouds_net) is
+        declared as external in compose.k8s.yaml, so nothing here can remove
+        the network the other planes are attached to.
+    #>
+    if (Test-ContainerExists $K8sSim) {
+        if (Start-Container $K8sSim) { Write-Log 'INFO' 'k8s-sim running/healthy' }
+        else { Add-Problem 'k8s-sim did not become healthy' }
+        return
+    }
+
+    Write-Log 'INFO' "k8s-sim container missing; creating from $K8sSimCompose (no build)"
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        Push-Location $DeployDir
+        try {
+            $raw = (& podman compose -f $K8sSimCompose up -d --no-deps --no-build k8s-sim 2>&1 | Out-String)
+            $code = $LASTEXITCODE
+        } finally { Pop-Location }
+    } finally { $ErrorActionPreference = $previousPreference }
+    foreach ($line in ($raw -split "`r?`n")) {
+        if ($line.Trim()) { Write-Log 'INFO' "compose: $line" }
+    }
+    if ($code -ne 0) {
+        Add-Problem "podman compose -f $K8sSimCompose up failed (exit $code)"
+        return
+    }
+    if (-not (Wait-Healthy $K8sSim 300)) { Add-Problem 'k8s-sim was not created healthy' }
+}
+
 function Ensure-NetworkAliases {
     param([string]$Container, [string]$Network, [string[]]$Aliases)
     $raw = (& podman inspect $Container --format '{{json .NetworkSettings.Networks}}' 2>$null)
@@ -185,6 +244,70 @@ function Ensure-NetworkAliases {
         Add-Problem "podman network reconnect failed for $Container"
     } else {
         Write-Log 'INFO' "$Container reconnected with aliases"
+    }
+}
+
+function Test-K8sSimFromBackend {
+    <#
+      .SYNOPSIS
+        Proves the CloudPilot backend reaches the k8s-sim BY NAME.
+
+      .DESCRIPTION
+        The probe runs INSIDE cloudpilot_backend, because that is the only
+        place where the bridge alias matters: a 200 here means the backend
+        resolved `k8s-sim` through the CloudPilot network and got the
+        OpenCost contract back.
+
+        Two routes are checked. /healthz proves the name resolves and the
+        service is up. /clusterInfo with a real cluster of the estate proves
+        the response is the CONTRACT (a service that answered 200 on
+        /healthz but not the filter would still be a broken integration).
+
+        The cluster name is URL-encoded in the query string exactly like the
+        CloudPilot provider encodes it, so the probe exercises the same wire
+        form the consumer sends.
+    #>
+    if (-not (Test-ContainerRunning 'cloudpilot_backend')) {
+        Add-Problem 'cloudpilot_backend is not running; k8s-sim probe skipped'
+        return
+    }
+
+    $probe = @'
+import json
+import urllib.request
+
+BASE = "http://k8s-sim:8089"
+CLUSTER = "TEMP-aks_cluster-0025"
+PATHS = {
+    "healthz": "/healthz",
+    "clusterInfo": "/clusterInfo?filter=cluster%3A%22" + CLUSTER + "%22",
+}
+
+out = {}
+for label, path in PATHS.items():
+    try:
+        with urllib.request.urlopen(BASE + path, timeout=5) as response:
+            body = response.read().decode("utf-8", "replace")
+            out[label] = {"status": response.status, "body": body[:160]}
+    except Exception as exc:  # noqa: BLE001 -- the failure IS the measurement
+        out[label] = {"status": None, "error": repr(exc)}
+print("K8SSIM:" + json.dumps(out))
+'@
+    $raw = ($probe | & podman exec -i cloudpilot_backend python - 2>&1)
+    $line = $raw | Where-Object { "$_".StartsWith('K8SSIM:') } | Select-Object -Last 1
+    if (-not $line) {
+        Add-Problem "k8s-sim probe did not return a result: $($raw | Select-Object -Last 3)"
+        return
+    }
+    $result = ($line.Substring(7) | ConvertFrom-Json)
+    foreach ($route in @('healthz', 'clusterInfo')) {
+        $status = $result.$route.status
+        if ($status -eq 200) {
+            Write-Log 'INFO' "k8s-sim $route = 200 from cloudpilot_backend ($K8sSimUrl)"
+        } else {
+            $error = $result.$route.error
+            Add-Problem "k8s-sim $route from cloudpilot_backend = $status ($error)"
+        }
     }
 }
 
@@ -368,6 +491,11 @@ function Ensure-Estate {
 }
 
 function Invoke-Smoke {
+    # The k8s-sim probe comes FIRST: it is the check of the Kubernetes plane
+    # and it does not depend on the CloudPilot API being up. Running it before
+    # the health gate keeps the measurement even when the API is down.
+    Test-K8sSimFromBackend
+
     $health = $null
     try { $health = (Invoke-WebRequest -UseBasicParsing 'http://localhost:8000/health' -TimeoutSec 10).StatusCode } catch { }
     if ($health -ne 200) {
@@ -473,6 +601,11 @@ foreach ($name in @($GcpSim, $AwsSim, $S3Mock, $BqEmu)) {
     if (-not (Start-Container $name)) { Add-Problem "$name did not start" }
 }
 
+# The k8s-sim plane is created here (and not by scripts/synthetic-clouds/up.ps1,
+# which owns the three cloud planes and is out of this phase's allowlist).
+# It must exist before step 2: the alias is created on a container.
+Ensure-K8sSimContainer
+
 # 2. DNS aliases
 Ensure-NetworkAliases -Container $AzureSim -Network $CpNet -Aliases $AzureHostAliases
 Ensure-NetworkAliases -Container $TlsFront -Network $CpNet -Aliases $FrontAliases
@@ -480,6 +613,9 @@ Ensure-NetworkAliases -Container $GcpSim -Network $CpNet -Aliases @('gcp-sim')
 Ensure-NetworkAliases -Container $AwsSim -Network $CpNet -Aliases @('aws-sim')
 Ensure-NetworkAliases -Container $S3Mock -Network $CpNet -Aliases @('s3mock')
 Ensure-NetworkAliases -Container $BqEmu -Network $CpNet -Aliases @('bigquery-emulator')
+# The backend reaches the OpenCost contract by NAME, not by container name:
+# `k8s-sim` is the alias that makes http://k8s-sim:8089 resolve on the bridge.
+Ensure-NetworkAliases -Container $K8sSim -Network $CpNet -Aliases @('k8s-sim')
 
 # 2b. Now that the upstreams answer by name, the front can start.
 if (Test-ContainerExists $TlsFront) {

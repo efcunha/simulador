@@ -19,8 +19,8 @@ The repository has three parts:
 | **Emulators** | `emulators/` | Serve the same data through each cloud's APIs: `aws-sim`, `azure-sim`, `gcp-sim` and `k8s-sim` (OpenCost). |
 | **Deployment** | `deploy/`, `scripts/` | Compose per plane, the TLS front with the real hostnames, and the CloudPilot integration automation. |
 
-> The "Current state" numbers were measured on **2026-10-29**, at revision
-> `9533b901`. The "How to measure" column says exactly which command reproduces
+> The "Current state" numbers were measured on **2026-10-30**, at revision
+> `9ccbc71c`. The "How to measure" column says exactly which command reproduces
 > each one — if a number diverges from the code, the command wins over the
 > number.
 
@@ -86,8 +86,8 @@ specs and never hand-edited.
 | `emulators/aws-sim/` | AWS emulator (Query + S3 REST, STS, EC2, S3, Config, IAM, EKS, ECS, ELB, RDS, Lambda, DynamoDB, CloudWatch, CloudFormation, SSO) + `Containerfile`. |
 | `emulators/azure-sim/` | Azure emulator (ARM, Resource Graph, network, Container Service, cost export, Defender, Monitor, deployment stacks, token) + `Containerfile`. |
 | `emulators/gcp-sim/` | GCP emulator (REST: compute, container, Config/Infra Manager, recommender, monitoring, catalog, budgets, CRM, storage; gRPC: monitoring and SCC) + `Dockerfile`. |
-| `emulators/k8s-sim/` | Kubernetes/OpenCost emulator (`/allocation/compute`, `/clusterInfo`); runs standalone, no image. |
-| `deploy/synthetic-clouds/` | One compose per plane, the TLS front (`tls-front/`) and the integration automation (`integration/`). |
+| `emulators/k8s-sim/` | Kubernetes/OpenCost emulator (`/allocation/compute`, `/clusterInfo`, `/healthz`) + `Containerfile`. |
+| `deploy/synthetic-clouds/` | One compose per plane (Azure, GCP, AWS, Kubernetes), the TLS front (`tls-front/`) and the integration automation (`integration/`). |
 | `scripts/synthetic-clouds/` | Orchestration (`up`, `down`, `smoke` for AWS/GCP, `export_once`, `run_azure_sim`). |
 
 The `tools/synthetic_clouds` path is deliberate: the code self-imports as
@@ -136,6 +136,21 @@ contracts that have **no export surface** (which is why they are not among the
 `k8s-sim` **OpenCost** contract. For those two, what exists is the contract
 measured in code and in the emulator tests, recorded in the impact maps
 (`docs/regression/`) and in `docs/k8s-sim-opencost-contract.md`.
+
+**How CloudPilot reaches the `k8s-sim`.** Since S4b2-C it is attached to the
+`cloudpilot-deploy_cloudpilot_net` network with the `k8s-sim` alias, and the backend
+reaches it by name, at `http://k8s-sim:8089` (plain HTTP, **no** TLS). The link is
+re-applied idempotently by `deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1`,
+which also creates the container from `compose.k8s.yaml` when it is missing — without
+a rebuild. Detail in
+[regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md).
+
+**Debts on this front.** The Kubernetes plane still has **no** real hostname and no
+certificate (TLS is the rest of S4b2); `scripts/synthetic-clouds/up.ps1` does **not**
+bring that plane up (it comes up with the integration, which owns the link); and
+`docs/DECISOES-PENDENTES.md` still says the `k8s-sim` "has no Containerfile and no
+compose service" — a sentence that became false at S4b2-B, in a file outside this
+phase's allowlist, so the text was not corrected here.
 
 ## Environment
 
@@ -200,10 +215,13 @@ Copy-Item .env.example .env      # adjust the ports if needed
 ..\..\scripts\synthetic-clouds\up.ps1
 ```
 
-The fourth emulator, `k8s-sim`, has **no** image and no compose service: it is a
-FastAPI app (`fastapi`/`uvicorn`, importing no generator) that reads the
-versioned fixture `k8s_sim/fixtures/clusters.json` and serves the OpenCost
-contract. The contract and the run command are in
+The fourth emulator, `k8s-sim`, serves the OpenCost contract
+(`/allocation/compute`, `/clusterInfo`, `/healthz`) from the versioned fixture
+`k8s_sim/fixtures/clusters.json`. Since **S4b2-B** it has a `Containerfile` and a
+compose service (`deploy/synthetic-clouds/compose.k8s.yaml`); since **S4b2-C** it is
+**attached to the CloudPilot network** with the `k8s-sim` alias, and the CloudPilot
+backend reaches it by name, at `http://k8s-sim:8089`. The contract and the run
+command are in
 [`docs/k8s-sim-opencost-contract.md`](docs/k8s-sim-opencost-contract.md).
 
 `gcp-sim` needs the rendered *fixtures* to answer; the `gcp-smoke.ps1` does the
@@ -226,7 +244,8 @@ COPY emulators/aws-sim           /app/emulators/aws-sim
 
 The generator enters the image as the `tools.synthetic_clouds.*` namespace,
 resolved by `PYTHONPATH=/app` — never as an installed wheel. No other directory
-takes part in the build, and `k8s-sim` is the only one with no `Containerfile`.
+takes part in the build, and `k8s-sim` uses the **package itself** as its build
+context (it imports no generator).
 
 ## Where to read more
 
