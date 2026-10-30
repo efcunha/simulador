@@ -5,7 +5,7 @@
 Documento vivo. Registra o que existe, o que foi decidido e por quê, para que o
 trabalho continue sem depender de contexto de conversa.
 
-Última atualização: **2026-10-29** (revisão `a64b8414`, branch `feat/p76-security-posture-gcp-azure`).
+Última atualização: **2026-10-30** (revisão `7fcbb7ca`, branch `feat/p76-security-posture-gcp-azure`).
 
 ## Entregas registradas
 
@@ -14,6 +14,7 @@ trabalho continue sem depender de contexto de conversa.
 | `9848e1e` H-01…`0f7e174` H-09 | **Domínio de postura — FECHADO (2026-10-19)** | Os **8 checks** que os três `SecurityScanner` do FinOps rodam têm, cada um, a superfície do simulador que os produz, medida contra o consumidor real. Série de **15 commits** (9 feat, 5 docs, 1 fix), contados na época por `git rev-list --count 9848e1e^..0f7e174` (comando que hoje não roda — ver PROVENANCIA-HISTORICO.md §3.1). Commits-âncora: AWS `9848e1e` H-01 (Config by-rule), `5169404` H-02 (Security Groups), `c65faeb` H-03 (S3), `d38b325` H-04 (IAM), `a80bc1f` H-05 (resíduo de Config); GCP `69b721d` H-06 (SCC), `dead1b0` H-07 (Firewall); Azure `85951d9` H-08 (NSG), `0f7e174` H-09 (Defender). Evidência: 46 superfícies, suíte **1095 passed / 20 skipped**, `--matrix` `gerado=45 falta=0 bloqueado=1`. Detalhe do marco em [POSTURA-SEGURANCA.md](POSTURA-SEGURANCA.md#marco--o-domínio-de-postura-fechado-2026-10-19); débitos residuais em [A área de postura](#a-área-de-postura--completa-2026-10-19). |
 | `d38b325` H-04 | IAM — incremento 4 | A identidade da conta AWS: três regras de Config saíram de `INSUFFICIENT_DATA` (medido: 14/10/102 → 32/19/75). O commit **trouxe também, FORA do plano de postura AWS, três superfícies de categoria C** — `gcp/observability-partial`, o bloco regional do S3 e o diagnóstico `fidelity/review.py --state IAM`. Elas estão nomeadas em [o bloco C](#as-três-superfícies-que-entraram-fora-do-plano-categoria-c) porque são dívida de **granularidade de commit**, não parte da fase IAM — o próximo incremento não deve classificá-las como IAM. |
 | `a64b8414` | S4b1-E — o `k8s-sim` aceita o id nativo do cluster | O filtro do `k8s-sim` passa a aceitar **três aliases** da identidade do cluster — o **nome** (o que o contrato publica), o **uuid do estate** (`cluster_id`) e o **id nativo** que a descoberta publica (ARN do EKS, id ARM do AKS, `selfLink` do GKE). O fixture versionado `k8s_sim/fixtures/clusters.json` passa a carregar `native_id` por cluster (**309 clusters**: 75 EKS, 111 GKE, 123 AKS), gerado por `scripts/export_clusters.py`; `/allocation/compute` e `/clusterInfo` respondem o mesmo cluster pelos três. Medido: **91 passed** (78 anteriores + 13 novos). Detalhe em [regression/mapa-impacto-s4b1d.md](regression/mapa-impacto-s4b1d.md) e no [contrato do k8s-sim](k8s-sim-opencost-contract.md). |
+| `7fcbb7ca` | S4b2-C — o `k8s-sim` na rede do CloudPilot (alias, URL e docs) | O `k8s-sim` vivia só na rede dos simuladores; o backend do CloudPilot não resolvia o nome e `http://k8s-sim:8089` falhava com `Name or service not known`. O `ensure-cloudpilot.ps1` passa a ser o dono do plano Kubernetes: **cria** o container a partir de `compose.k8s.yaml` quando falta (`--no-deps --no-build`, sem rebuild), **anexa** o `synthetic-clouds-k8s-sim-1` à bridge `cloudpilot-deploy_cloudpilot_net` com o alias **`k8s-sim`** e **probeia** `/healthz` e `/clusterInfo` de dentro do `cloudpilot_backend` no `-Smoke`. O `cold-start.ps1` mantém um dono só do vínculo e lista o plano no resumo final. Medido: **antes** `URLError [Errno -2]`; **depois** `/healthz` e `/clusterInfo?filter=cluster:"TEMP-aks_cluster-0025"` → **200** do backend, e o container aparece no `network inspect` da bridge. Detalhe em [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) e no [contrato do k8s-sim](k8s-sim-opencost-contract.md) (§2.1 e §9). |
 
 ## Princípio
 
@@ -1117,4 +1118,58 @@ fixture é **idempotente**: regerado de um estate inalterado, sai byte a byte ig
 **O que continua aberto:** alinhar o ARN do EKS no Resource Groups Tagging API e no AWS Config
 com o ARN oficial. Esse item **não** foi entregue pela S4b1-E e permanece aberto no
 [mapa de impacto](regression/mapa-impacto-s4b1d.md#8-gaps-para-fases-seguintes).
+
+## S4b2-C — o `k8s-sim` na rede do CloudPilot: alias, URL e docs (2026-10-30)
+
+**O resíduo era do lado da rede, e ele fecha no commit `7fcbb7ca`.** A S4b2-A/B entregaram o
+`Containerfile` e o `compose.k8s.yaml` do `k8s-sim`, e o container subia healthy em 8089 — mas
+ele vivia **só** na `synthetic-clouds_synthclouds_net` (a rede dos simuladores), enquanto o
+backend do CloudPilot vive na `cloudpilot-deploy_cloudpilot_net`. Duas redes, um nome, nenhum
+caminho: do backend, `http://k8s-sim:8089` não existia.
+
+**O que o commit entrega.** O `ensure-cloudpilot.ps1` passa a ser o dono do plano Kubernetes,
+com o mesmo mecanismo dos outros emuladores:
+
+| Peça | O que faz |
+|---|---|
+| `Ensure-K8sSimContainer` | cria o container a partir de `compose.k8s.yaml` com `--no-deps --no-build` (a imagem `localhost/k8s-sim:latest` é artefato da S4b2-B e **não** é reconstruída) quando ele não existe; se existe, só o inicia e espera o healthcheck |
+| `Ensure-NetworkAliases` | anexa o `synthetic-clouds-k8s-sim-1` à `cloudpilot-deploy_cloudpilot_net` com o alias **`k8s-sim`** — o mesmo `disconnect`/`connect` idempotente que já publica `gcp-sim`, `aws-sim`, `s3mock` e `bigquery-emulator` |
+| `Test-K8sSimFromBackend` | no `-Smoke`, probeia `/healthz` e `/clusterInfo` **de dentro do `cloudpilot_backend`**, porque é de lá que o alias importa |
+
+O `cold-start.ps1` **não** ganhou um passo novo: o `k8s-sim` sobe pelo `ensure`, que ele já
+encadeia por último — assim o container existe antes do alias, e o alias existe antes de o
+backend precisar dele. Um `k8s-up.ps1` separado duplicaria a lógica; por isso ele não foi
+criado. O `cold-start.ps1` ganhou o `k8s-sim` no resumo final de endpoints.
+
+**Medido neste host.** Antes: `urllib.error.URLError: <urlopen error [Errno -2] Name or
+service not known>` (exit 1). Depois: `/healthz` → **200** e
+`/clusterInfo?filter=cluster:"TEMP-aks_cluster-0025"` → **200**, ambos do backend, com o corpo
+`{"code":200,"data":{"version":"synthetic"}}`; e o `podman network inspect
+cloudpilot-deploy_cloudpilot_net` mostra o `synthetic-clouds-k8s-sim-1` na `10.89.0.20/24`,
+com o alias `k8s-sim`.
+
+**O contrato HTTP não mudou** — nem um arquivo de `emulators/**` foi tocado, e o
+`compose.k8s.yaml` (entregue pela S4b2-B) não foi editado. O que mudou foi o **caminho de
+rede** até ele, e a documentação que dizia "fora do compose".
+
+**O que continua aberto:**
+
+- **TLS para o plano Kubernetes** — a URL é HTTP puro na bridge, sem hostname real e sem
+  certificado. É o restante da S4b2, declarado no
+  [contrato do k8s-sim](k8s-sim-opencost-contract.md) (§2.1 e §9).
+- **`docs/DECISOES-PENDENTES.md`** ainda afirma que o `k8s-sim` "não tem Containerfile nem
+  serviço de compose" — frase falsa desde a S4b2-B, em arquivo **fora da allowlist** desta
+  fase, então o texto não foi corrigido aqui. O mesmo vale para o `AGENTS.md`.
+- **`scripts/synthetic-clouds/up.ps1` não sobe o plano Kubernetes** — ele é dono dos três
+  planos de nuvem e está fora da allowlist; a assimetria está escrita, não escondida.
+- **A checagem de conexão AWS do `-Smoke` falha neste host, e é pré-existente.** Medido: o
+  script **original** do `HEAD` anterior, rodado num worktree descartável, produz a mesma
+  linha. Causa raiz: o container `aws-sim` está no ar com `PROFILE=small`, enquanto o `.env`
+  documentado diz `PROFILE=medium` — as access keys do estate mudaram. A correção (recriar o
+  `aws-sim` com o `.env` e refazer a credencial) é **restart dos outros emuladores**, fora do
+  escopo desta fase. Detalhe em [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) §7.
+- **A tarefa agendada `CloudPilot-Simulator-Ensure` aponta para `D:\Simulador\...`**, drive que
+  não existe mais neste host: ela termina com `LastTaskResult=1` sem rodar nada. O wrapper
+  versionado já aponta para `C:\Projetos\Simulador\...`; o que está desatualizado é a **ação
+  registrada**, e a correção é re-registrar (`register-ensure-task.ps1 -RunNow`).
 
