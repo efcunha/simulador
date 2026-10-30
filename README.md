@@ -166,6 +166,19 @@ Medido na S4b3-A: a arvore FOCUS/S3 foi re-renderizada no perfil **`medium`** (1
 `/costs/unified` da conta de homologacao. Detalhe em
 [regression/mapa-impacto-s4b3a.md](docs/regression/mapa-impacto-s4b3a.md).
 
+**E a entrega diaria (FR-22).** O dia gerado sobe para o S3 pelo mecanismo oficial
+(`tools.synthetic_clouds.deliver`), e ela publica no **mesmo namespace** que o consumidor le:
+bucket e segmento de export `synthetic-focus12-daily-full`, prefixo `focus12-full`. Antes da
+S4b3-B a entrega publicava em `cloudpilot-focus12-daily-full` — o nome do renderer anterior ao
+*standalone publish* — e o dia era gerado, subia para o S3, a ingestao reportava `status: ok` e o
+`/costs/unified` continuava **sem AWS**: uma entrega silenciosa. Medido na S4b3-B: entrega do dia
+`2026-10-26` → **exit 0**, 1 objeto novo em
+`focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/...` e **nenhum** bucket
+`cloudpilot-focus12-daily-full` criado; ingestao oficial → `rows_promoted=54096`;
+`/costs/unified` → `HOMOLOGATION AWS [sim] · 54.143,54` com
+`data_source: focus_cost_records` (antes: `cost: null`, `data_state: "unavailable"`). Detalhe em
+[regression/mapa-impacto-s4b3b.md](docs/regression/mapa-impacto-s4b3b.md).
+
 **Debitos desta frente.** O plano Kubernetes ainda **nao tem** hostname real nem
 certificado (TLS e o restante da S4b2); `scripts/synthetic-clouds/up.ps1` **nao** sobe esse
 plano (ele sobe pela integracao, que e o dono do vinco); e

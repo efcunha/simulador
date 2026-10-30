@@ -317,6 +317,15 @@ Sem essa etapa o dia existe só em disco.
 | `gcp` | apaga as linhas do dia e insere as do render (`insertAll`) nas tabelas de billing | `http://localhost:9050` |
 | `azure` | estende a janela do estate do `azure-sim` até o dia **ou até o dia UTC atual, o que for maior** (`POST /admin/estate/refresh`) | `http://localhost:8080` |
 
+**O namespace do alvo `aws` é o nome que o renderer emite.** O bucket e o segmento de export
+publicados são `synthetic-focus12-daily-full` — o mesmo que o `render/focus_aws.py` fixa em
+`EXPORT_NAME` e o mesmo que o leitor de CUR do CloudPilot tem configurado
+(`cur_config.s3_bucket` / `cur_config.export_name`). A entrega **não** usa um nome próprio: um
+export publicado num nome que o consumidor não lê **não é uma entrega parcial, é uma entrega
+silenciosa** — os objetos sobem, a ingestão reporta `status: ok` e o dia não chega a lugar
+nenhum. Foi exatamente o que a S4b3-B mediu e corrigiu (o default da entrega era
+`cloudpilot-focus12-daily-full`, o nome do renderer **anterior** ao *standalone publish*).
+
 ```powershell
 # entregar um dia já gerado (sem gerar de novo)
 & $py -m tools.synthetic_clouds.deliver --day 2026-10-23
@@ -332,6 +341,11 @@ variáveis `DELIVERY_TARGETS` (alvos padrão), `DELIVERY_AWS_ENDPOINT`,
 `DELIVERY_AWS_BUCKET`, `DELIVERY_AWS_PREFIX`, `DELIVERY_AWS_EXPORT_NAME`,
 `DELIVERY_GCP_ENDPOINT`, `DELIVERY_GCP_PROJECT`, `DELIVERY_GCP_DATASET`,
 `DELIVERY_AZURE_ENDPOINT`.
+
+**Duas entradas, duas leituras de namespace.** O CLI (`deliver`) lê essas variáveis; a tarefa do
+Windows (`tick --deliver`) **não** — `schedule/__main__.py` chama `deliver_day()` sem argumento
+de namespace, então valem os defaults do código (`deliver/core.py`: `DEFAULT_AWS_BUCKET` /
+`DEFAULT_AWS_EXPORT_NAME`). Trocar `DELIVERY_AWS_BUCKET` no ambiente afeta **só** o CLI.
 
 Falha de entrega **não desfaz** o dia no ledger (o dado foi gerado e registrado), mas
 o `tick` sai com código 1 e o erro vai para o `task.log` — a tarefa aparece como

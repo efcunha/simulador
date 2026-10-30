@@ -169,6 +169,19 @@ resources with billing), published and **ingested** — 58.926 rows / US$ 166,20
 homologation account's `/costs/unified`. Detail in
 [regression/mapa-impacto-s4b3a.md](docs/regression/mapa-impacto-s4b3a.md).
 
+**And the daily delivery (FR-22).** The generated day goes up to S3 through the official
+mechanism (`tools.synthetic_clouds.deliver`), and it publishes into the **same namespace** the
+consumer reads: bucket and export segment `synthetic-focus12-daily-full`, prefix
+`focus12-full`. Before S4b3-B the delivery published into `cloudpilot-focus12-daily-full` — the
+name of the renderer from **before** the standalone publish — and the day was generated, went
+up to S3, the ingestion reported `status: ok`, and `/costs/unified` stayed **without AWS**: a
+silent delivery. Measured in S4b3-B: delivery of day `2026-10-26` → **exit 0**, 1 new object at
+`focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/...` and **no**
+`cloudpilot-focus12-daily-full` bucket created; official ingestion → `rows_promoted=54096`;
+`/costs/unified` → `HOMOLOGATION AWS [sim] · 54,143.54` with
+`data_source: focus_cost_records` (before: `cost: null`, `data_state: "unavailable"`). Detail in
+[regression/mapa-impacto-s4b3b.md](docs/regression/mapa-impacto-s4b3b.md).
+
 **Debts on this front.** The Kubernetes plane still has **no** real hostname and no
 certificate (TLS is the rest of S4b2); `scripts/synthetic-clouds/up.ps1` does **not**
 bring that plane up (it comes up with the integration, which owns the link); and

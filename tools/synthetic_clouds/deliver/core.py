@@ -10,6 +10,10 @@ cloud uses:
   ``{prefix}/{export_name}/data/billing_period=YYYY-MM/<execution>/...``, which is
   the key layout the BCM Data Export reader lists. Upload order is chronological,
   so the newest execution of the period carries the newest ``LastModified``.
+  The bucket and the export segment default to ``DEFAULT_AWS_BUCKET`` /
+  ``DEFAULT_AWS_EXPORT_NAME`` -- the name the renderer emits, which is also the
+  name the CloudPilot CUR reader is configured with. Publishing under a name
+  nobody reads is not a partial delivery: it is a silent one.
 * **GCP** -- the day's BigQuery detailed-export rows are streamed into the
   ``all_billing_data`` tables with ``tabledata.insertAll``: the same API a real
   billing export populates. Only the target day's rows are sent (the export is
@@ -44,6 +48,15 @@ _BULK_BATCH = 500
 #: Resource table the CloudPilot GCP connector reads, and the standard export.
 _RESOURCE_TABLE = "gcp_billing_export_resource_v1_ba_gcp_1"
 _STANDARD_TABLE = "gcp_billing_export_v1_ba_gcp_1"
+
+#: Namespace the CloudPilot CUR reader is configured with: the bucket it lists
+#: and the export segment it expects under the prefix. It is the name the
+#: renderer itself emits (``render/focus_aws.py``), NOT a delivery-only alias.
+#: A delivery that publishes under a different name writes into a namespace no
+#: reader looks at: the objects land in S3, the ingestion reports success, and
+#: the day never reaches the consumer. Measured in S4b3-B.
+DEFAULT_AWS_BUCKET = "synthetic-focus12-daily-full"
+DEFAULT_AWS_EXPORT_NAME = "synthetic-focus12-daily-full"
 
 
 @dataclass(slots=True)
@@ -123,6 +136,9 @@ def deliver_aws(
         relative = path.relative_to(source).as_posix()
         # Rewrite the export_name segment: a real S3 delivery is keyed by the
         # name the reader was configured with, not by the renderer's folder.
+        # By default the two are the same string (the renderer emits the name
+        # the reader reads); the rewrite still matters when an operator
+        # overrides ``DELIVERY_AWS_EXPORT_NAME``.
         key = f"{prefix}/{export_name}/{relative}"
         url = f"{endpoint.rstrip('/')}/{bucket}/{key}"
         _request(url, method="PUT", data=path.read_bytes())
@@ -225,9 +241,9 @@ def deliver_day(
     daily_root: Path,
     targets: Iterable[str] = ("aws", "gcp", "azure"),
     aws_endpoint: str = "http://localhost:9090",
-    aws_bucket: str = "cloudpilot-focus12-daily-full",
+    aws_bucket: str = DEFAULT_AWS_BUCKET,
     aws_prefix: str = "focus12-full",
-    aws_export_name: str = "cloudpilot-focus12-daily-full",
+    aws_export_name: str = DEFAULT_AWS_EXPORT_NAME,
     gcp_endpoint: str = "http://localhost:9050",
     gcp_project: str = "synthetic",
     gcp_dataset: str = "all_billing_data",
@@ -264,6 +280,8 @@ def deliver_day(
 
 
 __all__ = [
+    "DEFAULT_AWS_BUCKET",
+    "DEFAULT_AWS_EXPORT_NAME",
     "EPOCH",
     "DeliveryResult",
     "deliver_aws",

@@ -14,7 +14,11 @@ from datetime import date
 from pathlib import Path
 
 from tools.synthetic_clouds.daily.emit import DEFAULT_OUT
-from tools.synthetic_clouds.deliver.core import deliver_day
+from tools.synthetic_clouds.deliver.core import (
+    DEFAULT_AWS_BUCKET,
+    DEFAULT_AWS_EXPORT_NAME,
+    deliver_day,
+)
 
 _PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,6 +30,24 @@ def _parse_targets(raw: str) -> tuple[str, ...]:
     if unknown:
         raise ValueError(f"unknown target(s) {unknown}; valid: {sorted(valid)}")
     return targets
+
+
+def _aws_settings() -> dict[str, str]:
+    """Resolve the AWS target's endpoint, bucket, prefix and export segment.
+
+    The environment may override the namespace; the fallback is the name the
+    renderer emits, which is also the name the CloudPilot CUR reader is
+    configured with. A delivery that publishes under any other name writes into
+    a namespace no reader looks at -- silently.
+    """
+    return {
+        "aws_endpoint": os.environ.get("DELIVERY_AWS_ENDPOINT", "http://localhost:9090"),
+        "aws_bucket": os.environ.get("DELIVERY_AWS_BUCKET", DEFAULT_AWS_BUCKET),
+        "aws_prefix": os.environ.get("DELIVERY_AWS_PREFIX", "focus12-full"),
+        "aws_export_name": os.environ.get(
+            "DELIVERY_AWS_EXPORT_NAME", DEFAULT_AWS_EXPORT_NAME
+        ),
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -60,12 +82,7 @@ def main(argv: list[str] | None = None) -> int:
         day,
         daily_root=daily_root,
         targets=targets,
-        aws_endpoint=os.environ.get("DELIVERY_AWS_ENDPOINT", "http://localhost:9090"),
-        aws_bucket=os.environ.get("DELIVERY_AWS_BUCKET", "cloudpilot-focus12-daily-full"),
-        aws_prefix=os.environ.get("DELIVERY_AWS_PREFIX", "focus12-full"),
-        aws_export_name=os.environ.get(
-            "DELIVERY_AWS_EXPORT_NAME", "cloudpilot-focus12-daily-full"
-        ),
+        **_aws_settings(),
         gcp_endpoint=os.environ.get("DELIVERY_GCP_ENDPOINT", "http://localhost:9050"),
         gcp_project=os.environ.get("DELIVERY_GCP_PROJECT", "synthetic"),
         gcp_dataset=os.environ.get("DELIVERY_GCP_DATASET", "all_billing_data"),

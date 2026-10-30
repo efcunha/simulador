@@ -1335,7 +1335,8 @@ and **HOMOLOGATION AWS [sim] · US$ 166,204.47 (73.7%)**.
 
 **What is still open.** The daily delivery (FR-22) still publishes to the
 `cloudpilot-focus12-daily-full` bucket with the `cloudpilot-focus12-daily-full` export — a
-namespace the consumer does not read (`tools/**` outside this phase's allowlist); the tree
+namespace the consumer does not read (`tools/**` outside this phase's allowlist) **(Closed by
+S4b3-B — see the section below.)**; the tree
 covers the **profile's window** (2026-01-01 → 2026-04-30), not "through today"; the consumer
 ingests the **2 newest** periods (`CUR_INGEST_LOOKBACK_PERIODS`); the homologation account is
 **one** for the estate's **three** accounts; the `PROFILE: small` default in
@@ -1345,3 +1346,74 @@ warns; rebuilding is its own phase); and the `s3mock` store is **in memory** (re
 container empties the bucket).
 
 Detail in [regression/mapa-impacto-s4b3a.md](regression/mapa-impacto-s4b3a.md).
+
+## S4b3-B — the daily delivery publishes to the export the consumer reads (2026-10-30)
+
+**The daily delivery was publishing to a namespace nobody reads.** S4b3-A closed the
+**producer** side (the `aws-sim`'s FOCUS/S3 tree) and wrote down, as debt: *"The daily delivery
+(FR-22) still publishes to the `cloudpilot-focus12-daily-full` bucket with the
+`cloudpilot-focus12-daily-full` export — a namespace the consumer does not read"*. This phase
+closes the **delivery mechanism** side: the generated day has to reach the consumer, every day,
+in the namespace it reads.
+
+**The delivery's namespace was decided in three places, and only one was right.** The
+`compose.aws.yaml` (`AWS_SIM_BUCKET`) and the homologation account's `cur_config` both used
+`synthetic-focus12-daily-full` — the same name the renderer emits (`render/focus_aws.py`:
+`EXPORT_NAME = "synthetic-focus12-daily-full"`). Only the delivery used
+`cloudpilot-focus12-daily-full`, in **two** places: the `deliver_day` defaults
+(`deliver/core.py`) and the CLI's environment-variable defaults (`deliver/__main__.py`).
+Fixing only the CLI would not have been enough: the Windows task does not go through the CLI —
+`schedule/__main__.py:227` calls `deliver_day(day, daily_root=DEFAULT_OUT)` **with no namespace
+argument**, so the code defaults are what applies. The installation's `.env` did not resolve it
+(and would not have): the task wrapper (`schedule/windows.py:86-104`) writes a `.cmd` that only
+does `set PYTHONPATH` + `cd` before the `tick`, and the `.env` carries no `DELIVERY_*` variable
+— **the delivery's namespace was never file-configurable in this installation**.
+
+**The defect was silent.** `deliver_aws` PUTs the keys and **validates nothing**: a successful
+`PUT` into a bucket nobody reads produces the same log (`ok: true`, `aws_objects: 1`) as a `PUT`
+into the right bucket. The day was generated, the object went up, the ingestion reported
+`status: ok` — and `/costs/unified` stayed without AWS.
+
+**The fix** (`tools/synthetic_clouds/deliver/**`, `+48 −9`, plus a 47-line regression test):
+`DEFAULT_AWS_BUCKET` and `DEFAULT_AWS_EXPORT_NAME` are now `synthetic-focus12-daily-full` —
+**one** source of truth, imported by the CLI and re-exported by the package. The renderer was
+**not** renamed; the `.env`, the compose and CloudPilot were **not** touched.
+
+**Measured.** The delivery of day `2026-10-26` (the newest **complete** day in the ledger;
+`2026-10-27` is partial, without `aws_focus`) through the official mechanism → **exit 0**,
+`{"aws_objects": 1, "errors": [], "ok": true}`; the scheduled path (the exact call of
+`schedule/__main__.py:227`, with all three targets) → **exit 0**,
+`DeliveryResult(day='2026-10-26', aws_objects=1, gcp_rows=2268, azure_days=303, errors=[])`. In
+S3: the consumer's bucket went from **6** to **7** keys, the new one being
+`focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/20261027T000000Z-eac552f3/synthetic-focus12-daily-full-00001.snappy.parquet`
+(**2,734,569 B**, exactly the source parquet's size) — and the `cloudpilot-focus12-daily-full`
+bucket **does not exist**.
+
+**On CloudPilot (homologation account).** Ingestion through the official mechanism
+(`POST /api/v1/cur-ingestion/accounts/{id}/ingest`) → `status: ok`, 2 files, 78 rows scanned,
+`periods_ingested: [2026-04-01, 2026-10-01]`, `total_billed_cost: 140108.435868`; the promotion
+log records **`rows_promoted=54096`** (the response says `cost_promotion_status: "skipped"` —
+the field lies; the fail-closed guard on `external_account_id` only shows up in the log). In
+`/costs/unified`: **before**, `total_cost: 59373.5`,
+`HOMOLOGATION AWS [sim] · cost: null · data_state: "unavailable"`,
+`provider_status.aws: "unavailable"`; **after**, `total_cost: 113517.05`,
+`HOMOLOGATION AWS [sim] · 54143.54 · data_state: "available"`,
+`provider_status.aws: "available"`, `source_by_provider.aws: "AWS Cost and Usage Report"`, and
+the cold-path response with **`data_source: "focus_cost_records"`**. The volume agrees in all
+three places: the delivered parquet's `EffectiveCost` **54,143.544220** = `focus_cost_records`
+for period 2026-10 **54,143.54** = `/costs/unified` **54,143.54**.
+
+**What is still open.** The export name still lives in **two** independent places (the delivery's
+default and CloudPilot's `cur_config.export_name`) and nothing binds them — the fix aligns the
+two but **does not** prevent the divergence from coming back, and the guard that would prevent it
+lives on the CloudPilot side (outside the allowlist). The AWS delivery **does not validate**
+what it publishes: a regression test in this repository ties the default to the renderer's
+name, but the guard that would prevent the divergence from **coming back** lives on the
+CloudPilot side. The Windows task **is not registered** (`simulador-nuvem-daily` does not show
+up in `schtasks`): the delivery is ready, but nothing triggers it — the backfill still depends
+on someone running the `tick`. The ledger is **3 days behind** the target (11 complete days,
+2026-10-16 → 2026-10-26, and a partial directory at 2026-10-27). The `[SYNTH] AWS acct-01`
+account still carries the dead `export_name` (`cloudpilot-focus12-daily-full`) — the same debt in
+another account, outside this phase's target.
+
+Detail in [regression/mapa-impacto-s4b3b.md](regression/mapa-impacto-s4b3b.md).

@@ -1318,7 +1318,8 @@ e **HOMOLOGATION AWS [sim] · US$ 166.204,47 (73,7%)**.
 
 **O que continua aberto.** A entrega diária (FR-22) ainda publica no bucket
 `cloudpilot-focus12-daily-full` com o export `cloudpilot-focus12-daily-full` — namespace que o
-consumidor não lê (`tools/**` fora da allowlist); a árvore cobre a **janela do perfil**
+consumidor não lê (`tools/**` fora da allowlist) **(Fechado pela S4b3-B — ver a seção abaixo.)**;
+a árvore cobre a **janela do perfil**
 (2026-01-01 → 2026-04-30), não "até hoje"; o consumidor ingere os **2 períodos** mais novos
 (`CUR_INGEST_LOOKBACK_PERIODS`); a conta de homologação é **uma** para as **três** contas do
 estate; o default `PROFILE: small` do `compose.aws.yaml` continua lá (fora da allowlist), com
@@ -1327,4 +1328,75 @@ do emulador (o script avisa; reconstruir é fase própria); e o store do `s3mock
 (recriar o container esvazia o bucket).
 
 Detalhe em [regression/mapa-impacto-s4b3a.md](regression/mapa-impacto-s4b3a.md).
+
+## S4b3-B — a entrega diária publica no export que o consumidor lê (2026-10-30)
+
+**A entrega diária publicava num namespace que ninguém lê.** A S4b3-A fechou o lado do
+*produtor* (a árvore FOCUS/S3 do `aws-sim`) e deixou escrito, como dívida: *"A entrega diária
+(FR-22) ainda publica no bucket `cloudpilot-focus12-daily-full` com o export
+`cloudpilot-focus12-daily-full` — namespace que o consumidor não lê"*. Esta fase fecha o lado do
+**mecanismo de entrega**: o dia gerado precisa chegar ao consumidor, todo dia, no namespace que
+ele lê.
+
+**O namespace da entrega era decidido em três lugares, e só um estava certo.** O
+`compose.aws.yaml` (`AWS_SIM_BUCKET`) e o `cur_config` da conta de homologação usavam
+`synthetic-focus12-daily-full` — o mesmo nome que o renderer emite
+(`render/focus_aws.py`: `EXPORT_NAME = "synthetic-focus12-daily-full"`). Só a entrega usava
+`cloudpilot-focus12-daily-full`, em **dois** lugares: os defaults de `deliver_day`
+(`deliver/core.py`) e os defaults das variáveis de ambiente do CLI (`deliver/__main__.py`).
+Corrigir só o CLI não bastaria: a tarefa do Windows não passa pelo CLI —
+`schedule/__main__.py:227` chama `deliver_day(day, daily_root=DEFAULT_OUT)` **sem argumento de
+namespace**, então valem os defaults do código. O `.env` da instalação não resolvia (e não
+resolveria): o wrapper da tarefa (`schedule/windows.py:86-104`) escreve um `.cmd` que só faz
+`set PYTHONPATH` + `cd` antes do `tick`, e o `.env` não tem nenhuma variável `DELIVERY_*` —
+**o namespace da entrega nunca foi configurável por arquivo nesta instalação**.
+
+**O defeito era silencioso.** `deliver_aws` faz `PUT` das chaves e **não valida nada**: um `PUT`
+bem-sucedido num bucket que ninguém lê produz o mesmo log (`ok: true`, `aws_objects: 1`) que um
+`PUT` no bucket certo. O dia era gerado, o objeto subia, a ingestão reportava `status: ok` — e o
+`/costs/unified` continuava sem AWS.
+
+**A correção** (`tools/synthetic_clouds/deliver/**`, `+48 −9`, mais um teste de regressão de 47
+linhas): `DEFAULT_AWS_BUCKET` e `DEFAULT_AWS_EXPORT_NAME` passam a ser
+`synthetic-focus12-daily-full` — **uma** fonte de verdade, importada pelo CLI e re-exportada pelo
+pacote. O renderer **não** foi renomeado; o `.env`, o compose e o CloudPilot **não** foram
+tocados.
+
+**Medido.** A entrega do dia `2026-10-26` (o mais recente **completo** do ledger; `2026-10-27`
+está parcial, sem `aws_focus`) pelo mecanismo oficial → **exit 0**,
+`{"aws_objects": 1, "errors": [], "ok": true}`; o caminho do agendado (a chamada exata de
+`schedule/__main__.py:227`, com os três alvos) → **exit 0**,
+`DeliveryResult(day='2026-10-26', aws_objects=1, gcp_rows=2268, azure_days=303, errors=[])`. No
+S3: o bucket do consumidor passou de **6** para **7** chaves, com a chave nova
+`focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/20261027T000000Z-eac552f3/synthetic-focus12-daily-full-00001.snappy.parquet`
+(**2.734.569 B**, exatamente o tamanho do parquet de origem) — e o bucket
+`cloudpilot-focus12-daily-full` **não existe**.
+
+**No CloudPilot (conta de homologação).** Ingestão pelo mecanismo oficial
+(`POST /api/v1/cur-ingestion/accounts/{id}/ingest`) → `status: ok`, 2 arquivos, 78 linhas
+lidas, `periods_ingested: [2026-04-01, 2026-10-01]`, `total_billed_cost: 140108.435868`; o log
+de promoção registra **`rows_promoted=54096`** (a resposta diz
+`cost_promotion_status: "skipped"` — o campo mente, o guard *fail-closed* do
+`external_account_id` só aparece no log). No `/costs/unified`: **antes** `total_cost: 59373.5`,
+`HOMOLOGATION AWS [sim] · cost: null · data_state: "unavailable"`,
+`provider_status.aws: "unavailable"`; **depois** `total_cost: 113517.05`,
+`HOMOLOGATION AWS [sim] · 54143.54 · data_state: "available"`,
+`provider_status.aws: "available"`, `source_by_provider.aws: "AWS Cost and Usage Report"`, e a
+resposta do caminho frio com **`data_source: "focus_cost_records"`. O volume confere nos três
+lugares: `EffectiveCost` do parquet entregue **54.143,544220** = `focus_cost_records` do período
+2026-10 **54.143,54** = `/costs/unified` **54.143,54**.
+
+**O que continua aberto.** O nome do export continua em **dois** lugares independentes (o default
+da entrega e o `cur_config.export_name` do CloudPilot) e nada os amarra — a correção alinha os
+dois, mas **não** impede a divergência de voltar, e o guard que impediria isso é do lado do
+CloudPilot (fora da allowlist). A entrega AWS **não valida** o que publica: há um teste de
+regressão neste repositório que amarra o default ao nome do renderer, mas o guard que
+impediria a divergência de **voltar** é do lado do CloudPilot. A tarefa do Windows
+**não está registrada** (`simulador-nuvem-daily` não aparece no `schtasks`): a entrega está
+pronta, mas nada a dispara — o backfill continua dependendo de alguém rodar o `tick`. O ledger
+está **3 dias atrás** do alvo (11 dias completos, 2026-10-16 → 2026-10-26, e um diretório
+parcial em 2026-10-27). A conta `[SYNTH] AWS acct-01` continua com o `export_name` morto
+(`cloudpilot-focus12-daily-full`) — é a mesma dívida em outra conta, fora do alvo desta fase.
+
+Detalhe em [regression/mapa-impacto-s4b3b.md](regression/mapa-impacto-s4b3b.md).
 

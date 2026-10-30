@@ -257,6 +257,13 @@ mesmo perfil** declarado pelo namespace do plano AWS: sem ele, o `aws-sim` sobe 
   que escrevia `Manifest.json` no export); um consumidor configurado com ele não acha as
   chaves publicadas. Medido e corrigido na S4b3-A — ver
   [`docs/regression/mapa-impacto-s4b3a.md`](../../docs/regression/mapa-impacto-s4b3a.md) §2.2.
+- **A entrega diária (FR-22) publica no mesmo namespace que o consumidor lê.** O bucket e o
+  segmento de export da entrega são `synthetic-focus12-daily-full` — o nome que o renderer
+  emite e o que o `cur_config` da conta de homologação tem. Antes da S4b3-B a entrega
+  publicava em `cloudpilot-focus12-daily-full`: o dia era gerado, subia para o S3, a ingestão
+  reportava `status: ok` e o `/costs/unified` continuava **sem AWS**. Medido e corrigido na
+  S4b3-B — ver
+  [`docs/regression/mapa-impacto-s4b3b.md`](../../docs/regression/mapa-impacto-s4b3b.md).
 - **Azurite com `--skipApiVersionCheck`.** A imagem fixa do Azurite recusa o `x-ms-version`
   mais novo do SDK de blob do `azure-sim`; o flag é a exceção documentada pelo próprio
   Azurite e só vale para este ambiente local.

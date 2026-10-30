@@ -115,6 +115,17 @@ trocados pelas variáveis `DELIVERY_AWS_*`, `DELIVERY_GCP_*`, `DELIVERY_AZURE_EN
 ledger, mas o `tick` sai com código 1. Tabela completa em
 [`docs/AGENDAMENTO.md`](../../docs/AGENDAMENTO.md#entrega-aos-emuladores---deliver).
 
+**O namespace do alvo `aws` é o nome que o renderer emite.** Bucket e segmento de export
+publicados são `synthetic-focus12-daily-full` — o mesmo que o `render/focus_aws.py` fixa em
+`EXPORT_NAME` e o mesmo que o leitor de CUR do CloudPilot tem configurado
+(`cur_config.s3_bucket` / `cur_config.export_name`). Os dois valores vivem em
+`deliver/core.py` (`DEFAULT_AWS_BUCKET` / `DEFAULT_AWS_EXPORT_NAME`), que é a **fonte única**:
+o CLI importa essas constantes, e a tarefa do Windows (`tick --deliver`, que chama
+`deliver_day()` sem namespace) usa os mesmos defaults. Publicar num nome que o consumidor não lê
+não é entrega parcial, é entrega silenciosa — os objetos sobem, a ingestão reporta
+`status: ok` e o dia não chega a lugar nenhum. Medido e corrigido na S4b3-B — ver
+[`docs/regression/mapa-impacto-s4b3b.md`](../../docs/regression/mapa-impacto-s4b3b.md).
+
 ## Verificação
 
 ```powershell
