@@ -8,6 +8,11 @@
 e a lista passa a publicar o **mesmo nome** que o documento publica. As seções §1, §2,
 §5, §7 e §8 foram atualizadas; o resto do mapa permanece válido.
 
+**Revisão S4b1-E (2026-10-29):** o `k8s-sim` passa a aceitar o **id nativo** do cluster como
+alias no filtro, e o fixture versionado passa a carregá-lo por cluster (`a64b8414`). As seções
+§3, §6, §7 e §8 foram atualizadas e há um addendum no fim do mapa; o resto do mapa permanece
+válido.
+
 ## 1. O que muda
 
 Cada descoberta passa a publicar o **identificador nativo** do cluster, e o `name`
@@ -71,6 +76,12 @@ assina com a credencial **dessa** conta (`get_aws_client_for_account`). Com a li
 escopada, cada descoberta devolve exatamente os clusters da sua conta — e o
 `DiscoveryResult` recebe o nome real, que é o que o `filter=cluster:"<nome>"` do
 k8s-sim exige.
+
+**Atualização de 2026-10-29 — fechado em `a64b8414` (S4b1-E):** o `k8s-sim` deixou de resolver
+o filtro só pelo **nome**: passa a aceitar também o **id nativo** (ARN do EKS, id ARM do AKS,
+`selfLink` do GKE) e o **uuid do estate** (`cluster_id`), como aliases do nome — em
+`/allocation/compute` e em `/clusterInfo`. O parágrafo acima descreve o consumo como era na
+S4b1-D; o que mudou foi o lado do **simulador**, não o do consumidor.
 
 **Medido em 2026-10-28, no ambiente local:** nenhum hostname AWS é apontado para o
 aws-sim (`deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1:73` — a lista
@@ -146,7 +157,9 @@ group), e normalizá-los seria inventar um nome.
   `identity`, `resourcesVpcConfig`, `accessConfig`, `createdAt`).
 - Os outros quatro membros do cluster GKE (`name`, `endpoint`, `location`, `masterAuth`).
 - `specs/**` e `tools/synthetic_clouds/fidelity/**` — intocados (gap no §8).
-- `emulators/k8s-sim/**` — intocado (o fixture é S4b1-E).
+- `emulators/k8s-sim/**` — intocado por esta fase (o fixture é S4b1-E). **Atualização de
+  2026-10-29:** a S4b1-E tocou o `k8s-sim` em `a64b8414` (fixture com `native_id` e filtro
+  por id nativo); o escopo histórico da S4b1-D acima não muda.
 - O CloudPilot (`d:\cloudpilot-deploy`) — **nenhum arquivo alterado**.
 - GKE e AKS — intocados.
 
@@ -173,7 +186,10 @@ group), e normalizá-los seria inventar um nome.
    **colisão entre contas desaparece** (a descoberta de cada conta devolve só os
    clusters dela, e dentro da conta os nomes são únicos), mas o mapa continua
    **name-keyed** — é o que o C-IDENT tem de corrigir, chaveando pelo identificador
-   nativo (a ARN).
+   nativo (a ARN). **O lado do simulador desse residual está fechado desde 2026-10-29
+   (S4b1-E, `a64b8414`):** o `k8s-sim` aceita o id nativo como alias no filtro, então um
+   `filter=cluster:"<id nativo>"` volta a selecionar o cluster. O item acima descreve o
+   lado do **consumidor**, e não muda aqui.
 5. **Os nomes do estate são publicados verbatim, e alguns não são válidos na AWS.**
    O gerador produz ruído de propósito (`TEMP-eks_cluster-0006`,
    `eks_cluster-0021 (do not delete)`, `prodeks_cluster-0021COPY`), e o ARN do EKS
@@ -189,9 +205,15 @@ group), e normalizá-los seria inventar um nome.
 | Gap | Fase sugerida |
 |---|---|
 | C-IDENT no CloudPilot: `DiscoveryResult` (e o `cluster_account_map`) passam a chavear pelo identificador nativo | S4b1-C (CloudPilot) |
-| Fixture do k8s-sim com o identificador nativo por cluster e filtro por ID | S4b1-E |
-| Alinhar o ARN do EKS no Tagging API e no AWS Config com o ARN oficial | S4b1-E ou posterior |
+| Alinhar o ARN do EKS no Tagging API e no AWS Config com o ARN oficial | posterior (não entregue pela S4b1-E) |
 | Regerar `specs/gcp/container-clusters.schema.json` (o `selfLink` deixa de ser `unverified`) e `docs/NAO-COMPROVADOS.md` | fase de spec |
+
+**Fechados em S4b1-E (2026-10-29):**
+
+| Gap | Como foi fechado |
+|---|---|
+| O `k8s-sim` aceitar o id nativo do cluster como alias | `resolve_cluster_name` aceita **três aliases** da mesma identidade — o **nome**, o **uuid do estate** (`cluster_id`) e o **id nativo** (ARN do EKS, id ARM do AKS, `selfLink` do GKE) — **aceitos e nunca publicados**, porque a resposta carrega o nome (`emulators/k8s-sim/k8s_sim/projections/allocation.py`) |
+| Fixture do k8s-sim com o identificador nativo por cluster e filtro por ID (o mesmo item, do lado do dado) | o fixture versionado `emulators/k8s-sim/k8s_sim/fixtures/clusters.json` carrega `native_id` por cluster — **309 clusters** (75 EKS, 111 GKE, 123 AKS) — e é gerado por `emulators/k8s-sim/scripts/export_clusters.py`; `/clusterInfo` aceita os mesmos aliases |
 
 **Fechados em S4b1-D-C:**
 
@@ -200,3 +222,16 @@ group), e normalizá-los seria inventar um nome.
 | Superfície EKS escopada por conta (o nome resolve dentro da conta das credenciais) | a conta é decodificada da credencial SigV4 (`projections/sts.py`) e todas as quatro rotas a recebem (`aws_sim/api/eks.py:55`) |
 | A lista publicava o handle (`cluster-<17 hex>`) em vez do nome | `clusters()` publica `Resource.resource_name` — o mesmo do documento |
 | O docstring da rota `eks:ListClusters` (`aws_sim/api/eks.py:68`) dizia "the cluster names this account owns" sem que a conta fosse levada em conta | a frase agora é verdadeira: a rota é escopada pela conta |
+
+## Addendum — S4b1-E (2026-10-29)
+
+Medido no commit `a64b8414` (2026-10-29 20:13:42), com a suíte do `k8s-sim` rodada localmente:
+**91 passed** — 78 anteriores ao commit + 13 novos. O fixture versionado
+`emulators/k8s-sim/k8s_sim/fixtures/clusters.json` carrega `native_id` por cluster —
+**309 clusters** (75 EKS, 111 GKE, 123 AKS) — e o filtro de `/allocation/compute` e de
+`/clusterInfo` aceita **três aliases** da identidade do cluster: o **nome** (o que o contrato
+publica), o **uuid do estate** (`cluster_id`) e o **id nativo** que a descoberta publica (ARN do
+EKS, id ARM do AKS, `selfLink` do GKE). Os 309 ids nativos são distintos entre si (309 ids para
+309 clusters) e disjuntos dos outros identificadores; os 309 clusters carregam 160 nomes
+distintos, e é o id nativo que separa os homônimos de contas diferentes. Fonte: o handoff da
+fase S4b1-E (`a64b8414`), conferido contra o fixture, a projeção e a suíte do `k8s-sim`.

@@ -5,7 +5,7 @@
 Documento vivo. Registra o que existe, o que foi decidido e por quê, para que o
 trabalho continue sem depender de contexto de conversa.
 
-Última atualização: 2026-10-18.
+Última atualização: **2026-10-29** (revisão `a64b8414`, branch `feat/p76-security-posture-gcp-azure`).
 
 ## Entregas registradas
 
@@ -13,6 +13,7 @@ trabalho continue sem depender de contexto de conversa.
 |---|---|---|
 | `9848e1e` H-01…`0f7e174` H-09 | **Domínio de postura — FECHADO (2026-10-19)** | Os **8 checks** que os três `SecurityScanner` do FinOps rodam têm, cada um, a superfície do simulador que os produz, medida contra o consumidor real. Série de **15 commits** (9 feat, 5 docs, 1 fix), contados na época por `git rev-list --count 9848e1e^..0f7e174` (comando que hoje não roda — ver PROVENANCIA-HISTORICO.md §3.1). Commits-âncora: AWS `9848e1e` H-01 (Config by-rule), `5169404` H-02 (Security Groups), `c65faeb` H-03 (S3), `d38b325` H-04 (IAM), `a80bc1f` H-05 (resíduo de Config); GCP `69b721d` H-06 (SCC), `dead1b0` H-07 (Firewall); Azure `85951d9` H-08 (NSG), `0f7e174` H-09 (Defender). Evidência: 46 superfícies, suíte **1095 passed / 20 skipped**, `--matrix` `gerado=45 falta=0 bloqueado=1`. Detalhe do marco em [POSTURA-SEGURANCA.md](POSTURA-SEGURANCA.md#marco--o-domínio-de-postura-fechado-2026-10-19); débitos residuais em [A área de postura](#a-área-de-postura--completa-2026-10-19). |
 | `d38b325` H-04 | IAM — incremento 4 | A identidade da conta AWS: três regras de Config saíram de `INSUFFICIENT_DATA` (medido: 14/10/102 → 32/19/75). O commit **trouxe também, FORA do plano de postura AWS, três superfícies de categoria C** — `gcp/observability-partial`, o bloco regional do S3 e o diagnóstico `fidelity/review.py --state IAM`. Elas estão nomeadas em [o bloco C](#as-três-superfícies-que-entraram-fora-do-plano-categoria-c) porque são dívida de **granularidade de commit**, não parte da fase IAM — o próximo incremento não deve classificá-las como IAM. |
+| `a64b8414` | S4b1-E — o `k8s-sim` aceita o id nativo do cluster | O filtro do `k8s-sim` passa a aceitar **três aliases** da identidade do cluster — o **nome** (o que o contrato publica), o **uuid do estate** (`cluster_id`) e o **id nativo** que a descoberta publica (ARN do EKS, id ARM do AKS, `selfLink` do GKE). O fixture versionado `k8s_sim/fixtures/clusters.json` passa a carregar `native_id` por cluster (**309 clusters**: 75 EKS, 111 GKE, 123 AKS), gerado por `scripts/export_clusters.py`; `/allocation/compute` e `/clusterInfo` respondem o mesmo cluster pelos três. Medido: **91 passed** (78 anteriores + 13 novos). Detalhe em [regression/mapa-impacto-s4b1d.md](regression/mapa-impacto-s4b1d.md) e no [contrato do k8s-sim](k8s-sim-opencost-contract.md). |
 
 ## Princípio
 
@@ -1084,4 +1085,36 @@ porque os segmentos se agrupam em assinaturas. A unidade que a resposta entrega 
   (read-only, regra inviolável nº 1). Ver o **achado nº 3** da [seção canônica dos
   achados](INGESTAO-D3-SEGURANCA.md#achados-para-o-time-do-consumidor).
 - **Não** entrega ao `azure-sim`.
+
+## S4b1-E — o `k8s-sim` aceita o id nativo do cluster (2026-10-29)
+
+**O resíduo era do lado do simulador, e ele fecha no commit `a64b8414`.** O consumidor
+(CloudPilot) passou a **keyar a descoberta pelo id nativo** (ARN do EKS, id ARM do AKS,
+`selfLink` do GKE) e a mandar `filter=cluster:"<id nativo>"`; o `k8s-sim` resolvia o filtro
+só pelo **nome** e pelo **uuid do estate**, e o fixture não expunha o id nativo por cluster.
+Com a configuração nova do consumidor, `/allocation/compute` respondia **200 com `data: []`** —
+o filtro não selecionava nada e nada era inventado.
+
+**O que o commit entrega.** O fixture versionado `k8s_sim/fixtures/clusters.json` passa a
+carregar **`native_id`** por cluster — **309 clusters** (75 EKS, 111 GKE, 123 AKS), gerado por
+`scripts/export_clusters.py` — e o filtro passa a aceitar **três aliases** da mesma identidade:
+
+| Alias | Forma | Quem o manda |
+|---|---|---|
+| **nome** | o nome do estate — é o que o contrato publica | o consumidor legado, keyed by name |
+| **uuid do estate** | o `cluster_id` do fixture | quem guardou o identificador canônico |
+| **id nativo** | ARN do EKS, id ARM do AKS, `selfLink` do GKE | a descoberta do consumidor (C-IDENT) |
+
+Os três são **aceitos, nunca publicados**: a resposta carrega o **nome**, então um pedido
+respondido por qualquer alias é indistinguível de um respondido pelo nome. É o id nativo que
+separa homônimos — os 309 clusters carregam **160 nomes distintos** (o nome é único dentro do
+escopo, não no estate), e os **309 ids nativos são distintos** entre si (309 ids para 309
+clusters). `/allocation/compute` e `/clusterInfo` aceitam os três e respondem o mesmo cluster.
+
+**Medido:** **91 passed** na suíte do `k8s-sim` — 78 anteriores ao commit + 13 novos — e o
+fixture é **idempotente**: regerado de um estate inalterado, sai byte a byte igual.
+
+**O que continua aberto:** alinhar o ARN do EKS no Resource Groups Tagging API e no AWS Config
+com o ARN oficial. Esse item **não** foi entregue pela S4b1-E e permanece aberto no
+[mapa de impacto](regression/mapa-impacto-s4b1d.md#8-gaps-para-fases-seguintes).
 
