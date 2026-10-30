@@ -25,7 +25,7 @@ outcome, not an open item to be filled in with a guess.
 
 ## Isolation
 
-This repository is autonomous. Nothing is created or changed in `D:\synthetic-clouds`,
+This repository is autonomous. Nothing is created or changed in `C:\Projetos\Simulador`,
 in `<source-tree>` or in any FinOps database/container.
 
 The `cp-sim-fix` container — created by hand, without a declarative definition — ran with
@@ -666,7 +666,7 @@ Accompanied by:
 | spec contract | 21 surfaces, **2204 columns**, 1579 generatable, 173 unproven, **0 problems** |
 | evidence domain | **0 specs with a problem**; no column without a URL |
 | invented column | **0** across all 20 surfaces |
-| isolation | **nothing** written to `D:\synthetic-clouds` nor to `<source-tree>` (checked by modification date, in the worktree and in `.git`) |
+| isolation | **nothing** written to `C:\Projetos\Simulador` nor to `<source-tree>` (checked by modification date, in the worktree and in `.git`) |
 
 The `obrig.vazias` that remain are **all** declared with group and reason, or under a
 representation caveat: `ProductArn` (the ARN requires product ids, and the model has

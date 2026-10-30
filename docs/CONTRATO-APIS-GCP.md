@@ -14,6 +14,10 @@ todo campo — este documento substitui a memória pela fonte.
 
 ## As seis famílias, e o estado de cada uma
 
+> A coluna **Spec escrita** desta tabela é o levantamento de **2026-10-14**, preservado como
+> evidência datada. O estado de **2026-10-29** — em que **doze das treze fixtures** têm superfície
+> própria — está na seção «Estado em 2026-10-29», mais abaixo.
+
 | # | Família | Método | Fixtures | Spec escrita | Confere? |
 |---|---|---|---|---|---|
 | 1 | Cloud Asset Inventory | `searchAllResources` | `cai_search_all_resources.json` | **sim** (`gcp/asset-search-all-resources`) | auditoria em dois níveis; `resourceUuid` fora do artefato novo |
@@ -30,10 +34,91 @@ todo campo — este documento substitui a memória pela fonte.
 | 5c | Cloud Monitoring | `alertPolicies.list` | `monitoring_alert_policies.json` | não | campos conferem; junção em `userLabels` |
 | 6 | Cloud Billing Budgets | `budgets.list` | `budgets.json` | não | **nenhum campo desconhecido** |
 
-**Nenhum erro de envelope foi encontrado:** todos os dez nomes de campo de lista que o renderer usa
+**Nenhum erro de envelope foi encontrado:** todos os nomes de campo de lista que o renderer usa
 (`results`, `listFindingsResults`, `recommendations`, `insights`, `services`, `skus`, `timeSeries`,
 `metricDescriptors`, `alertPolicies`, `budgets`, `sources`) estão **corretos** nos documentos
 oficiais. O problema do renderer não é a forma do envelope — é o campo de junção que ele acrescenta.
+
+*(Correção de 2026-10-29: a enumeração acima tem **onze** nomes, e o texto de 2026-10-14 dizia
+"dez". A conclusão não muda — todos os onze conferem.)*
+
+## Estado em 2026-10-29: as treze fixtures, as superfícies GCP e a matriz
+
+Medição feita nesta árvore em **2026-10-29**, revisão **`9533b901`**, branch
+**`feat/p76-security-posture-gcp-azure`**, árvore limpa. O levantamento de 2026-10-14 acima **não
+foi reescrito** — ele é a evidência daquela data. Esta seção acrescenta o estado de hoje.
+
+* `fidelity --matrix`: **`gerado=47 falta=0 bloqueado=2 total=49`**; `fidelity --ready`: **47
+  superfícies PRONTO**.
+* Superfícies especificadas: **49** — AWS **15** · GCP **23** · Azure **11**. Das 23 do GCP,
+  **22 estão geradas** e **1 está bloqueada** (`gcp/container-clusters`).
+* O renderer `gcp_rest_fixtures` **continua com 590 linhas e 13 fixtures** (medido nesta data) e
+  continua sendo o produtor antigo: a matriz ainda o reporta como *renderer sem superfície
+  especificada*, junto com o `gcp_bigquery`.
+* **Doze das treze fixtures têm superfície própria hoje**, com spec citada, renderer e teste
+  golden — as onze do item G11 (2026-10-14) mais `cai_search_all_resources.json`, que já tinha a
+  sua desde a primeira leva:
+
+| Fixture | Superfície (2026-10-29) | Renderer | Estado na matriz |
+|---|---|---|---|
+| `cai_search_all_resources.json` | `gcp/asset-search-all-resources` | `gcp_cai_search_all_resources` | gerada |
+| `cai_search_all_iam_policies.json` | `gcp/asset-search-all-iam-policies` | `gcp_asset_search_all_iam_policies` | gerada |
+| `cai_analyze_iam_policy.json` | — | — | **sem spec** |
+| `scc_sources.json` | `gcp/scc-sources` | `gcp_scc_sources` | gerada |
+| `scc_findings.json` | `gcp/scc-findings` | `gcp_api_scc_findings` | gerada |
+| `recommender_recommendations.json` | `gcp/recommender-recommendations` | `gcp_recommender_recommendations` | gerada |
+| `recommender_insights.json` | `gcp/recommender-insights` | `gcp_recommender_insights` | gerada |
+| `catalog_services.json` | `gcp/catalog-services` | `gcp_catalog_services` | gerada |
+| `catalog_skus.json` | `gcp/catalog-skus` | `gcp_catalog_skus` | gerada |
+| `monitoring_time_series.json` | `gcp/monitoring-time-series` | `gcp_monitoring_time_series` | gerada |
+| `monitoring_metric_descriptors.json` | `gcp/monitoring-metric-descriptors` | `gcp_monitoring_metric_descriptors` | gerada |
+| `monitoring_alert_policies.json` | `gcp/monitoring-alert-policies` | `gcp_monitoring_alert_policies` | gerada |
+| `budgets.json` | `gcp/billing-budgets` | `gcp_billing_budgets` | gerada |
+
+A única fixture **sem** superfície é `cai_analyze_iam_policy.json` (`analyzeIamPolicy`) — ela
+segue só no renderer antigo, e o corpo continua sendo o "corpo mínimo, não auditado" descrito
+acima. Além das doze, o GCP tem **onze** superfícies que não vêm das treze fixtures: as três de
+billing BigQuery, `security-command-center-findings-bigquery`, `vpc-flow-logs-bigquery`,
+`cloud-asset-inventory-compute-instance`, `compute-instances-rest`, `compute-firewalls`,
+`observability-partial`, `infrastructure-manager-resource-drift` e `container-clusters`
+(bloqueada).
+
+### O que o `gcp-sim` serve ao vivo (2026-10-29)
+
+O emulador tem **14 routers** (`emulators/gcp-sim/gcp_sim/routers/`) e três planos:
+
+* **Plano de fixtures** — a rota devolve a resposta JSON que o `gcp_rest_fixtures` renderiza:
+  CAI (`searchAllResources`, `searchAllIamPolicies`, `analyzeIamPolicy`), SCC `sources` e
+  `findings`, Recommender `recommendations`/`insights`, Billing Catalog `services`/`skus`,
+  Monitoring `timeSeries` e Budgets `budgets`
+  (`routers/{cai,scc,recommender,catalog,monitoring,budgets}.py` leem o `FixtureStore`).
+* **Plano calculado do estado** — a rota projeta o `CanonicalEstate` e **não** lê fixture: Compute
+  (instances e `global/firewalls`), Kubernetes Engine (`projects.locations.clusters.list`),
+  Infrastructure Manager (`resourceDrifts.list` e `.get`), Cloud Resource Manager
+  (`/v1/projects`), OAuth (`/token`), Storage, Functions e Service Health
+  (`routers/{compute,container,infra_manager,cloudresourcemanager,oauth,storage,functions,servicehealth}.py`).
+* **Planos gRPC** — Monitoring (`monitoring_grpc.py`, porta **8087**: `ListTimeSeries`,
+  `ListMetricDescriptors` e `ListAlertPolicies`, com os descritores lidos do próprio pacote do
+  cliente) e SCC findings (`routers/scc.py`, porta **8088**: `SecurityCenter/ListFindings`).
+
+O front TLS (`deploy/synthetic-clouds/tls-front/nginx.conf`, lido nesta data) publica **sete**
+hostnames, e esta é a lista fechada:
+
+| Hostname | Upstream | Para quê |
+|---|---|---|
+| `bigquery.googleapis.com` | `bigquery-emulator:9050` | BigQuery REST |
+| `oauth2.googleapis.com` | `gcp-sim:8085` | token OAuth |
+| `cloudresourcemanager.googleapis.com` | `gcp-sim:8085` | `/v1/projects` |
+| `compute.googleapis.com` | `gcp-sim:8085` | Compute REST (inclui `global/firewalls`) |
+| `config.googleapis.com` | `gcp-sim:8085` | Infrastructure Manager (`resourceDrifts`) |
+| `container.googleapis.com` | `gcp-sim:8085` | Kubernetes Engine v1 |
+| `securitycenter.googleapis.com` | `gcp-sim:8088` (gRPC sobre HTTP/2) | SCC `ListFindings` |
+
+As famílias servidas **fora** do front (CAI, Recommender, Monitoring, Catalog, Budgets, Storage,
+Functions, Service Health) respondem no plano REST do `gcp-sim` em `:8085`, alcançável dentro da
+rede do compose. O front **não** publica `sts.*`: essa é uma decisão de **2026-10-28**, e o motivo
+está no comentário do próprio `nginx.conf` — o sequestro do hostname resolvia as contas AWS reais
+da rede para a conta do estate, e a guarda anti-confused-deputy rejeitava com `account_mismatch`.
 
 ## Fontes (URL + HTTP + revisão)
 
@@ -412,3 +497,26 @@ achei"* e passou a ser *"a página que descreveria isso existe, foi lida, e o me
 Uma correção de leitura que essa leva produziu: `delivery.format` da spec já valia `CSV|OCSF_JSON` e
 o renderer já afirmava *"ASFF is NOT an available export format"*. Bastou a leitura da API para
 confirmar que estava certo — **nada precisou mudar lá**, o que é o resultado que mais gosta de ver.
+
+## Estado em 2026-10-29: a superfície do export existe e é GERADA
+
+Medição desta data (revisão `9533b901`), para fechar a pergunta do E5 com o número de hoje — sem
+apagar nada do que está acima, que é o registro datado de 2026-10-14/15.
+
+* **A superfície existe e é gerada.** `fidelity --matrix` lista `aws/security-hub-ocsf-export`
+  em **GERADO**, com renderer **`security_hub_ocsf_export`** (`render/security_hub_ocsf.py`). As
+  **15** superfícies da AWS estão todas geradas, e o `aws/security-hub-asff` continua gerado ao
+  lado dela — são duas superfícies do mesmo dado, como este capítulo argumenta.
+* **A spec declara 29 colunas** no conjunto `ocsf-finding` (medido nesta data em
+  `specs/aws/security-hub-ocsf-export.schema.json`), todas com `status: verified` e evidência
+  `declared`. O número **27** citado em 2026-10-14/15 é o daquela data e fica como registro dela.
+* **O residual é de quatro temas, todos em `unverified`:** `metadata.version`; a classe do
+  envelope (`class_uid`/`category_uid`/`type_uid`); o particionamento dos objetos exportados; e
+  `compliance.assessments`/`compliance.control`/`compliance.standards`. Nenhum valor foi inventado
+  para fechá-los, e o teste golden continua exigindo que a classe e a versão **não** sejam
+  emitidas (`tests/test_aws_security_hub_ocsf_fidelity.py`).
+* **O achado de 2026-10-15 continua de pé:** o que a AWS publica é o caminho `class_name`, sem o
+  identificador numérico e sem os valores; e a única frase de versão ("Security Hub currently
+  supports findings in OCSF schema version 1.6") é sobre a revisão **suportada** pelos achados do
+  serviço, não sobre o valor do campo no arquivo exportado. O artefato continua sendo JSON por
+  linha, como a página do `FindingsOutput` fixa.

@@ -4,61 +4,75 @@
 > Language: **English** | [Português](README.md)
 
 Standalone multi-cloud simulator. It generates all the data that is needed —
-FinOps, security, network and instances — for **AWS, GCP and Azure**, and delivers it
-following the export mechanism and format that **each cloud really uses**.
+FinOps, security, network, instances and **drift/what-if** — for **AWS, GCP and
+Azure** and for a **synthetic Kubernetes cluster**, and delivers it following
+the export mechanism and format that **each cloud really uses**. The very APIs
+the consumer calls in the real cloud are served by the emulators.
 
 ![Synthetic multi-cloud data, real API contracts](docs/img/hero.svg)
 
-The repository has two parts:
+The repository has three parts:
 
 | Part | Where | What it is |
 |---|---|---|
 | **Generator** | `tools/synthetic_clouds/` | Derives the artifacts from the cited specs; it holds the fidelity gates. |
-| **Emulators** | `emulators/`, `deploy/`, `scripts/` | Serve the same data through each cloud's APIs (Query/S3 REST, ARM, GCP REST/gRPC). |
+| **Emulators** | `emulators/` | Serve the same data through each cloud's APIs: `aws-sim`, `azure-sim`, `gcp-sim` and `k8s-sim` (OpenCost). |
+| **Deployment** | `deploy/`, `scripts/` | Compose per plane, the TLS front with the real hostnames, and the CloudPilot integration automation. |
 
-> The "Current state" numbers were measured on **2026-10-27**. The "How to measure"
-> column says exactly which command reproduces each one — if a number diverges from
-> the code, the command wins over the number.
+> The "Current state" numbers were measured on **2026-10-29**, at revision
+> `9533b901`. The "How to measure" column says exactly which command reproduces
+> each one — if a number diverges from the code, the command wins over the
+> number.
 
 ## Current state
 
 | Metric | Value | How to measure |
 |---|---|---|
-| Specified export surfaces | **48** — AWS 15 · GCP 22 · Azure 11 | `specs/**/*.schema.json` |
-| **READY** export surfaces | **47** | `fidelity --ready` → `PRONTO: 47`, exit 0 |
-| Blocked by the documentation | **1** — `azure/cost-management-export-cost-details` | `fidelity --matrix` → `bloqueado=1` |
+| Specified surfaces | **49** — AWS 15 · GCP 23 · Azure 11 | `specs/**/*.schema.json` |
+| **READY** surfaces | **47** | `fidelity --ready` → `PRONTO: 47`, exit 0 |
+| Blocked by the documentation | **2** — `azure/cost-management-export-cost-details` and `gcp/container-clusters` | `fidelity --matrix` → `bloqueado=2` |
 | Missing | **0** | `fidelity --matrix` → `falta=0` |
 | Invented column (any provider) | **0** | `fidelity --audit aws` → `com coluna inventada=0` |
-| Tests | **1106 pass, 20 skip** (1126 collected) | `pytest tools\synthetic_clouds\tests --collect-only -q` |
-| Specs in prose | **29** | `specs/<provider>/*.md` |
-| Emulators | **3** — AWS · Azure · GCP | `emulators/` |
-| Versioned files | **445** | `git ls-files` |
+| Unproven items | **293** across 49 surfaces — AWS 88 · GCP 122 · Azure 83 | `specs\_tools\gerar-registro-nao-comprovados.py` |
+| Tests | **1106 pass, 20 skip** (1126 collected; 12–14 min) | `pytest tools\synthetic_clouds\tests -q` |
+| Specs in prose | **30** | `specs/<provider>/*.md` |
+| Emulators | **4** — AWS · Azure · GCP · Kubernetes/OpenCost | `emulators/` |
+| Versioned files | **492** | `git ls-files` |
 
-> On disk there are **447** files: the **445** versioned ones + `.publish-manifest.json`
-> (a build artifact, outside git) + `tools/synthetic_clouds/schedule/simulador-nuvem-daily.xml`
-> (ignored by the `.gitignore`).
+Both blocked surfaces are **deliberate refusals**, not gaps:
 
-The only blocked surface is a **deliberate refusal**, not a gap: Microsoft publishes
-the 132 names without types, and none of them appears in the five contracts at the
-same time. Generating it would require inventing a type and choosing a contract —
-exactly what rule 3 below forbids. The reason is recorded in
-`docs/NAO-COMPROVADOS.md`.
+* `azure/cost-management-export-cost-details` — Microsoft publishes the 132
+  names **without types**, and none of them appears in the five contracts at the
+  same time. Generating it would require inventing the type and choosing a
+  contract — exactly what rule 3 below forbids.
+* `gcp/container-clusters` — the documentation sustains the **shape** (the
+  `ListClustersResponse` envelope and 4 of the 87 published members of
+  `Cluster`), but the surface is an **API response** served live by `gcp-sim` on
+  `container.googleapis.com`, not an export file. Without a renderer that
+  produces an artifact checkable against the spec, calling the surface
+  "implemented" would be a lie. The published shape and the official citation
+  are in [`specs/gcp/container-clusters.md`](specs/gcp/container-clusters.md).
+
+The reason for each one — and for each of the 293 declared gaps — is in
+[`docs/NAO-COMPROVADOS.md`](docs/NAO-COMPROVADOS.md), which is derived from the
+specs and never hand-edited.
 
 ![Coverage, measured](docs/img/cobertura.svg)
 
 ## Inviolable rules
 
-1. **Nothing outside this tree.** The simulator is autonomous: it writes to no third
-   party database, container or repository, and never talks to the real cloud.
-2. **Measured fidelity, not presumed.** Every field name, type, unit, date format,
-   path layout and file type comes from the provider's **official documentation**,
-   cited with URL and consultation date.
-3. **No invented field.** Whatever is not documented is marked as `UNVERIFIED` and
-   stays out of the generation until it is proven. There is no "seems reasonable"
-   in this project.
+1. **Nothing outside this tree.** The simulator is autonomous: it writes to no
+   third party database, container or repository, and never talks to the real
+   cloud.
+2. **Measured fidelity, not presumed.** Every field name, type, unit, date
+   format, path layout and file type comes from the provider's **official
+   documentation**, cited with URL and consultation date.
+3. **No invented field.** Whatever is not documented is marked as `UNVERIFIED`
+   and stays out of the generation until it is proven. There is no "seems
+   reasonable" in this project.
 4. **No credential and no billable call.** The simulator never talks to the real
-   cloud. `aws-sim` still refuses to start if it detects real credential material
-   in the environment (`emulators/aws-sim/aws_sim/guard.py`).
+   cloud. `aws-sim` still refuses to start if it detects real credential
+   material in the environment (`emulators/aws-sim/aws_sim/guard.py`).
 
 ## Layout
 
@@ -67,17 +81,18 @@ exactly what rule 3 below forbids. The reason is recorded in
 | `specs/` | Export specifications per cloud, citing the official docs. **The source of truth.** |
 | `specs/<cloud>/*.schema.json` | Machine-readable field inventory, derived from the spec and used by the fidelity tests. |
 | `specs/_tools/` | Versioned audit utilities (provenance, columns per spec, URLs, generator of the unproven-items registry). |
-| `tools/synthetic_clouds/` | The generator, with the fidelity engine and the test suite. |
-| `docs/` | Method notes, decisions and audits. |
-| `emulators/aws-sim/` | AWS emulator (Query + S3 REST) + `Containerfile`. |
-| `emulators/azure-sim/` | Azure emulator (ARM + cost exporter) + `Containerfile`. |
-| `emulators/gcp-sim/` | GCP emulator (REST + gRPC monitoring) + `Dockerfile`. |
-| `deploy/synthetic-clouds/` | Composes and the stack `.env.example`. |
-| `scripts/synthetic-clouds/` | Orchestration (`up`, `down`, `smoke`, `seed`, `export_once`). |
+| `tools/synthetic_clouds/` | The generator, with the fidelity engine, the daily scheduler, the delivery to the emulators and the test suite. |
+| `docs/` | Method notes, decisions, audits, emulated-API contracts and the impact maps in `docs/regression/`. |
+| `emulators/aws-sim/` | AWS emulator (Query + S3 REST, STS, EC2, S3, Config, IAM, EKS, ECS, ELB, RDS, Lambda, DynamoDB, CloudWatch, CloudFormation, SSO) + `Containerfile`. |
+| `emulators/azure-sim/` | Azure emulator (ARM, Resource Graph, network, Container Service, cost export, Defender, Monitor, deployment stacks, token) + `Containerfile`. |
+| `emulators/gcp-sim/` | GCP emulator (REST: compute, container, Config/Infra Manager, recommender, monitoring, catalog, budgets, CRM, storage; gRPC: monitoring and SCC) + `Dockerfile`. |
+| `emulators/k8s-sim/` | Kubernetes/OpenCost emulator (`/allocation/compute`, `/clusterInfo`); runs standalone, no image. |
+| `deploy/synthetic-clouds/` | One compose per plane, the TLS front (`tls-front/`) and the integration automation (`integration/`). |
+| `scripts/synthetic-clouds/` | Orchestration (`up`, `down`, `smoke` for AWS/GCP, `export_once`, `run_azure_sim`). |
 
 The `tools/synthetic_clouds` path is deliberate: the code self-imports as
-`tools.synthetic_clouds` in 281 places, and moving it would require a mass rename with
-no gain. The package's `ruff`/`mypy`/`pytest` configuration is in
+`tools.synthetic_clouds` in **871** places, and moving it would require a mass
+rename with no gain. The package's `ruff`/`mypy`/`pytest` configuration is in
 `tools/synthetic_clouds/pyproject.toml` — **do not** create a config at the root.
 
 ## Method
@@ -89,24 +104,38 @@ The work advances in this order, always:
 3. **Prove** — fidelity test that compares the generated artifact against
    `specs/<cloud>/*.schema.json`: exact column set, order, units and formats.
 
-An export surface is only considered ready when the three steps close.
+A surface is only considered ready when the three steps close.
 
 ## Architecture
 
 ![How the data flows](docs/img/pipeline.svg)
 
-The path is always the same: the **spec** is the source of truth, the **generator** is
-deterministic, the **emulators** serve the same data through each cloud's APIs, and
-the **consumer** ingests through its own production path. The simulator never talks
-to the real cloud at any point.
+The path is always the same: the **spec** is the source of truth, the
+**generator** is deterministic, the **emulators** serve the same data through
+each cloud's APIs, and the **consumer** ingests through its own production path.
+On the CloudPilot network, the emulators and a **TLS front** publish the real
+hostnames (`management.azure.com` from `azure-sim`; `bigquery.googleapis.com`,
+`container.googleapis.com`, `securitycenter.googleapis.com`, ... from the nginx
+front) and forward them to the right emulator — the consumer code never knows it
+is talking to a simulator. The simulator never talks to the real cloud at any
+point.
 
 ## What is emulated
 
 ![What is emulated, by domain](docs/img/dominios.svg)
 
-Four domains — cost/FinOps, security, network and instances — in the three clouds.
-Each cell corresponds to export surfaces with their own spec, generator and fidelity
-test.
+**Five data domains** — cost/FinOps, security, network, instances and
+**drift/what-if** — in the three clouds. Each cell corresponds to surfaces with
+their own spec, generator and fidelity test.
+
+Beyond the specified surfaces, the emulators expose the **live routes** that
+correspond to several of them — SCC findings (gRPC) and Compute firewalls (REST)
+in `gcp-sim`, `container.googleapis.com` for the cluster list — and serve two
+contracts that have **no export surface** (which is why they are not among the
+49): **cluster discovery** for EKS/AKS, which is an API response, and the
+`k8s-sim` **OpenCost** contract. For those two, what exists is the contract
+measured in code and in the emulator tests, recorded in the impact maps
+(`docs/regression/`) and in `docs/k8s-sim-opencost-contract.md`.
 
 ## Environment
 
@@ -114,8 +143,13 @@ test.
 # the project's own interpreter (CPython 3.12)
 & "C:\Users\ECUNHA\AppData\Local\Programs\Python\Python312\python.exe" -m venv .venv
 & .\.venv\Scripts\python.exe -m pip install -U pip
-& .\.venv\Scripts\python.exe -m pip install pandas pyarrow pydantic structlog pytest ruff mypy
+& .\.venv\Scripts\python.exe -m pip install pandas pyarrow pydantic pytest ruff mypy
 ```
+
+The emulators have their own dependencies — `fastapi`/`uvicorn` in all of them,
+`boto3` and `botocore` in the `aws-sim` tests — and each one pins its own
+environment in the `Containerfile`; they do **not** run in the generator's
+`.venv`.
 
 `python -m tools...` finds the package from its own CWD and **does not** need
 `PYTHONPATH`; only the scripts run by path (`specs\_tools\*.py`) do — and those
@@ -141,15 +175,24 @@ different module names"* and **checks nothing**.
 
 ### The 20 skips in the suite are decisions, not failures
 
-Ten of them come from the `real_parser` fixture, which loads the FOCUS parser of the
-**consumer** platform to check the round-trip. That platform is not part of this
-repository, so the fixture **skips** when it is not present (the guard is
-`pytest.skip`, not an error). The other ten are the `integration` suite, which
-requires a database.
+The skips come from two deliberate guards: the `real_parser` fixture loads the
+**consumer** platform's CUR/FOCUS parser to check the round-trip — that platform
+is not part of this repository, so the fixture **skips** when it is absent (the
+guard is `pytest.skip`, not an error); and the GCP fixture tests **skip** when
+the declared surface has no conditional label. Neither hides a failure: a skip
+is not a passing test.
 
 ## Emulators
 
-The stack comes up with `podman compose`, from `deploy/synthetic-clouds/`:
+The stack comes up with `podman compose`. Each plane has its own fragment, and
+`up.ps1` sequences the three cloud planes:
+
+| Compose | Services | Host ports |
+|---|---|---|
+| `compose.yaml` | `azurite` + `azure-sim` | 8080 (API) · 10000 (blob) — 443/TLS inside the network |
+| `compose.gcp.yaml` | `bigquery-emulator` + `gcp-bq-provision` + `gcp-sim` | 9050 (BigQuery REST) · 9060 (BigQuery gRPC) · 8085 (REST) · 8087 (gRPC) — the SCC gRPC (8088) and Azure's 443 are internal to the network |
+| `compose.aws.yaml` | `s3mock` + `aws-sim` | 9090 (S3) · 8086 (Query/JSON) |
+| `compose.tls-front.yaml` | nginx front | 443 (real hostnames, CloudPilot network) |
 
 ```powershell
 cd deploy\synthetic-clouds
@@ -157,16 +200,19 @@ Copy-Item .env.example .env      # adjust the ports if needed
 ..\..\scripts\synthetic-clouds\up.ps1
 ```
 
-The three emulators answer on `localhost`:
-
-| Emulator | Port | Health |
-|---|---|---|
-| `aws-sim` | 8086 | `GET /healthz` |
-| `azure-sim` | 8080 | `GET /healthz` |
-| `gcp-sim` | 8085 (REST) · 8087 (gRPC) | `GET /healthz` |
+The fourth emulator, `k8s-sim`, has **no** image and no compose service: it is a
+FastAPI app (`fastapi`/`uvicorn`, importing no generator) that reads the
+versioned fixture `k8s_sim/fixtures/clusters.json` and serves the OpenCost
+contract. The contract and the run command are in
+[`docs/k8s-sim-opencost-contract.md`](docs/k8s-sim-opencost-contract.md).
 
 `gcp-sim` needs the rendered *fixtures* to answer; the `gcp-smoke.ps1` does the
 whole cycle (render → provision → read).
+
+For CloudPilot to talk to the stack through the **real hostnames** (DNS + local
+TLS), use the idempotent automation in `deploy/synthetic-clouds/integration/`
+(`cold-start.ps1`, `ensure-cloudpilot.ps1`) and read
+[`docs/INTEGRACAO-CLOUDPILOT-TLS.md`](docs/INTEGRACAO-CLOUDPILOT-TLS.md).
 
 ### How the images are built
 
@@ -178,9 +224,9 @@ COPY tools/synthetic_clouds      /app/tools/synthetic_clouds
 COPY emulators/aws-sim           /app/emulators/aws-sim
 ```
 
-The generator enters the image as the `tools.synthetic_clouds.*` namespace, resolved
-by `PYTHONPATH=/app` — never as an installed wheel. No other directory takes part in
-the build.
+The generator enters the image as the `tools.synthetic_clouds.*` namespace,
+resolved by `PYTHONPATH=/app` — never as an installed wheel. No other directory
+takes part in the build, and `k8s-sim` is the only one with no `Containerfile`.
 
 ## Where to read more
 
@@ -188,6 +234,10 @@ the build.
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Operational contract for agents: how to run, what never to hand-edit, what to do when the evidence does not exist. |
 | [`specs/README.md`](specs/README.md) | The contract that each `.md` spec and each `*.schema.json` must meet. |
-| [`docs/ESTADO.en.md`](docs/ESTADO.en.md) | State of the simulator: what is ready, what is blocked and why. |
+| [`docs/ESTADO.en.md`](docs/ESTADO.en.md) | State of the simulator: what is ready, what is blocked and why, and what changed in each wave. |
+| [`docs/NAO-COMPROVADOS.en.md`](docs/NAO-COMPROVADOS.en.md) | The 293 declared gaps, with the reason the spec records; derived from the specs. |
 | [`docs/POSTURA-SEGURANCA.en.md`](docs/POSTURA-SEGURANCA.en.md) | The security checks of the generator and of the emulators. |
+| [`docs/INTEGRACAO-CLOUDPILOT-TLS.md`](docs/INTEGRACAO-CLOUDPILOT-TLS.md) | Real hostnames, TLS, STS and the automation that survives a restart. |
+| [`docs/k8s-sim-opencost-contract.md`](docs/k8s-sim-opencost-contract.md) | The `k8s-sim` `/allocation/compute` contract, with the source of each field. |
+| [`docs/AGENDAMENTO.en.md`](docs/AGENDAMENTO.en.md) | Daily generation: schedule, lag, retention and the delivery to the emulators. |
 | [`tools/synthetic_clouds/README.md`](tools/synthetic_clouds/README.md) | The generator in detail: structure, method and known traps. |

@@ -2,6 +2,8 @@
 
 > Language: **English** | [Português](POSTURA-SEGURANCA.md)
 
+**Last updated: 2026-10-29, revision `9533b901` (branch `feat/p76-security-posture-gcp-azure`).**
+
 **Decision of 2026-10-16: the simulator now represents security posture, across the three clouds.**
 
 Why, with evidence: FinOps scans the cloud with 4 AWS-native checks — **public S3**,
@@ -16,9 +18,10 @@ Why, with evidence: FinOps scans the cloud with 4 AWS-native checks — **public
 | IAM / Identity | 2 | 0.01% |
 | SCC and Firewall (GCP) | 0 | 0% |
 
-And measured in the **simulator**: **none** of the four is producible today. There is no bucket
-surface with posture, nor of AWS Security Group, nor of IAM; and `aws-config-snapshot-s3` is the
-*snapshot* API, not the compliance one.
+And measured in the **simulator** on 2026-10-16: **none** of the four was producible then. There was
+no bucket surface with posture, nor of AWS Security Group, nor of IAM; and `aws-config-snapshot-s3`
+is the *snapshot* API, not the compliance one. On 2026-10-29 the eight checks have a surface in the
+simulator — the current state is in *State on 2026-10-29*, below.
 
 ## Milestone — the posture domain **closed** (2026-10-19)
 
@@ -56,16 +59,76 @@ The 54 `INSUFFICIENT_DATA` have **one** cause only — the absence of a resource
 scope (the `NOT_APPLICABLE` collapse that the API reports as `INSUFFICIENT_DATA`) — and **zero** rules
 without source. The decomposition is in *Named residue*, below.
 
-**Repository state at the milestone:** `--matrix` → `gerado=45 falta=0 bloqueado=1 total=46`
-(the blocked one is `azure/cost-management-export-cost-details`, a **cost** surface — it does not
-enter the posture domain); `--ready` → `PRONTO: 45 superficies`, **0 invented columns** in
-any provider; suite → **1095 passed / 20 skipped**.
+**Repository state at the milestone (measurement of 2026-10-19):** `--matrix` →
+`gerado=45 falta=0 bloqueado=1 total=46` (the blocked one is
+`azure/cost-management-export-cost-details`, a **cost** surface — it does not enter the posture
+domain); `--ready` → `PRONTO: 45 superficies`, **0 invented columns** in any provider; suite →
+**1095 passed / 20 skipped**. Current numbers in *State on 2026-10-29*.
 
 The 3 product findings that this series of measurements exposed are gathered in a single place in
 [INGESTAO-D3-SEGURANCA.en.md](INGESTAO-D3-SEGURANCA.en.md#findings-for-the-consumer-team) — the
 canonical section, which the other documents point to.
 
 The history of the increments, one by one, is below and **does not change** with this milestone.
+
+## State on 2026-10-29 — coverage, test suite, and what started being served live
+
+This section is the measurement of 2026-10-29 (revision `9533b901`, branch
+`feat/p76-security-posture-gcp-azure`). The milestone of 2026-10-19 and the increment history below
+**do not change**: they describe how the domain was closed, not today's state.
+
+**Coverage (measured with `fidelity` on 2026-10-29):** `--matrix` →
+`gerado=47 falta=0 bloqueado=2 total=49`; `--ready` → `PRONTO: 47 superficies`, **0 invented
+column** in any provider. The 49 specified surfaces are AWS **15**, GCP **23** and Azure **11**.
+
+The **two blocked** ones and why:
+
+- `azure/cost-management-export-cost-details` — Microsoft publishes the 132 names, without types,
+  and none of the 132 appears in the five contracts at the same time; generating would require
+  inventing a type and choosing a contract. It is a **cost** surface, outside the posture domain
+  (same reason as 2026-10-19);
+- `gcp/container-clusters` — **new since 2026-10-27** (`832c3298`): it is the
+  `ListClustersResponse` of Kubernetes Engine v1, served live by the `gcp-sim` on
+  `container.googleapis.com`, not an export file. The documentation supports the shape, but there is
+  no renderer that produces an artifact checkable against the spec — and without a renderer saying
+  "implemented" would be a lie. It is not a posture surface.
+
+**Test suite:** **1106 passed / 20 skipped** (1126 collected, 14m00s), measured on 2026-10-29,
+revision `9533b901`; canonical command `pytest tools\synthetic_clouds\tests`.
+
+### What changed since the milestone — the GCP posture started being served live
+
+Until 2026-10-26 the GCP side of this doc was **artifact/evidence only**, and the distinction is
+literal in the code: the `gcp-sim` served SCC only over REST at the **organization** level
+(`/v1/organizations/.../findings`), a path the `GCPSecurityScanner` does not use — the
+`google-cloud-securitycenter` library registers its transports as
+`("grpc", "grpc_asyncio", "rest")` and picks the **first**, so the scanner speaks gRPC to
+`securitycenter.googleapis.com`; and there was no firewall route at all. On **2026-10-26** commit
+`192f3171` made the `gcp-sim` serve both surfaces live, and commit `9fbb0952` published the
+corresponding hostnames in the TLS front (commit `0a7103bd` started covering them in
+`ensure-cloudpilot.ps1`):
+
+| Surface | How it is served live | Where in the code | What the front publishes |
+|---|---|---|---|
+| SCC findings | gRPC `google.cloud.securitycenter.v1.SecurityCenter/ListFindings`, port **8088** (default of `GCP_SIM_SCC_GRPC_PORT`; the consumer's scan speaks gRPC, not REST) | `emulators/gcp-sim/gcp_sim/routers/scc.py` | `securitycenter.googleapis.com` → `gcp-sim:8088` (`grpc_pass`, `listen 443 ssl http2`) |
+| Compute firewalls | REST `GET /compute/v1/projects/{project}/global/firewalls` (`firewalls.list`), port **8085** | `emulators/gcp-sim/gcp_sim/routers/compute.py` | `compute.googleapis.com` → `gcp-sim:8085` |
+
+The detail of what each route serves and what is a stub is in **Increment 9**, below. In short: the
+`gcp-sim` now serves live the **same rendered fixture** the renderer delivers as an artifact, so the
+CloudPilot `GCPSecurityScanner` finds the two surfaces at `securitycenter.` and
+`compute.googleapis.com` instead of going out to the real Google.
+
+**The Azure side also changed on 2026-10-26:** commit `211f21c2` made the `azure-sim` accept
+`api-version=2026-03-01` on network security groups (besides `2025-05-01`), which is the version the
+installed `azure-mgmt-network` 33.1.0 sends. That unblocks the **read**; the body remains empty by
+design (the estate has no NSG) — the Azure posture measured in Increment 7 is the **artifact**
+`azure/arm-network-security-group-rules`, not the emulator's response. Recorded in Increment 7.
+
+**And what did NOT change:** the **D3 bridge** described below remains what it was — contract on the
+simulator side, writing on the FinOps side. No new *findings* surface for ingestion was created in
+this wave: what the `gcp-sim` started serving is the live API the product's scanner calls, not a
+flow of findings written into the `findings` table. The `severity`/`fingerprint` rule and the
+`b3dd315` H-18 mold remain valid as they were.
 
 ## The rule that governs all surfaces from here on
 
@@ -422,19 +485,51 @@ counter per scope, so `s3_bucket-0004` exists in more than one account.
 
 ## Following increments, in order
 
-| # | Family | Check | Where the contract is |
-|---|---|---|---|
-| ~~2~~ | **AWS Security Group** | `ec2.describe_security_groups` + ingress | **delivered** |
-| ~~3~~ | **S3 Bucket** | `list_buckets`, `get_bucket_acl`, `get_bucket_policy`, `get_public_access_block` | **delivered** |
-| ~~4~~ | **IAM without MFA** | `iam.get_credential_report` | **delivered** |
-| ~~5~~ | **GCP — SCC** | Security Command Center findings | **delivered on 2026-10-18 (fidelity)** |
-| 6 | **GCP — firewall** | `0.0.0.0/0` rules on critical ports | Network Security / VPC firewall |
-| ~~7~~ | **Azure — NSG** | NSG rules | **delivered on 2026-10-18 (fidelity)** |
-| 8 | **Azure — Defender** | Defender for Cloud posture | Defender for Cloud |
+Table updated on 2026-10-29. What was "next" in 2026-10-19 is delivered; the *Status* column
+separates what was delivered from what remains open.
+
+| # | Family | Check | Where the contract is | Status (2026-10-29) |
+|---|---|---|---|---|
+| 1 | **AWS — Config** | `config.describe_compliance_by_config_rule` | AWS Config API Reference | **delivered on 2026-10-16** (Increment 1) |
+| 2 | **AWS Security Group** | `ec2.describe_security_groups` + ingress | EC2 API Reference | **delivered on 2026-10-16** (Increment 2) |
+| 3 | **S3 Bucket** | `list_buckets`, `get_bucket_acl`, `get_bucket_policy`, `get_public_access_block` | S3 API Reference + User Guide | **delivered on 2026-10-16** (Increment 3) |
+| 4 | **IAM without MFA** | `iam.get_credential_report` | IAM API Reference | **delivered on 2026-10-18** (Increment 4) |
+| 5 | **GCP — SCC** | Security Command Center findings | SCC proto/REST | **delivered on 2026-10-18** (fidelity, Increment 5); **served live over gRPC since 2026-10-26** (Increment 9) |
+| 6 | **GCP — firewall** | `0.0.0.0/0` rules on critical ports | Compute Engine `firewalls.list` (REST) | **delivered** as surface `gcp/compute-firewalls`; **served live over REST since 2026-10-26** (Increment 9) |
+| 7 | **Azure — NSG** | NSG rules | ARM `networkSecurityGroups` | **delivered on 2026-10-18** (fidelity, Increment 7); `api-version` 2026-03-01 accepted by the `azure-sim` on 2026-10-26 |
+| 8 | **Azure — Defender** | Defender for Cloud posture | `assessments.list` (api 2021-06-01) | **delivered on 2026-10-18** (Increment 8) |
 
 Item 7 was the cheapest to **measure** (the surface already existed), not to **close**: the audit
 found `nsg.id` missing — which the consumer's remediation command depends on — and a state that the
 check never flagged. "The surface is already ready" is a starting hypothesis, not a verdict.
+
+### What remains open (2026-10-29)
+
+The domain of the 8 checks is closed: each one has the surface that produces the verdict the check
+reads. What remains open is of another nature, and it is declared:
+
+- **`GetComplianceDetailsByConfigRule` has no surface.** The consumer calls this API after
+  `DescribeComplianceByConfigRule` for the resources behind each rule; only the per-rule response
+  exists (see *What changes in the bridge (D3)*). It is the only posture call of the consumer in
+  this doc with no corresponding surface;
+- **account-level Block Public Access is not modeled** — only the bucket one (see Increment 3);
+- **each security group's `vpcId` is derived** from the network segment (marked `TODO-verificar`),
+  and **`securityGroupArn` goes `null`** because the model does not carry the partition (see
+  Increment 2);
+- **the NSG plural forms** (`destinationPortRanges`/`destinationPortPrefixes`) remain empty by the
+  model's choice; closing them requires `model/network.py`, shared with the NSG flow logs (see
+  Increment 7, Divergence 2);
+- **the live NSG projection in the `azure-sim` remains `[]`** by design — the Azure posture reaches
+  the consumer through the **artifact**, not the live API (see the `api-version 2026-03-01` note in
+  Increment 7);
+- **the gRPC `ListFindings` does not filter or paginate**: it serves the same fixture for any
+  `filter` (see Increment 9);
+- **`sourceProperties.{Explanation,Recommendation}` and `listFindingsResults[].resourceUuid`
+  remain `unverified`** in the SCC spec (see Increment 5, *Residue*);
+- **finding #2** (VPC implicit rules not listable) is structural to the API and has no one-line
+  fix; findings #1 and #3 are in the consumer's code and were not fixed here (FinOps is read-only in
+  this task).
+
 
 ## What changes in the bridge (D3)
 
@@ -734,7 +829,9 @@ Neither of the two changed, so `NAO-COMPROVADOS.md` was not regenerated.
 
 `gcp/scc-findings` closed at **13 columns in the spec, 13 populated, 0 absent, 0 invented**
 (they were 12). The GCP SCC check in `<coverage-doc>.md` goes from *inferred* to *measured*: the
-surface is faithful to the consumer contract in every field the consumer projects.
+surface is faithful to the consumer contract in every field the consumer projects. On 2026-10-26
+the same fixture started being served **live** over gRPC on `:8088` (see Increment 9), without
+changing a single column of the spec.
 
 ## Increment 7 — Azure NSG: fidelity of the rules surface (2026-10-18)
 
@@ -876,6 +973,28 @@ emittable** (they were 25 columns in the spec; `topo` 16). The Azure NSG check i
 `<coverage-doc>.md` goes from *inferred* to *measured*: the surface delivers, field by field,
 everything `AzureSecurityScanner` projects — including the `nsg.id` that the remediation command
 depends on — and the state now actually produces findings.
+
+### What changed on 2026-10-26: `api-version` 2026-03-01 in the `azure-sim`
+
+Commit `211f21c2` (2026-10-26) made the `azure-sim` accept `api-version=2026-03-01` on
+`networkSecurityGroups.list_all`, besides `2025-05-01`
+(`emulators/azure-sim/azure_sim/api/network.py`). The reason is measured and recorded in the commit:
+the installed `azure-mgmt-network` 33.1.0 sends `2026-03-01`, and the service accepted only
+`2025-05-01`, so **every** NSG read was rejected with `InvalidApiVersion` and the Azure posture never
+reached the scanner. The version was read from the installed builder, not chosen: `2026-03-01` is
+the default of `build_network_security_groups_list_all_request` in 33.1.0, and `2025-05-01` remains
+accepted because it is the previous builder's default. An unknown or missing version remains
+`400 InvalidApiVersion`.
+
+This **does not** change Increment 7, and the distinction matters: the surface this increment
+measured is the **artifact** `azure/arm-network-security-group-rules` (6 NSGs,
+`AllowInternetInboundSsh`); the `azure-sim`'s live projection still returns an **empty list** by
+design (`azure_sim/projections/network.py`), because the estate models no NSG resource. What the
+change unblocks is the **call**: the CloudPilot SDK now receives `200` with `value: []` instead of
+`InvalidApiVersion` — the Azure check runs and concludes "nothing to report" instead of failing. To
+have the posture appear live, the projection would have to change, and it is written by the FinOps
+team (inviolable rule #1). The tests for the change are in
+`tests/test_azure_network_api_version.py` (**4**).
 ## Increment 8 — Azure assessments: the Defender check gained the surface it was reading (2026-10-18)
 
 FinOps' `AzureSecurityScanner` reads `security.assessments.list(scope="/subscriptions/{id}")` and
@@ -886,6 +1005,15 @@ returned an empty list and the continuous export renderer delivers
 `SecurityAssessmentList` envelope per subscription, in api `2021-06-01`.
 
 Source: [Assessments - List](https://learn.microsoft.com/en-us/rest/api/defenderforcloud-composite/assessments/list?view=rest-defenderforcloud-composite-stable).
+
+> **Re-checked on 2026-10-29.** In the current code, the `azure-sim` **has** an assessments route
+> (`emulators/azure-sim/azure_sim/api/defender.py`) and projects the rows from the native findings
+> (`projections/findings.py`), with `status.code` always `"Unhealthy"` — there is no `Healthy` or
+> `NotApplicable`, and no severity `metadata`. What did not exist was the **faithful** surface with
+> the three literals and the `SecurityAssessmentList` envelope: that is the one
+> (`azure/security-assessments-list`) the golden test uses to measure the discard. The phrase "empty
+> list" above describes the **check result** (it returns `[]` because of finding #3), not the
+> absence of the route.
 
 ### The state needs a new fact, and it is opt-in
 
@@ -958,7 +1086,72 @@ the title comes out empty. It is a real gap, not a cosmetic detail.
 
 ### State on the map
 
-`--matrix`: **gerado=45 falta=0 bloqueado=1 total=46** (the generated ones were 44; the total was
-45). `--audit azure`: the surface delivers 4 files, 4 records, **17 documented paths with value**,
-**0 invented columns**, **0 required empty**. `--ready azure`: `PRONTO: 9 superficies`. Golden test:
-**34 tests**.
+`--matrix` in the measurement of 2026-10-18: **gerado=45 falta=0 bloqueado=1 total=46** (the
+generated ones were 44; the total was 45). `--audit azure`: the surface delivers 4 files, 4 records,
+**17 documented paths with value**, **0 invented columns**, **0 required empty**. `--ready azure`:
+`PRONTO: 9 superficies`. Golden test: **34 tests**.
+
+## Increment 9 — the GCP posture started being served live by the `gcp-sim` (2026-10-26; recorded on 2026-10-29)
+
+This increment creates no posture surface: both already existed as an artifact (`gcp/scc-findings`/
+`gcp/scc-sources` and `gcp/compute-firewalls`). What changed was **where they can be read**. The
+state this doc described until here was artifact **fidelity**, not live service fidelity.
+
+Commit `192f3171` (2026-10-26) made the `gcp-sim` serve both surfaces **live**, commit `9fbb0952`
+published the two hostnames in the TLS front, and `0a7103bd` started covering them in
+`ensure-cloudpilot.ps1`. `app.py` mounts the two routers (`compute` and `scc`) and keeps the
+concrete-prefix routers before the greedy `{scope:path}`/`{parent:path}` ones, which is what
+prevents shadowing.
+
+### SCC findings — REST and gRPC
+
+| Route | What it serves | What it does not do (stub) |
+|---|---|---|
+| REST `GET /v1/organizations/{org}/sources` and `GET /v1/projects/{project}/sources` | the `scc_sources.json` fixture, with bearer required | it does not filter or paginate (only `pageSize` is validated) |
+| REST `GET /v1/{parent:path}/findings` | the `scc_findings.json` fixture (66 findings) for `organizations/*` **and** `projects/*` | both levels return the **same** list; the parent selects no subset |
+| gRPC `SecurityCenter/ListFindings` (port **8088**) | the **same** rendered fixture, decodable by `google-cloud-securitycenter` itself | the handler returns the whole response for **any** `ListFindingsRequest`: `parent`, `filter` and `order_by` do not filter, and there is no pagination |
+
+The gRPC plane's wire contract is not guessed: the field numbers and enums were read off the
+installed `google-cloud-securitycenter` package (the same one that deserializes the response) and
+declared in `routers/scc.py`; `source_properties` goes as
+`map<string, google.protobuf.Value>`, with the scalar value the fixture carries. The plane starts
+with the app (the router's startup handler) and can be disabled with `GCP_SIM_SCC_GRPC_PORT=off`;
+with the variable unset it stays **on** on port 8088 (`DEFAULT_PORT`). `compose.gcp.yaml` publishes
+8085 and 8087 on the host and does **not** publish 8088 — the port is internal to the network; what
+reaches it is the TLS front, through the `gcp-sim:8088` upstream.
+
+### Compute firewalls — REST
+
+`GET /compute/v1/projects/{project}/global/firewalls` (`firewalls.list`) serves the rules the estate
+already models (`GcpFirewallRule`), per project, ordered by name (the order the provider's page
+publishes as the default). The route mirrors **member by member** what the
+`render/compute_firewalls.py` renderer publishes for the same surface — there are not two
+descriptions of the same contract. What the model does not carry comes out empty, by the renderer's
+own rule: `id`, `selfLink` and `creationTimestamp` go `null`, and `params` goes `{}` (input-only).
+The list does not paginate: it returns every item of the project and `nextPageToken: null`.
+
+The state carries the rules the check looks for: `default-allow-ssh` (`0.0.0.0/0` → tcp/22) and
+`default-allow-rdp` (`0.0.0.0/0` → tcp/3389). The test
+`emulators/gcp-sim/tests/test_security_posture.py` (**12 tests**) covers: project parent accepted in
+REST, both levels with the same list, required bearer, the firewall list coming from the estate and
+ordered, unknown project empty, the gRPC plane answering `ListFindings`, the bytes decoding with the
+**client library**, gRPC and REST with the same list, and the plane starting with the app.
+
+### What remains outside, and is a declared stub
+
+- `ListFindings` **does not filter**: the scanner sends a `filter` (by state/severity) and the plane
+  returns all 66 findings. The value is the same fixture as the artifact, so field fidelity holds;
+  the filter does not;
+- the two implicit rules of every VPC network (`ingress-deny-all`/`egress-allow-all`, priority
+  65535) remain outside: the real API does not return them in `firewalls.list` either — it is
+  **finding #2** of the canonical findings section, not a simulator gap;
+- the `gcp/container-clusters` surface, served in the same REST plane
+  (`container.googleapis.com`), is **blocked** and is not posture (see *State on 2026-10-29*).
+
+### What this changes in the D3 bridge
+
+Nothing in the writing: the bridge remains contract on the simulator side and writing on the FinOps
+side. What changes is the product's **read path** — the GCP scanner now sees, live, the same two
+surfaces the doc already measured as an artifact. In particular, `gcp/scc-findings` stops depending
+only on export to be exercised: the same `NativeFinding` feeds the artifact and the gRPC plane, and
+the test checks that the two reads publish the same list.

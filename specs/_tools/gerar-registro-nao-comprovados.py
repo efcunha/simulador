@@ -1,36 +1,27 @@
-"""Regenerate docs/NAO-COMPROVADOS.md from the specs' own ``unverified`` lists.
+"""Regenerate docs/NAO-COMPROVADOS.md and docs/NAO-COMPROVADOS.en.md from the specs.
 
-AVISO IMPORTANTE
-================
-Este arquivo SUBSTITUIU o gerador canonico do repo com o mesmo nome. O original nao esta
-versionado (``.artifacts/`` esta no ``.gitignore``) e nao pode ser recuperado pelo git --
-ver a secao de HANDOFF do Incremento 3. A versao original produzia o documento inteiro a
-partir do zero, incluindo um preambulo longo que nao pode ser derivado das specs.
+Este e o gerador **versionado** do registro: vive em ``specs/_tools/``. Uma variante anterior
+ficava em ``.artifacts/`` (fora do git) e produzia o documento inteiro a partir do zero; o que
+ela tinha de insubstituivel -- o preambulo longo, escrito a mao, que nao pode ser derivado das
+specs -- esta no proprio documento versionado, e por isso este script e **nao destrutivo por
+construcao**:
 
-Por isso esta versao e **nao destrutiva por construcao**:
-
-* o preambulo existente e lido do arquivo e preservado **byte a byte** -- nada aqui reescreve
-  texto que nao vem das specs;
+* o preambulo de cada documento e preservado **byte a byte**, com UMA excecao textual: a
+  citacao do proprio gerador, que ainda aponta para ``.artifacts/`` e passa a apontar para
+  ``specs/_tools/`` (ver :data:`RE_GERADOR_ANTIGO`). Nada mais do texto escrito a mao e
+  reescrito;
 * as secoes ja existentes tem o CORPO reconciliado com a spec: um item declarado que a secao
   nao listava e acrescentado (ver :func:`_reconcilar`);
 * os tres numeros do bloco "Numeros" sao recalculados a partir das specs, porque numero escrito
-  a mao envelhece em silencio assim que uma lacuna e fechada por evidencia;
+  a mao envelhece em silencio assim que uma lacuna e fechada por evidencia -- nenhum total e
+  fixado no codigo;
 * rodar duas vezes nao muda nada (idempotente).
 
-O que este script **nao** faz: reescrever o preambulo do documento. Um clone novo ja nasce
-com o ``docs/NAO-COMPROVADOS.md`` versionado, entao nao ha preambulo a preservar -- o
-preambulo do clone e o do commit. Se um dia o documento precisar ser reconstruido do zero,
-este script nao serve para isso: o gerador original se foi com a branch.
+Os DOIS documentos vem das MESMAS specs e tem os MESMOS itens; o que muda e a moldura -- o
+preambulo, o bloco de numeros, o cabecalho da tabela e o rotulo do tipo ("campo"/"tema" em pt,
+"field"/"topic" em en).
 
-Uso: ``python specs/_tools/gerar-registro-nao-comprovados.py`` (a partir da raiz do
-pacote ``simulador-nuvem``)
-
-Este script mantem DOIS documentos: o original em pt-BR
-(``docs/NAO-COMPROVADOS.md``) e o gemeo em ingles
-(``docs/NAO-COMPROVADOS.en.md``). Os dois vem das MESMAS specs e tem os MESMOS
-itens; o que muda e a moldura -- o preambulo, o bloco de numeros, o cabecalho da
-tabela e o rotulo do tipo ("campo"/"tema" em pt, "field"/"topic" em en). O
-preambulo de cada documento e escrito a mao e preservado byte a byte, como antes.
+Uso: ``python specs/_tools/gerar-registro-nao-comprovados.py`` (a partir da raiz do repositorio)
 """
 
 from __future__ import annotations
@@ -52,6 +43,13 @@ from tools.synthetic_clouds.fidelity.spec import (  # noqa: E402
 SPECS = REPO / "specs"
 DOC = REPO / "docs" / "NAO-COMPROVADOS.md"
 DOC_EN = REPO / "docs" / "NAO-COMPROVADOS.en.md"
+
+#: Citacao do gerador no preambulo, escrita quando ele ainda vivia em ``.artifacts/`` (fora do
+#: git). O preambulo e preservado byte a byte, com esta unica excecao textual: o caminho citado
+#: passa a ser o do arquivo versionado. E uma troca de texto, nao de conteudo -- nada mais do
+#: preambulo e tocado.
+RE_GERADOR_ANTIGO = re.compile(r"\.artifacts/gerar-registro-nao-comprovados\.py")
+GERADOR_VERSIONADO = "specs/_tools/gerar-registro-nao-comprovados.py"
 
 #: As tres linhas do bloco "Numeros" que este script recalcula.
 #: ``RE_TOTAL`` casa a LINHA INTEIRA (``.*$``), e nao so o prefixo: casando so o prefixo, o
@@ -263,9 +261,15 @@ def _manter(
     doc = cfg["path"]
     if not doc.exists():
         return False, f"aviso: {doc} nao existe; nada a preservar."
+    # Le a terminacao de linha do arquivo antes de normaliza-la na leitura: o
+    # ``Path.write_text`` sem ``newline`` explicito grava ``os.linesep`` no Windows, o que
+    # reescreveria TODO o documento quando a unica mudanca fosse uma linha de cabecalho.
+    # Os documentos versionados usam LF.
+    terminacao = "\r\n" if b"\r\n" in doc.read_bytes() else "\n"
     texto = doc.read_text(encoding="utf-8")
     original = texto
 
+    texto = RE_GERADOR_ANTIGO.sub(GERADOR_VERSIONADO, texto)
     texto = cfg["re_total"].sub(cfg["total"](total, superficies), texto)
     texto = cfg["re_juntos"].sub(cfg["juntos"](total, superficies), texto)
     texto = cfg["re_provedor"].sub(cfg["provedor"](por_provedor), texto)
@@ -282,7 +286,8 @@ def _manter(
 
     if texto == original:
         return False, f"ok: sem mudanca ({total} itens em {superficies} superficies)"
-    doc.write_text(texto, encoding="utf-8")
+    with doc.open("w", encoding="utf-8", newline=terminacao) as saida:
+        saida.write(texto)
     return True, (
         f"ok: {total} itens em {superficies} superficies; "
         f"{len(reconciliadas)} secao(oes) reconciliada(s) "

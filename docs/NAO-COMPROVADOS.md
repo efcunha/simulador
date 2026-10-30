@@ -2,7 +2,7 @@
 
 > Idioma: **Português** | [English](NAO-COMPROVADOS.en.md)
 
-Registro **derivado das especificações** — a fonte normativa deste repositório — por `.artifacts/gerar-registro-nao-comprovados.py`. Ele existe porque as lacunas estavam declaradas dentro de cada spec, campo a campo, e não havia um lugar único que respondesse *"o que ainda não foi provado?"*; vários docstrings do gerador apontavam para um `docs/synthetic-clouds/UNVERIFIED.md` que **só existe dentro do repositório do FinOps**.
+Registro **derivado das especificações** — a fonte normativa deste repositório — por `specs/_tools/gerar-registro-nao-comprovados.py`. Ele existe porque as lacunas estavam declaradas dentro de cada spec, campo a campo, e não havia um lugar único que respondesse *"o que ainda não foi provado?"*; vários docstrings do gerador apontavam para um `docs/synthetic-clouds/UNVERIFIED.md` que **só existe dentro do repositório do FinOps**.
 
 **Nada aqui é novo.** Cada linha é um `unverified` que já estava escrito na spec, com o motivo que o autor registrou. O que este documento acrescenta é a **consolidação** e a **contagem** — e é por isso que ele é gerado, e não escrito à mão: uma segunda lista manteria duas verdades sobre o mesmo assunto.
 

@@ -160,7 +160,7 @@ group), e normalizá-los seria inventar um nome.
 - `emulators/k8s-sim/**` — intocado por esta fase (o fixture é S4b1-E). **Atualização de
   2026-10-29:** a S4b1-E tocou o `k8s-sim` em `a64b8414` (fixture com `native_id` e filtro
   por id nativo); o escopo histórico da S4b1-D acima não muda.
-- O CloudPilot (`d:\cloudpilot-deploy`) — **nenhum arquivo alterado**.
+- O CloudPilot (`C:\Projetos\cloudpilot-deploy`) — **nenhum arquivo alterado**.
 - GKE e AKS — intocados.
 
 ## 7. Riscos residuais

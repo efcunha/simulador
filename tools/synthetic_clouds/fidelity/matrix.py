@@ -202,23 +202,22 @@ SURFACES: tuple[SurfaceCoverage, ...] = (
         "gcp/security-command-center-findings-bigquery",
         STATUS_IMPLEMENTED,
         "gcp_scc_findings",
-        "67 registros. As 6 colunas sem tipo publicado nao sao geradas -- num alvo tipado isso "
+        "64 registros. As 6 colunas sem tipo publicado nao sao geradas -- num alvo tipado isso "
         "exigiria inventar o tipo.",
     ),
     SurfaceCoverage(
         "gcp/vpc-flow-logs-bigquery",
         STATUS_IMPLEMENTED,
         "gcp_flow_logs",
-        "O artefato e o FORMATO documentado com todo valor vazio, e o manifesto registra "
-        "records=0. Os 181 campos conferem, mas NAO HA FLUXO: o modelo canonico nao tem tipo de "
-        "registro de fluxo (ver docs/MODELO-REDE.md).",
-        DATA_FORMAT_ONLY,
+        "Um registro por fluxo do estado; 26 dos 181 caminhos carregam valor e o manifesto "
+        "registra records = numero de fluxos (>0). O destino documentado e o Cloud Logging, com "
+        "BigQuery como dataset vinculado: o renderer emite o formato, nao um export para BigQuery.",
     ),
     SurfaceCoverage(
         "gcp/cloud-asset-inventory-compute-instance",
         STATUS_IMPLEMENTED,
         "gcp_asset_inventory",
-        "126 registros; 9 dos 10 conjuntos completos (o ausente em asset_message e o obsoleto).",
+        "125 registros; 9 dos 10 conjuntos completos (o ausente em asset_message e o obsoleto).",
     ),
     SurfaceCoverage(
         "gcp/compute-instances-rest",
@@ -391,7 +390,7 @@ SURFACES: tuple[SurfaceCoverage, ...] = (
         "azure/azure-resource-graph-virtual-machines",
         STATUS_IMPLEMENTED,
         "azure_resource_graph",
-        "56 registros; 32 dos 33 caminhos properties.* das VMs. Os conjuntos "
+        "54 registros; 32 dos 33 caminhos properties.* das VMs. Os conjuntos "
         "securityresources ficam de fora porque sao example-only. Resource Graph e consulta, "
         "nao export.",
     ),
@@ -406,21 +405,21 @@ SURFACES: tuple[SurfaceCoverage, ...] = (
         "azure/vnet-flow-logs",
         STATUS_IMPLEMENTED,
         "azure_vnet_flow_logs",
-        "12 registros, mas apenas 7 das 127 colunas sao geraveis: os 120 campos de blob sao "
+        "114 registros em 104 arquivos, mas apenas 7 das 127 colunas sao geraveis: os 120 campos de blob sao "
         "example-only. Esparso por falta de contrato publicado, nao por omissao.",
     ),
     SurfaceCoverage(
         "azure/defender-for-cloud-continuous-export",
         STATUS_IMPLEMENTED,
         "azure_defender",
-        "107 registros nas tres estruturas com schema publicado. As 21 de attackpaths nao tem "
+        "105 registros nas tres estruturas com schema publicado. As 21 de attackpaths nao tem "
         "tipo nem exemplo de payload. Azure Storage nao e destino documentado.",
     ),
     SurfaceCoverage(
         "azure/arm-resource-representation",
         STATUS_IMPLEMENTED,
         "azure_arm_instances",
-        "56 registros; 301 das 327 colunas. E a resposta da API, nao um arquivo de export.",
+        "54 registros; 301 das 327 colunas. E a resposta da API, nao um arquivo de export.",
     ),
     SurfaceCoverage(
         "azure/arm-network-security-group-rules",

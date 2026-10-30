@@ -4,6 +4,8 @@
 
 **Status as of 2026-10-16: rewritten. The previous version started from a wrong premise.**
 
+**Last updated: 2026-10-29, revision `9533b901` (branch `feat/p76-security-posture-gcp-azure`).**
+
 ---
 
 ## Findings for the consumer team
@@ -40,9 +42,9 @@ the code and navigating the application disprove that.
 the product — the scan was confirmed by searching the code and by the Security screen, which
 describes the checks one by one.
 
-And there is a more serious consequence: **the simulator does not produce any of the four
-checks.** Detailed in §4. This spec stopped being "a bridge" and became "modeling a new
-domain".
+And there is a more serious consequence: **on 2026-10-16 the simulator did not produce any of the
+four checks** — all four only became producible in Increments 1–4, detailed in §4. This spec
+stopped being "a bridge" and became "modeling a new domain".
 
 | | the previous version said | what is true |
 |---|---|---|
@@ -64,7 +66,9 @@ Source: `security.py (consumer-module)`, 746 lines.
 | 4 | **AWS Config** | `config.describe_compliance_by_config_rule(ComplianceTypes=["NON_COMPLIANT"])` | `config.<rule_name>` |
 
 On GCP, the product has two checks of its own — **Security Command Center** and **Firewall
-Rules** — which on the 2026-10-16 screen both appeared as `0 ✓ clean`.
+Rules** — which on the 2026-10-16 screen both appeared as `0 ✓ clean`. Since 2026-10-26 the two
+surfaces are served live by the `gcp-sim` (SCC over gRPC on `:8088`, firewalls over REST on
+`:8085` — see §4).
 
 ## 3. What the `findings` table requires
 
@@ -83,33 +87,72 @@ The contract was made to tolerate the input.
 
 ## 4. What the simulator has today — measured, not estimated
 
-> **Updated on 2026-10-16.** This text has already been updated three times on the same day: by
-> the delivery of `aws/config-describe-compliance-by-config-rule` (Increment 1), by that of
-> `aws/ec2-describe-security-groups` (Increment 2) and by the four bucket ones of **Increment 3**
-> (`s3-list-buckets`, `s3-get-bucket-acl`, `s3-get-bucket-policy`, `s3-get-public-access-block`).
-> The verdict went from **0 of 4** to **1**, then **2**, and now **3 of 4** producible checks.
+> **Updated on 2026-10-16 and again on 2026-10-29.** The text was already updated three times on
+> 2026-10-16: by the delivery of `aws/config-describe-compliance-by-config-rule` (Increment 1), by
+> that of `aws/ec2-describe-security-groups` (Increment 2) and by the four bucket ones of
+> **Increment 3** (`s3-list-buckets`, `s3-get-bucket-acl`, `s3-get-bucket-policy`,
+> `s3-get-public-access-block`). On 2026-10-18 Increment 4 closed the IAM check, and on 2026-10-26
+> the `gcp-sim` started serving the two GCP posture surfaces live. The AWS verdict went from **0 of
+> 4** to **4 of 4** producible checks; the state measured on this date is below.
 
-| Check | Before | Now | Why |
+| Check | Before (2026-10-16) | Now (2026-10-29) | Why |
 |---|---|---|---|
 | 1. Public S3 | **NO** | **YES** | Increment 3 delivered the four bucket surfaces: ACL (`GetBucketAcl`, with `Grant`/`Grantee` and `Permission`), bucket policy (`GetBucketPolicy`), Block Public Access (`GetPublicAccessBlock`, the four booleans) and the per-account listing (`ListBuckets`). What was missing — "who can read or write this bucket" — became a fact of the model |
 | 2. Security Groups | **NO** | **YES** | Increment 2 delivered `aws/ec2-describe-security-groups`: `SecurityGroup` with `IpPermissions`/`IpPermissionsEgress`, each rule with `ipProtocol`, `fromPort`/`toPort` and the origin. It is the same shape the Azure check already read in `azure/arm-network-security-group-rules` |
-| 3. IAM without MFA | **NO** | **NO** | there is no IAM surface; `NativeFinding.category` reaches `IAM` as a label, but nothing behind it. `root-account-mfa-enabled`, `iam-password-policy` and `access-keys-rotated` stay `INSUFFICIENT_DATA` for the same reason |
+| 3. IAM without MFA | **NO** | **YES** | Increment 4 (2026-10-18) delivered `aws/iam-get-credential-report` (the 23 CSV columns, with per-user MFA and the root account row) and `aws/iam-get-account-password-policy` (the 10 members of `PasswordPolicy`, with `ExpirePasswords` derived); the three Config rules (`root-account-mfa-enabled`, `iam-password-policy`, `access-keys-rotated`) left `INSUFFICIENT_DATA` |
 | 4. AWS Config | **PARTIAL** | **YES** | it was only `aws/aws-config-snapshot-s3`, which is the *snapshot* API. `aws/config-describe-compliance-by-config-rule` now exists, which is the compliance response **per rule** |
 
-And there is a structural fact that explains the rest: **the simulator has findings in the model
-and no surface that delivers them.** `NativeFinding` exists and is consumed by the ASFF renderer,
-but the 13 AWS surfaces of the repository are `aws-config-snapshot-s3`,
+And there is a structural fact that explains the rest, and it holds **on the AWS side**: the
+simulator has findings in the model and, of its **15** AWS surfaces, none is the flow of security
+findings with an evaluated resource that the product consumes. `NativeFinding` exists and is
+consumed by the ASFF renderer, and the 15 surfaces are `aws-config-snapshot-s3`,
 `config-describe-compliance-by-config-rule`, `bcm-data-exports-cur2`,
 `bcm-data-exports-focus12`, `ec2-describe-instances`, `ec2-describe-security-groups`,
 `s3-list-buckets`, `s3-get-bucket-acl`, `s3-get-bucket-policy`, `s3-get-public-access-block`,
-`security-hub-asff`, `security-hub-ocsf-export` and `vpc-flow-logs-s3` — the delivery of Increment
-1 gave compliance state per rule, that of Increment 2 gave network posture, that of Increment 3
-gave bucket posture, but it is still **not** a flow of security findings with an evaluated
-resource.
+`security-hub-asff`, `security-hub-ocsf-export`, `vpc-flow-logs-s3`,
+`iam-get-account-password-policy` and `iam-get-credential-report`. The delivery of Increments 1–4
+gave compliance state per rule, network posture, bucket posture and identity — but it is still
+**not** a flow of security findings with an evaluated resource on the AWS side.
 
-**Verdict: 3 of the 4 checks are producible** (they were 0). The wrong surface is still
-`aws/security-hub-asff`: it delivers findings in the Security Hub format, and the product does not
-read Security Hub.
+**Verdict on 2026-10-29: the 4 of 4 AWS checks are producible** (they were 0 on 2026-10-16). On
+GCP, the 2 checks started being served **live** on 2026-10-26; on Azure, the measured posture is an
+**artifact** (the live NSG API has accepted the SDK's call since 2026-10-26, but returns an empty
+list by design). The wrong surface is still `aws/security-hub-asff`: it delivers findings in the
+Security Hub format, and the product does not read Security Hub.
+
+### What the 2026-10-26 wave changed — GCP live, Azure unblocked (measured on 2026-10-29)
+
+**GCP.** On 2026-10-26 (`192f3171`) the `gcp-sim` started serving the two posture surfaces the
+`GCPSecurityScanner` calls:
+
+- **SCC findings over gRPC** — `google.cloud.securitycenter.v1.SecurityCenter/ListFindings` on port
+  **8088** (`emulators/gcp-sim/gcp_sim/routers/scc.py`). The client speaks gRPC because
+  `google-cloud-securitycenter` registers its transports as `("grpc", "grpc_asyncio", "rest")` and
+  picks the first one; before that, the service only had REST at the organization level and the
+  scan never reached it. The plane serves the **66 findings** of the same rendered fixture
+  (`scc_findings.json`) that the artifact delivers;
+- **Compute firewalls over REST** — `GET /compute/v1/projects/{project}/global/firewalls`
+  (`routers/compute.py`), with the rules the estate already models (`default-allow-ssh` on
+  `0.0.0.0/0`:22, `default-allow-rdp` on `:3389`), ordered by name.
+
+The TLS front publishes both hostnames: `securitycenter.googleapis.com` (gRPC, `http2` +
+`grpc_pass` to `gcp-sim:8088`) and `compute.googleapis.com` (REST to `gcp-sim:8085`) —
+`deploy/synthetic-clouds/tls-front/nginx.conf` and the aliases in `compose.tls-front.yaml`. What is
+a **declared stub**: `ListFindings` returns the whole response for any `parent`/`filter` (it does
+not filter or paginate), and `firewalls.list` does not paginate. **Field** fidelity is the
+artifact's; filtering and pagination are outside what the simulator reproduces.
+
+**Azure.** Since 2026-10-26 (`211f21c2`) the `azure-sim` accepts `api-version=2026-03-01` on
+`networkSecurityGroups.list_all` — the version the installed `azure-mgmt-network` 33.1.0 sends;
+before that, **every** NSG read was rejected with `InvalidApiVersion` and the Azure posture never
+reached the scanner. The live projection still returns an **empty list** by design
+(`emulators/azure-sim/azure_sim/projections/network.py`): the estate models no NSG resource. What
+changed is that the call succeeds; the posture measured in Increment 7 is the artifact
+`azure/arm-network-security-group-rules`, not the emulator's response.
+
+**What this does not change:** the **D3 bridge** remains what it was — contract on the simulator
+side and writing on the FinOps side. No new findings surface for ingestion was created; what
+changed is the **read path** of the product's scanner.
 
 ### What Increment 3 adds to the bridge, and what it does not resolve
 
@@ -167,20 +210,27 @@ model does not carry, each one with the reason recorded. The real verdicts come 
 `s3-bucket-tagged` and `lambda-function-tagged`, whose rule pages state the condition without
 parameterization.
 
-**What is still missing for the other three**, and the order of cost:
+**What is still missing, measured on 2026-10-29** (and separated from what has been delivered):
 
-1. **S3 bucket with posture** — ACL (`PublicRead`/`PublicReadWrite`), policy (anonymous access),
-   public-access-block on/off, region.
-2. **AWS Security Group with ingress** — ports, origin (`0.0.0.0/0` or not), VPC/parent group.
-3. **IAM user with MFA** — name, MFA on/off, last use.
-4. **AWS Config rule with state** — rule name, `NON_COMPLIANT`, evaluated resource, rule id.
+1. **`GetComplianceDetailsByConfigRule`** — the consumer calls this API after
+   `DescribeComplianceByConfigRule` for the resources behind each rule; the simulator delivers only
+   the **per-rule** response. It is the only AWS posture read of the consumer with no corresponding
+   surface;
+2. **`aws/security-hub-asff` remains the wrong surface for the bridge** — the product does not read
+   Security Hub; it is useful as the mold for `UserDefinedFields` (see §5);
+3. **account-level Block Public Access** — not modeled; only the bucket one is (see *What Increment
+   3 adds to the bridge*, above);
+4. **the two implicit rules of every VPC network** remain outside `firewalls.list` — finding #2,
+   structural to the real API, not to the simulator;
+5. **the live NSG projection in the `azure-sim`** remains `[]`; the Azure posture arrives through
+   the artifact.
 
-Each one with the same discipline as today: the field name comes from the AWS documentation, the
+Each one follows the same discipline: the field name comes from the official documentation, the
 value comes from the state, and what the source does not publish is declared. **None of this is
-evidence reading — it is modeling, and it is a product decision**: the simulator comes to
-represent security posture, not only cost.
+evidence reading — it is modeling, and it is a product decision**: the simulator came to represent
+security posture, not only cost.
 
-## 6. What is already delivered and where that counts
+## 5. What is already delivered and where that counts
 
 The `commit b3dd315` H-18 made the simulator carry `category`, `evidence`, `exposure`, `impact` and
 `fingerprint` in the ASFF's `UserDefinedFields`, so that the consumer did not fabricate data that
@@ -191,9 +241,9 @@ still recomputable from the document.
 The rest is unchanged: 13 direct · 1 cardinality derivation · 1 vocabulary · 2 foreign keys
 (`workspace_id`, `cloud_account_id`) · **0 missing**.
 
-## 7. Sequence
+## 6. Sequence
 
-D3 **does not depend** on the `D6 → D2 → D5` trio and can run in parallel. But §5 is a prerequisite
+D3 **does not depend** on the `D6 → D2 → D5` trio and can run in parallel. But §4 is a prerequisite
 for everything: without a check that produces a finding, there is nothing to ingest. The shortest
 path is:
 
@@ -267,7 +317,7 @@ What it contains is `_config_rule_severity(rule_name)`, which classifies the sev
 Conclusion: **the Config compliance payload is already the channel through which the product
 reads the three rules.** Delivering `cloudtrail:DescribeTrails` or `securityhub:DescribeHub` here
 would be a surface nobody consumes. `fidelity/matrix.py` did not gain a line, and `--matrix`
-remains at `gerado=43 falta=0` — the same number as before.
+stood at `gerado=43 falta=0` in the measurement of 2026-10-18 — the same number as before.
 
 ### What the check gains, in contract terms
 

@@ -2,7 +2,7 @@
 
 > Language: **English** | [Português](NAO-COMPROVADOS.md)
 
-Registry **derived from the specifications** — the normative source of this repository — by `.artifacts/gerar-registro-nao-comprovados.py`. It exists because the gaps were declared inside each spec, field by field, and there was no single place answering *"what has not been proven yet?"*; several generator docstrings pointed to a `docs/synthetic-clouds/UNVERIFIED.md` that **only exists inside the FinOps repository**.
+Registry **derived from the specifications** — the normative source of this repository — by `specs/_tools/gerar-registro-nao-comprovados.py`. It exists because the gaps were declared inside each spec, field by field, and there was no single place answering *"what has not been proven yet?"*; several generator docstrings pointed to a `docs/synthetic-clouds/UNVERIFIED.md` that **only exists inside the FinOps repository**.
 
 **Nothing here is new.** Every line is an `unverified` that was already written in the spec, with the reason the author recorded. What this document adds is the **consolidation** and the **count** — and that is why it is generated rather than hand-written: a second list would keep two truths about the same subject.
 

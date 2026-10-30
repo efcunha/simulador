@@ -25,7 +25,7 @@ esperado, não uma pendência a preencher com um palpite.
 
 ## Isolamento
 
-Este repositório é autônomo. Nada é criado ou alterado em `D:\synthetic-clouds`,
+Este repositório é autônomo. Nada é criado ou alterado em `C:\Projetos\Simulador`,
 em `<arvore-de-origem>` ou em qualquer banco/container do FinOps.
 
 O container `cp-sim-fix` — criado à mão, sem definição declarativa — rodava com
@@ -666,7 +666,7 @@ Acompanhado de:
 | contrato das specs | 21 superfícies, **2204 colunas**, 1579 geráveis, 173 não comprovadas, **0 problemas** |
 | domínio da evidência | **0 especificações com problema**; nenhuma coluna sem URL |
 | coluna inventada | **0** em todas as 20 superfícies |
-| isolamento | **nada** escrito em `D:\synthetic-clouds` nem em `<arvore-de-origem>` (conferido por data de modificação, no worktree e no `.git`) |
+| isolamento | **nada** escrito em `C:\Projetos\Simulador` nem em `<arvore-de-origem>` (conferido por data de modificação, no worktree e no `.git`) |
 
 As `obrig.vazias` que restam estão **todas** declaradas com grupo e motivo, ou sob
 ressalva de representação: `ProductArn` (o ARN exige ids de produto, e o modelo tem

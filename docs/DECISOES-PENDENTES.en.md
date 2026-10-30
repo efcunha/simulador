@@ -265,9 +265,11 @@ write `SOURCE_CUR = "cur"` and their docstring says why (`promotion.py (consumer
 
 **The question.** Which revision is the source, and who re-runs the `--audit` when it changes?
 
-**Why it was blocked.** This repository changes with every commit. Today's `--matrix` confirms
-`gerado=20 falta=0 bloqueado=1`. **Without a pinned revision, "the simulator" is not a reproducible
-artifact** — and two measurements at different revisions are not comparable.
+**Why it was blocked.** This repository changes with every commit. The `--matrix` of 2026-10-14
+confirms `gerado=20 falta=0 bloqueado=1`; the measurement of **2026-10-29** (revision `9533b901`)
+is already **`gerado=47 falta=0 bloqueado=2`**, with **49** specified surfaces — against **21** in
+that measurement (20 generated + 1 blocked). **Without a pinned revision, "the simulator" is not a
+reproducible artifact** — and two measurements at different revisions are not comparable.
 
 **DECISION: record the revision (commit) together with the environment and re-run `--audit` on change.**
 
@@ -280,6 +282,10 @@ by the measurement itself** (`fidelity/revision.py`): `--audit`, `--matrix`, `--
 ```
 revisao=d44624c  branch=master  arvore=com alteracoes nao commitadas
 ```
+
+*(The block above is the example of 2026-10-14. The measurement of 2026-10-29 prints, on its last
+line, `revisao=9533b901  branch=feat/p76-security-posture-gcp-azure  arvore=limpa` — the format
+did not change; the value is simply from another revision.)*
 
 Three deliberate properties: outside a git repository the revision becomes `desconhecida` and the
 measurement remains valid (the audit measures artifacts, not git); `arvore` distinguishes a
@@ -326,13 +332,44 @@ changes the order:
   (`--matrix`: `gerado=21 falta=0 bloqueado=1`; `--audit`: 12 artifacts, 16 paths, 0 invented
   columns). What is missing is the swap of the `return []` in `azure-sim`, which continues to be written
   in the FinOps repository.
+
+  **Update of 2026-10-29 — this side's half is as it was, and it gained a piece.** `azure-sim`
+  started accepting **`api-version` `2026-03-01`** (and keeps `2025-05-01`) on the network
+  security group routes, as of **2026-10-26** (commit `211f21c2`); the closed list is in
+  `emulators/azure-sim/azure_sim/api/network.py:34`, and the file's comment records that the value
+  was read, not guessed (it is the default of SDK `33.1.0`). The
+  `project_network_security_groups` projection **still** returns an empty list
+  (`emulators/azure-sim/azure_sim/projections/network.py:29-31`), so what is missing on this side
+  remains exactly the swap of the `return []` — now with the `api-version` the real client sends
+  already accepted by the route.
 - **(b) `sqladmin` — open, and the cited path changed.** **`services/gcp-sim` does not exist**: the
   emulator is at `emulators/gcp-sim`, with 11 routers and no `sqladmin`
   (`sqladmin|sql/v1beta4` → 0). The consumer stays the same
   (`resources.py (consumer-module):118,134`).
+
+  **Update of 2026-10-29:** `gcp-sim` has **14 routers** today
+  (`emulators/gcp-sim/gcp_sim/routers/`) and still **no** `sqladmin` (`sqladmin|sql/v1beta4` → 0
+  in the package tree). The path correction of 2026-10-14 (it is `emulators/gcp-sim`, not
+  `services/gcp-sim`) still holds; among the routers that entered after that date are `container`
+  and `infra_manager`, both from **2026-10-27**.
 - **(c) `container` + Kubernetes API — open.** No `container.py`, and `container.googleapis.com`/
   `kubernetes`/`/api/v1/namespaces` → 0 in the `gcp-sim` tree. The consumer stays the same
   (`gcp.py (consumer-module):407,409,415` and `:100,111`).
+
+  **Update of 2026-10-29 — the premise of this item changed, and it is the biggest change of the
+  round.** `gcp-sim` started serving the Kubernetes Engine control plane:
+  `emulators/gcp-sim/gcp_sim/routers/container.py` serves
+  `GET /container/v1/projects/{project}/locations/{location}/clusters`
+  (`projects.locations.clusters.list`), the TLS front publishes `container.googleapis.com` since
+  **2026-10-26** (`deploy/synthetic-clouds/tls-front/nginx.conf`), and the
+  **`gcp/container-clusters`** surface was specified on **2026-10-27** — it is in the matrix as
+  **BLOCKED**, not as generated, because it is an **API response served live**, not an export
+  file: the documentation supports the shape (`ListClustersResponse` envelope and 4 of the 87
+  `Cluster` members), but there is no renderer that produces an artifact checkable against the
+  spec. What **still** has nothing is the **Kubernetes API server**: `kubernetes` and
+  `/api/v1/namespaces` → 0 in the `gcp-sim` tree — the emulator serves the cluster's discovery
+  contract, not its data plane. So (c) is no longer "open from scratch" on the emulator side: the
+  missing half was delivered; what remains is on the FinOps side, as in (a).
 
 ---
 
@@ -412,6 +449,18 @@ types —, so a reader that resolves the series by the resource label (`instance
 **two disjoint contracts** (the `sets` mechanism this repository already uses), and it is named
 work, not a one-line adjustment.
 
+**State on 2026-10-29 — the product decision remains open, and nothing was retired.** The
+measurement of this date (revision `9533b901`) is **`gerado=47 falta=0 bloqueado=2 total=49`**, and
+the matrix still reports the same two *renderers without a specified surface*: `gcp_bigquery` and
+`gcp_rest_fixtures`. The numbers `gerado=33` / `33 READY` above are the 2026-10-14 measurement and
+stay as dated evidence. The 11 G11 surfaces are still **generated**, and `gcp_rest_fixtures` still
+has **590 lines and 13 fixtures** — the only one of them without a surface is
+`cai_analyze_iam_policy.json` (`analyzeIamPolicy`), as
+[CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.en.md) records. No choice between "keep both" and "retire
+one" was taken in this round. *(The "functional effects" paragraph above is the 2026-10-14 reading;
+E4, in the consolidated state table, records what was done later: the conditional keys entered
+through named sets.)*
+
 ---
 
 ## E3 — Volume and retention with the new schedule
@@ -419,6 +468,16 @@ work, not a one-line adjustment.
 **DECIDED on 2026-10-14: `medium` profile**, with the disk caveat measured below. The
 configuration in `schedule/config.json` was changed (`profile: small → medium`) and validated by
 `schedule show`; the rest (`12:00`, `America/Sao_Paulo`, retention **30**, seed 123) did not change.
+
+**Update of 2026-10-29 — the scheduler changed again, and it was not the profile.** The
+configuration of this installation (`tools/synthetic_clouds/schedule/config.json`, **not
+versioned**) is `profile=medium`, `lag_days=0`, `time=12:00`, `time_zone=America/Sao_Paulo`,
+`retention_days=30`, `seed=123`, `currency=USD`. The **`lag_days=0`** entered on **2026-10-26**
+(commit `1f674563`): the simulator generates complete days and delivers the current day — there is
+no partial export to wait for. The code (`schedule/config.py`) keeps the **factory default**
+(`lag_days=1`, `time=06:30`, UTC timezone with a warning); going back to the default is
+`schedule set --lag-days 1`. The profile and the retention **did not** change in this round, and
+the scheduled disk-ceiling review still holds.
 
 **Second decision, same day: retention stays at 30 days for now, with a scheduled review.** The
 option (i) below (15 days) was presented with the measured ceiling and was **not** adopted: the disk
@@ -520,7 +579,7 @@ head of this branch.
 |---|---|---|
 | D1 | (b) per plan: this repo for the file plan and the GCP fixtures | **pending** — rename the manifest in 4 files in FinOps (verified: nothing moved) |
 | D2 | (a) FinOps discovers Azure without a manifest | **pending** — blob reader; the simulator changes nothing (verified) |
-| D3 | (c) ASFF to `CSV`/`OCSF_JSON`; network (a) **after D4** | **SPECIFICATION READY on 2026-10-15** — [INGESTAO-D3-SEGURANCA.md](INGESTAO-D3-SEGURANCA.en.md). **The previous line in this record ("it is not adaptation, it is construction from scratch") was wrong, and the measurement disproves it.** What exists in FinOps: the `findings` table (19 columns), the `SecurityFindingAdapter`, the Celery lift `ingest_security_findings` with batching of 500, the `OPPORTUNITY_SECURITY_PRODUCER_ENABLED` flag (fail-closed) and the CIP scheduling with `allowlist`. What does not exist: the **writer** — today the canonical one is `scan_security.scan_workspace_security`, which calls the cloud API and has no credential in staging. Score of the ASFF → `findings` mapping, measured: **9 direct columns, 4 derivations, 5 absent from the format, 2 foreign keys**. And the finding that shrinks the work: the adapter's `_SEVERITY_TO_RISK` uses `CRITICAL/HIGH/MEDIUM/LOW/INFORMATIONAL`, **exactly** the `Valid Values` of the `Severity.Label` the simulator emits, and normalizes with `.upper()` — the contract was already made to tolerate what the simulator produces. **The decision that blocks the execution:** `evidence`, `exposure` and `impact` are `Text NOT NULL` and ASFF **has no equivalent at all**; `fingerprint` is unique per workspace and **cannot be the ASFF `Id`**. Three options in §5 of the document: synthesize in the writer, explicit sentinel, or make the columns `nullable` — all of them change the product, all of them are yours |
+| D3 | (c) ASFF to `CSV`/`OCSF_JSON`; network (a) **after D4** | **SPECIFICATION READY on 2026-10-15** — [INGESTAO-D3-SEGURANCA.md](INGESTAO-D3-SEGURANCA.en.md). **The previous line in this record ("it is not adaptation, it is construction from scratch") was wrong, and the measurement disproves it.** What exists in FinOps: the `findings` table (19 columns), the `SecurityFindingAdapter`, the Celery lift `ingest_security_findings` with batching of 500, the `OPPORTUNITY_SECURITY_PRODUCER_ENABLED` flag (fail-closed) and the CIP scheduling with `allowlist`. What does not exist: the **writer** — today the canonical one is `scan_security.scan_workspace_security`, which calls the cloud API and has no credential in staging. Score of the ASFF → `findings` mapping, measured: **9 direct columns, 4 derivations, 5 absent from the format, 2 foreign keys**. And the finding that shrinks the work: the adapter's `_SEVERITY_TO_RISK` uses `CRITICAL/HIGH/MEDIUM/LOW/INFORMATIONAL`, **exactly** the `Valid Values` of the `Severity.Label` the simulator emits, and normalizes with `.upper()` — the contract was already made to tolerate what the simulator produces. **The decision that blocks the execution:** `evidence`, `exposure` and `impact` are `Text NOT NULL` and ASFF **has no equivalent at all**; `fingerprint` is unique per workspace and **cannot be the ASFF `Id`**. Three options in what was then §5 of the document (2026-10-15 numbering; see the 2026-10-29 update in this row): synthesize in the writer, explicit sentinel, or make the columns `nullable` — all of them change the product, all of them are yours. **Update of 2026-10-29 — the reference and the scoreboard aged, and they are two distinct facts:** (a) INGESTAO was **renumbered** (§6→§5, §7→§6) and §5 is now *"O que já está entregue e onde isso vale"*; more than that, the 2026-10-16 rewrite **removed** those three options from the document, and what §5 records today is that the simulator carries `category`, `evidence`, `exposure`, `impact` and `fingerprint` in the ASFF `UserDefinedFields` (commit `b3dd315` H-18), with the fingerprint recomputable from the document — the bridge exists if the path is ASFF, and it serves as the mold for the new surface; (b) the **mapping scoreboard** in this line (9 direct / 4 derivations / 5 absent / 2 foreign keys) is the **2026-10-15** measurement, and INGESTAO's §5 records today **13 direct · 1 cardinality derivation · 1 vocabulary · 2 foreign keys (`workspace_id`, `cloud_account_id`) · 0 absent** — the **current** scoreboard is that one, because INGESTAO is the canonical document of the bridge, rewritten on 2026-10-16 and updated on 2026-10-29; the 2026-10-15 scoreboard stays as dated evidence, and the difference between the two **was not re-explained in this round** |
 | D4 | (a) resource table with canonical `resource_uuid` | **pending** — and **bigger than it looked**: cost does not even carry resource identity (the promoters write a sentinel) |
 | D5 | wire up the ingestion services | **pending** — order D6 → D2 → D5; the two models to copy exist (beat `celery_app.py:61-80`, route `router.py:106`) |
 | D6 | apply migration 128 | **pending, and simpler than what was written** — the duplicated id 128 **does not exist** at this revision: the migration is already the head of the chain, so there is no re-linking to do |
@@ -532,6 +591,64 @@ head of this branch.
 | E4 | **functional gap in Monitoring** — the type-conditional labels | **DONE on 2026-10-14** — the `gcp/monitoring-time-series` surface emits the labels of the **monitored type** again (`gce_instance`: `instance_id`/`zone`; `cloudsql_database`: `database_id`/`region`), without which the series **is not attributable to the resource**. The conditionality is expressed by the project's **named sets** mechanism (`gce_instance_labels`, `cloudsql_database_labels`), and not in prose: no record carries all five, and one set per type is what makes it possible to check each one. `--matrix` `gerado=34`; `--audit gcp`: the surface delivers 3 files, 50 records, 16 paths, **0 invented columns** |
 | E5 | **ASFF/OCSF: the surface of the format that AWS exports** | **DONE on 2026-10-14** — new surface `aws/security-hub-ocsf-export` (27 columns, line-delimited JSON), with the file shape, the OCSF paths and the residual cited at the source: [CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.en.md#ocsf-contract-of-the-security-hub-aws--collected-for-item-e5). The `aws/security-hub-asff` **was not rewritten** — the reading showed that it correctly describes the **API response**, and that D3(c) asked for a **new** surface for the export. `--matrix` `gerado=34`; `--audit aws`: 1 file, 59 records, 27 paths, **0 invented columns**. **Two gaps remain declared, not resolved by analogy:** the envelope's **OCSF class** (`class_uid`/`category_uid`/`type_uid`) and the `metadata.version`. **Residual re-searched on 2026-10-15 and declared closed without a value**: AWS publishes `class_name` as an export path and never the numeric identifier nor the values, and the only AWS version sentence ("supports findings in OCSF schema version 1.6") is about the revision supported by the service findings, not about the field in the file — recorded with URLs in [CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.en.md#the-residual-that-was-looked-for-again-2026-10-15). **A third gap was CLOSED by evidence on the same day:** `severity_id`, whose enum was only "not read in this execution" — see [CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.en.md#the-gap-the-search-closed-severity_id-2026-10-15) |
 
+## Consolidated state (2026-10-29)
+
+Measurement of this date, revision **`9533b901`**, branch
+**`feat/p76-security-posture-gcp-azure`**, clean tree at the start of the review; `main` is at
+**2026-10-24** and this branch is **18 commits ahead**. The 2026-10-14 table above **was not
+rewritten** — it is the evidence of that date. What is measured today is here.
+
+| Measure | 2026-10-29 |
+|---|---|
+| specified surfaces | **49** — AWS **15** · GCP **23** · Azure **11** |
+| `fidelity --matrix` | **`gerado=47 falta=0 bloqueado=2`** |
+| `fidelity --ready` | **47 surfaces READY** |
+| blocked by the documentation | **2** — `azure/cost-management-export-cost-details` (Microsoft publishes names without types; none of the 132 names appears in the five contracts at the same time) and `gcp/container-clusters` (**new since 2026-10-27**: the doc supports the shape, but it is an API response served live by `gcp-sim`, not an export — without a renderer, "implemented" would be a lie) |
+| columns declared in the 49 specs | **2,637** (sum of `columns` and `sets`) — option (b) of D1 cited 2,204 on 2026-10-14 |
+| mandatory columns without a published type | **401**, in **4** surfaces: `cost-details` 272, `vnet-flow-logs` 107, `nsg-flow-logs-v2` 18, `scc-findings-bigquery` 4 |
+| items in `docs/NAO-COMPROVADOS.md` | **293 in 49 of 49 surfaces** — AWS **88** · Azure **83** · GCP **122** |
+| renderers without a specified surface | `gcp_bigquery`, `gcp_rest_fixtures` — the E2 product decision remains open |
+| versioned files | **492** (`git ls-files`) |
+| test suite (measurement of the round) | **1106 passed · 20 skipped** — 1126 cases collected — in **14m00s**, revision `9533b901`, with the command `pytest tools\synthetic_clouds\tests` |
+| prose specs | **30** `.md` files in `specs/<provider>/` (aws 8 · azure 12 · gcp 10) — 31 if `specs/README.md` is counted, and it is not a surface spec |
+| emulators | **4** — `aws-sim`, `azure-sim`, `gcp-sim`, `k8s-sim` (`k8s-sim` has no Containerfile and no compose service) |
+
+**What changed in the decisions since the 2026-10-19 baseline, and what did not:**
+
+* **D3/E5 — closed, and now with a number.** The `aws/security-hub-ocsf-export` surface is
+  **generated** (renderer `security_hub_ocsf_export`); its spec now declares **29 columns** (the
+  "27 columns" in the lines above is the 2026-10-14/15 measurement) and keeps **four** themes in
+  `unverified`: the OCSF class, `metadata.version`, the partitioning and
+  `compliance.assessments/control/standards`. `aws/security-hub-asff` still has 96 columns, all
+  verified.
+* **E1(a)** — this side's half remains done, and `azure-sim` started accepting **`api-version`
+  `2026-03-01`** on the network security group routes (2026-10-26, commit `211f21c2`). The
+  `networkSecurityGroups` projection remains empty by design; the swap in FinOps is missing.
+* **E1(b)** — `gcp-sim` is at `emulators/gcp-sim` with **14 routers** and still has no `sqladmin`.
+* **E1(c) — the premise changed, and it is the most concrete change of the round.** `gcp-sim`
+  serves `container v1` (`projects.locations.clusters.list`) since 2026-10-26, the TLS front
+  publishes `container.googleapis.com`, and the `gcp/container-clusters` surface was specified on
+  2026-10-27 (blocked because there is no durable artifact). The Kubernetes API server remains
+  unserved.
+* **D8** — today's measurement prints, on its last line,
+  `revisao=9533b901  branch=feat/p76-security-posture-gcp-azure  arvore=limpa`. The environment has
+  not yet pinned the commit it adopts.
+* **E2** — no new choice: the two renderers remain without a surface and nothing was retired.
+* **E3** — the profile and the retention did not change; `lag_days=0` entered on 2026-10-26 (commit
+  `1f674563`).
+* **No decision D1–D7 nor E2/E3 was resolved by the 2026-10-24..28 wave.** It touched emulators
+  (TLS with real hostnames, `container v1`, drift, what-if), the scheduler (lag 0) and `k8s-sim`
+  (OpenCost contract) — that is, it changed the **available evidence** and the surfaces delivered,
+  not the choices that depend on the other repository.
+
+**What this round did not re-verify, and cannot be read as today's state:** the premises of
+D1–D7 and E1 that live in the FinOps repository (`cur_ingestion.py`, `promotion.py`,
+`celery_app.py`, `blob_reader.py`, migration 128 and the ingestion flags). That tree is **not in
+this workspace** — there is no `promotion.py` or `cur_ingestion.py` in it —, so the `0f5e6da5`
+H-36 measurements remain the dated evidence of 2026-10-14, preserved as such. Re-measuring them
+would require the other repository's tree; what this round did was update what is measurable here
+(surfaces, matrix, specs, emulators, scheduling and this side's halves of E1).
+
 ## What this repository keeps doing
 
 **The execution queue — work that does not depend on anyone crossing rule #1:**
@@ -540,10 +657,10 @@ head of this branch.
 |---|---|---|---|
 | 1 | **The OCSF class of the export** (`class_uid`/`category_uid`/`type_uid`) and the `metadata.version` | evidence first, then small | **CLOSED on 2026-10-15 — with the residual DECLARED, not resolved.** Left out of the artifact on purpose in E5; this round searched for the page (or a sample output) that would state the class. What AWS publishes is the **name** of the discriminator (`class_name`, in the export catalog and in the automation rules table) without the numeric identifier and without the values; and the only AWS version sentence is about the revision **supported** by the findings, not about the field in the exported file, whose field list does not even publish `metadata.version`. Without a value, the contract stays faithful to a declared omission. If a sample output ever shows up, it is field evidence — and the item reopens as a new piece, not as a deduction |
 | 2 | **The two producers** (`gcp_rest_fixtures`, `gcp_bigquery`) | product decision, **already reviewed** | **DECIDED on 2026-10-15: keep both, and no_write spec.** The original framing ("two producers of the same contract") was **wrong**, and it is worth recording why. (a) `gcp_api_projection.py` is not a producer at all: it is a **shared library**, imported by `gcp_api_fixtures.py` and by `gcp_cai_search_all_resources.py`, and disappears with any scenario. (b) The two renderers **do not compete for the same contract**: `gcp_rest_fixtures` is the REST plan (590 lines, feeds the emulator, has its own test, and the specs cite it as the origin of two join keys that the official contract rejects) and `gcp_bigquery` is the **Phase 1 probe**, which `gcp_bigquery_topology.py` itself declares it replaces. (c) What the auditor flags is not competition, it is **`[renderer sem superfície]`**: both are registered and **no spec claims them**. The answer that matches the project's discipline is **to write a spec**, not to retire: retiring the `gcp_rest_fixtures` would take down precisely the producer that exposes the conflict with the official contract. The `gcp_bigquery` is the only real candidate for retirement — and that breaks two test files, which is work, not a decision |
-| 3 | **The `attic/` breaking `pytest` at the root** | one line, decision taken | **CLOSED on 2026-10-15 by your decision: `conftest.py` at the root with `collect_ignore_glob = ["attic/*"]`.** The original framing (mine) was that the test imported "a module that no longer exists" and that the folder should have been **quarantined**. Reading `attic/README.md`, both things were wrong: the entire `coverage/` package (~1,800 lines) is there, **archived together with its 17 proofs**, and the folder is a documented decision, with the rule written on the first line. Quarantining the file would have thrown away an artifact chosen to be kept. The correct fix was to **codify the rule**: measured before and after, `pytest` at the root and `pytest tools\synthetic_clouds\tests` collect the **same 880 tests**, same `rootdir`, same `configfile`. One detail that stays on record: if the ingestion phase reactivates the material, the import needs to point at `attic/product-coupled/coverage/`, which has a **hyphen** in the path and requires `importlib` |
+| 3 | **The `attic/` breaking `pytest` at the root** | one line, decision taken | **CLOSED on 2026-10-15 by your decision: `conftest.py` at the root with `collect_ignore_glob = ["attic/*"]`.** The original framing (mine) was that the test imported "a module that no longer exists" and that the folder should have been **quarantined**. Reading `attic/README.md`, both things were wrong: the entire `coverage/` package (~1,800 lines) is there, **archived together with its 17 proofs**, and the folder is a documented decision, with the rule written on the first line. Quarantining the file would have thrown away an artifact chosen to be kept. The correct fix was to **codify the rule**: measured before and after, `pytest` at the root and `pytest tools\synthetic_clouds\tests` collect the **same 880 tests**, same `rootdir`, same `configfile`. One detail that stays on record: if the ingestion phase reactivates the material, the import needs to point at `attic/product-coupled/coverage/`, which has a **hyphen** in the path and requires `importlib`. **Note of 2026-10-29 — this record holds for the original tree; in this repository it is doubly obsolete:** (a) `attic/` **does not exist** in this tree nor in the git history (`git ls-tree HEAD attic` empty), so the root `conftest.py`'s `collect_ignore_glob = ["attic/*"]` is **vestigial**; (b) `pytest` at the root **today** collects **1661 cases with 23 collection errors** — the emulator tests require `boto3`/`botocore`, which are not in the generator's `.venv`, and the collection also walks foreign directories (`uvcache/`, `pytest-of-*`) —, and the canonical suite is `pytest tools\synthetic_clouds\tests`, measured on 2026-10-29 at revision `9533b901` as **1126 cases collected / 1106 passed / 20 skipped**. The "880 tests" is that tree's number on 2026-10-15 and stays as dated evidence. |
 | 4 | **Watch E3's disk ceiling** | cheap | 30-day retention with `medium` requires ~17 GB; `D:` had 12.10 GB in the morning and 26.67 GB at 17:54. Review when usage approaches the free space |
 | 5 | **Keep the documentation alive** | continuous | `ESTADO.md`, `<coverage-doc>.md` and this record |
-| 6 | **Attack the record of the 295 unproven items** | continuous queue, each item is small | [NAO-COMPROVADOS.md](NAO-COMPROVADOS.en.md) consolidates what the project **has not yet proven** (114 on AWS, 70 on Azure, 111 on GCP), with the reason each spec already recorded and the distinction **field** (a name that does not belong to the contract) × **theme** (a name that exists and whose proof is missing). It is the list the next evidence work comes from — and it is generated, not written by hand. *The total drops when a gap is closed by evidence: 299 → 296 → **295** on 2026-10-15 (`severity_id` from the OCSF export, `Severity.Label` and `Severity.Normalized` from the ASFF, and the four enums of `scc-findings`). Correction of a claim of mine that came out wrong: I had written that "the record counts each entry **twice**, so closing 1 item lowers the total by 2". That is not a rule — the measurement disproved it. One entry removed from `scc-findings` lowered the total by **1**, and GCP went from 112 to 111. The count is whatever the generator derives from the specs, and it varies with how the spec declares the entry. What counts is the count observed at generation time, never a rule about it.*
+| 6 | **Attack the record of the unproven items** (295 on 2026-10-15; **293** on 2026-10-29) | continuous queue, each item is small | [NAO-COMPROVADOS.md](NAO-COMPROVADOS.en.md) consolidates what the project **has not yet proven** (114 on AWS, 70 on Azure, 111 on GCP), with the reason each spec already recorded and the distinction **field** (a name that does not belong to the contract) × **theme** (a name that exists and whose proof is missing). It is the list the next evidence work comes from — and it is generated, not written by hand. *The total drops when a gap is closed by evidence: 299 → 296 → **295** on 2026-10-15 (`severity_id` from the OCSF export, `Severity.Label` and `Severity.Normalized` from the ASFF, and the four enums of `scc-findings`). Correction of a claim of mine that came out wrong: I had written that "the record counts each entry **twice**, so closing 1 item lowers the total by 2". That is not a rule — the measurement disproved it. One entry removed from `scc-findings` lowered the total by **1**, and GCP went from 112 to 111. The count is whatever the generator derives from the specs, and it varies with how the spec declares the entry. What counts is the count observed at generation time, never a rule about it.* **Note of 2026-10-29 — the current record has a different number:** regenerated on this date by the versioned generator (`specs/_tools/gerar-registro-nao-comprovados.py`), `docs/NAO-COMPROVADOS.md` has **293 items in 49 of 49 surfaces — AWS 88 · Azure 83 · GCP 122**; the numbers 295/114/70/111 in this line are the 2026-10-15 count and stay as history. The difference between the two counts **was not re-explained in this round** — what counts, as the sentence above says, is the count observed at today's generation. |
 
 **Queue triage (2026-10-15) — the information that decides whether it is worth attacking:** not every item in the record is reading work. Two classifiers were written to separate *"the source does not publish it"* from *"the page exists and nobody read it"*: `.artifacts/inventario-nao-comprovados.py` (list) and `.artifacts/auditar-classificador.py` (audits the classifier). Corrected result:
 

@@ -49,7 +49,7 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $DeployDir = Join-Path $RepoRoot 'deploy\synthetic-clouds'
 $CaCrt = Join-Path $RepoRoot 'emulators\azure-sim\tls\ca.crt'
-$CpRoot = 'D:\cloudpilot-deploy'
+$CpRoot = 'C:\Projetos\cloudpilot-deploy'
 $CaBundle = Join-Path $CpRoot '.local\tls\ca-bundle.pem'
 
 $CpNet = 'cloudpilot-deploy_cloudpilot_net'

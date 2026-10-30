@@ -53,7 +53,7 @@ Set-StrictMode -Version Latest
 
 $IntegrationDir = $PSScriptRoot
 $RepoRoot = (Resolve-Path (Join-Path $IntegrationDir '..\..\..')).Path
-$CloudPilotRoot = 'D:\cloudpilot-deploy'
+$CloudPilotRoot = 'C:\Projetos\cloudpilot-deploy'
 $ComposeLocal = Join-Path $CloudPilotRoot 'scripts\compose-local.ps1'
 $SimulatorsUp = Join-Path $RepoRoot 'scripts\synthetic-clouds\up.ps1'
 $EnsureScript = Join-Path $IntegrationDir 'ensure-cloudpilot.ps1'

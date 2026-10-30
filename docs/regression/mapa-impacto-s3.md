@@ -1,6 +1,12 @@
 # Mapa de impacto — Fase S3 (`properties.fqdn` do AKS)
 
-**Data:** 2026-10-28 · **Escopo:** `emulators/azure-sim` · **Fora do escopo:** CloudPilot, custo OpenCost/Kubecost (S4).
+**Data:** 2026-10-28 · **Reconferido em 2026-10-29 (revisão `9533b901`; consumidor HEAD
+`b60bde8e`):** as linhas citadas do `azure-sim` continuam válidas e as do consumidor foram
+atualizadas — ele evoluiu com o **C-IDENT** (commits `dbd66cca` de 2026-10-28 e `7e52f377`,
+`30b4e70c`, `385e9759` de 2026-10-29), que passou a keyear o cluster pelo id nativo (o ARM id do
+AKS). O `properties.fqdn` continua sendo o endpoint que a descoberta lê e o `get_cluster_health`
+publica.
+**Escopo:** `emulators/azure-sim` · **Fora do escopo:** CloudPilot, custo OpenCost/Kubecost (S4).
 
 ## 1. O que muda
 
@@ -35,9 +41,9 @@ correção C-AKS já está aprovada).
 
 | Consumidor | Local | O que faz com o campo |
 |---|---|---|
-| `_list_aks_clusters` | `backend/app/services/k8s_finops/providers/azure.py:653` | Lê `properties.fqdn` da linha ARM via `_arm_property(properties, "fqdn")` (`:680`) e guarda em `_AksCluster.fqdn` (`:687`, campo declarado em `:111`). `properties` chega como `dict` puro (o SDK tipa `GenericResource.properties` como `object`), então a leitura é **por nome**, não por atributo. |
-| `get_cluster_health` | `backend/app/services/k8s_finops/providers/azure.py:412` | Devolve `"endpoint": cluster_spec.fqdn` (`:428`). É o contrato de endpoint que o `discovery` publica. |
-| `_fetch_aks_credential` | `backend/app/services/k8s_finops/providers/azure.py:697` | Usa `cluster.fqdn` como **fallback** quando o kubeconfig não tem `certificate-authority-data` (`:786-789`); sem FQDN, a ausência de CA vira `ProviderDataError` em vez de um endpoint. |
+| `_list_aks_clusters` | `backend/app/services/k8s_finops/providers/azure.py:670` | Lê `properties.fqdn` da linha ARM via `_arm_property(properties, "fqdn")` (`:697`) e guarda em `_AksCluster.fqdn` (`:704`, campo declarado em `:111`). `properties` chega como `dict` puro (o SDK tipa `GenericResource.properties` como `object`), então a leitura é **por nome**, não por atributo. O laço é a rota 1 (`resources.list`, `:688`). |
+| `get_cluster_health` | `backend/app/services/k8s_finops/providers/azure.py:415` | Devolve `"endpoint": cluster_spec.fqdn` (`:431`). É o contrato de endpoint que o `discovery` publica. Desde o C-IDENT recebe o **id nativo** (`cluster_id`) e resolve conta/nome por `_resolve_account_for_cluster` (`:515`). |
+| `_fetch_aks_credential` | `backend/app/services/k8s_finops/providers/azure.py:715` | Lê `certificate-authority-data` do kubeconfig (`:799`); quando falta, confere o `cluster.fqdn` do listing ARM (`:806`) e falha com `ProviderDataError` (`:807`/`:808-811`) — o FQDN **não** substitui a CA no handshake. |
 
 O caminho de **custo** K8s não lê o FQDN diretamente: ele é servido pela mesma
 descoberta (`_list_aks_clusters`), e é o `endpoint` publicado que a superfície de
@@ -50,10 +56,10 @@ custo consome — por isso o campo vazio chegava ao consumidor como
 |---|---|---|
 | Forma | `<cluster>-<hash>.<region>.azmk8s.io` | Host puro: **sem** `http://`, **sem** `https://`, **sem** porta. |
 | `cluster` | Label DNS: minúsculo, todo caractere fora de `[a-z0-9]` virando `-`, sem hífen nas pontas, ≤ 63 caracteres | O nome do recurso no estate não é um label DNS: há `aks_cluster-0043_FINAL_v2` (underscore e maiúsculas) e `aks_cluster-0187 (do not delete)` (espaços e parênteses). |
-| `hash` | `sha256(identity.uuid + resource_name + region_id)`, determinístico | O `uuid` da identidade é único no estate inteiro, então o hash desambigua clusters de nomes iguais em subscriptions diferentes. |
+| `hash` | `sha256("<identity.uuid>:<resource_name>:<region_id>")` (10 hex), determinístico | O `uuid` da identidade é único no estate inteiro, então o hash desambigua clusters de nomes iguais em subscriptions diferentes. |
 | `region` | O `region_id` do recurso, normalizado como label | Fica no host porque o AKS publica o FQDN por região. |
 | Determinismo | Mesmo cluster ⇒ mesmo FQDN, em qualquer chamada, em qualquer rebuild | O estate é determinístico em `(seed, profile)`; o FQDN não pode depender de ordem nem de processo. |
-| Unicidade | FQDN distinto por cluster | Verificado nos 41 clusters de `sub-01` (41 FQDNs distintos). No estate inteiro decorre do `uuid` da identidade, que não se repete (123 recursos). |
+| Unicidade | FQDN distinto por cluster | Verificado em 2026-10-29 nos 41 clusters AKS de `sub-01` (41 FQDNs distintos, com a função `cluster_fqdn` do próprio `azure-sim`). No estate inteiro decorre do `uuid` da identidade, que não se repete (123 recursos AKS, 123 `uuid` distintos). |
 
 `hashlib.sha256` e nunca `hash()`: `hash()` é salted por processo e está banido
 neste pacote (AC-6) — mesma regra que `model/identity.py` segue.

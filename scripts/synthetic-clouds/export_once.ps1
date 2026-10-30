@@ -8,7 +8,7 @@
     Runs `podman compose exec azure-sim python -m azure_sim export ...` so a
     single export run writes into Azurite over the network. If -OutDir is given,
     the resulting blobs are copied OUT of the azure-sim container with
-    `podman cp` — NEVER a D:\ bind mount (design §6.4).
+    `podman cp` — NEVER a C:\Projetos\ bind mount (design §6.4).
 
     Supports -WhatIf (via SupportsShouldProcess): every podman invocation is
     gated by $PSCmdlet.ShouldProcess, so `-WhatIf` prints the planned commands

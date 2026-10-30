@@ -1,7 +1,7 @@
 # Podman-compatible compose for the synthetic-clouds azure-sim stack (design §6.2).
 #
 # Two services on a dedicated bridge network:
-#   * azurite  — the blob simulator; persists /data on a NAMED VOLUME. NO D:\
+#   * azurite  — the blob simulator; persists /data on a NAMED VOLUME. NO C:\Projetos\
 #                bind mount (design §6.4: hyperv bind mounts fail statfs i/o).
 #   * azure-sim — the control-plane API + exporter, built from the Containerfile
 #                 whose build context is the worktree root (one level up from
@@ -31,7 +31,7 @@ networks:
     driver: bridge
 
 volumes:
-  # Named volume for Azurite persistence (design §6.4). Never a D:\ bind mount.
+  # Named volume for Azurite persistence (design §6.4). Never a C:\Projetos\ bind mount.
   azurite-data:
 
 services:
