@@ -1,6 +1,6 @@
 # Integração CloudPilot ↔ simulador sem código de simulador no CloudPilot
 
-> Última atualização: **2026-10-30** (revisão `9ccbc71c`). A decisão de 2026-10-28 que
+> Última atualização: **2026-10-30** (S4b2-E; revisão-base `397bd96b`). A decisão de 2026-10-28 que
 > removeu o sequestro do `sts.*` continua valendo.
 
 Este documento registra a configuração que faz o CloudPilot falar com o
@@ -18,32 +18,46 @@ hostname de produção. Quem se adapta é esta stack.
 | Simulador | `deploy/synthetic-clouds/compose.yaml` | `azure-sim` serve ARM/OAuth em **443 (TLS)** além de 8080 (API), com `net.ipv4.ip_unprivileged_port_start=0`; `azurite` é o backend de blob |
 | Simulador | `deploy/synthetic-clouds/compose.gcp.yaml` | `bigquery-emulator` (9050/9060) e `gcp-sim` (REST 8085, gRPC 8087; plano SCC gRPC interno em 8088) |
 | Simulador | `deploy/synthetic-clouds/compose.aws.yaml` | `s3mock` (9090) e `aws-sim` (8086) |
-| Simulador | `deploy/synthetic-clouds/compose.tls-front.yaml` | front nginx para os **sete** hostnames `*.googleapis.com` servidos ao CloudPilot |
+| Simulador | `deploy/synthetic-clouds/compose.tls-front.yaml` | front nginx para os **oito** hostnames servidos ao CloudPilot (os sete `*.googleapis.com` + o nome do plano Kubernetes) |
 | Simulador | `deploy/synthetic-clouds/tls-front/nginx.conf` | roteia cada hostname para o emulador certo |
-| Simulador | `deploy/synthetic-clouds/compose.k8s.yaml` | `k8s-sim` — contrato **OpenCost** em `http://k8s-sim:8089`, HTTP puro na bridge, **sem** front TLS |
+| Simulador | `deploy/synthetic-clouds/compose.k8s.yaml` | `k8s-sim` — contrato **OpenCost** em `http://k8s-sim:8089` (HTTP puro, atrás do front TLS) |
 
 Os cinco composes e a ordem de subida estão no quick-start
 [`deploy/synthetic-clouds/README.md`](../deploy/synthetic-clouds/README.md). O front TLS
 **não** é iniciado pelo `scripts/synthetic-clouds/up.ps1` — ele depende da rede do CloudPilot
 e dos upstreams já anexados (ver [Ordem de subida](#ordem-de-subida)).
 
-### O plano Kubernetes é o único que **não** tem hostname real
+### O plano Kubernetes não tem hostname de nuvem — tem nome próprio
 
 Todos os outros emuladores são alcançados por um **hostname real** (o do Cloud na nuvem) e,
-quando o plano é GCP, pelo front TLS. O `k8s-sim` é o exceção: ele é alcançado por um
-**alias de rede**, `k8s-sim`, na própria bridge `cloudpilot-deploy_cloudpilot_net`, e a URL
-é **`http://k8s-sim:8089`** — HTTP puro, sem certificado e sem hostname de nuvem. O alias é
-criado pelo `ensure-cloudpilot.ps1`, junto com `gcp-sim`, `aws-sim`, `s3mock` e
-`bigquery-emulator`; sem ele o backend falha com
-`URLError: <urlopen error [Errno -2] Name or service not known>`.
+quando o plano é GCP, pelo front TLS. O `k8s-sim` é a exceção: não existe hostname de nuvem
+para ele imitar, então o front TLS o serve **sob um nome próprio**,
+**`opencost.synthetic-clouds.test`** (decidido no checkpoint da S4b2-E). O sufixo `.test` é a
+TLD reservada para testes (RFC 6761) — o nome **não resolve na internet pública**, e é por isso
+que ele pode ser publicado na bridge do CloudPilot sem sequestrar o nome de ninguém.
 
-O TLS para o plano Kubernetes é o **restante da S4b2** e está declarado como pendência em
-[`docs/k8s-sim-opencost-contract.md`](k8s-sim-opencost-contract.md) (§2.1 e §9).
+O contrato OpenCost é falado por **HTTPS** nesse nome:
+
+```
+https://opencost.synthetic-clouds.test/healthz
+https://opencost.synthetic-clouds.test/clusterInfo?filter=cluster:"<id nativo>"
+https://opencost.synthetic-clouds.test/allocation/compute?window=...
+```
+
+A porta é a do front (**443**); o `k8s-sim` continua em `8089`, **atrás** do front. O alias de
+rede `k8s-sim` continua existindo na bridge `cloudpilot-deploy_cloudpilot_net` — é ele que o
+front usa como *upstream* (`upstream k8s_opencost { server k8s-sim:8089; }`) e é ele que o
+probe do `ensure-cloudpilot.ps1` mede em HTTP para provar que o alias continua de pé.
+
+O certificado: o nome entra na lista `$FrontAliases` do `ensure-cloudpilot.ps1`, que **reassina a
+folha** do front (mesma CA, bundle do CloudPilot intocado) quando um alias roteado não está no
+SAN. Rota e certificado continuam sendo um contrato só — o cliente verifica o nome que discou.
 
 ## Hostnames e destinos
 
-Na rede `cloudpilot-deploy_cloudpilot_net`, **nove hostnames** são atendidos: dois por alias
-de rede no próprio `azure-sim` e sete pelo front nginx.
+Na rede `cloudpilot-deploy_cloudpilot_net`, **dez hostnames** são atendidos: dois por alias
+de rede no próprio `azure-sim`, sete pelo front nginx e um pelo front nginx também — o nome
+próprio do plano Kubernetes.
 
 | Hostname | Serve | Implementação | O que o cliente chama |
 |---|---|---|---|
@@ -56,8 +70,9 @@ de rede no próprio `azure-sim` e sete pelo front nginx.
 | `config.googleapis.com` | `gcp-sim:8085` | front nginx | `resourceDrifts.list` do Infrastructure Manager |
 | `container.googleapis.com` | `gcp-sim:8085` | front nginx | `projects.locations.clusters.list` (GKE) |
 | `securitycenter.googleapis.com` | `gcp-sim:8088` | front nginx com `grpc_pass` (TLS + HTTP/2) | `SecurityCenter/ListFindings` por gRPC |
+| `opencost.synthetic-clouds.test` | `k8s-sim:8089` | front nginx (TLS) | contrato OpenCost: `/healthz`, `/clusterInfo`, `/allocation/compute` |
 
-Três detalhes que a tabela esconde:
+Quatro detalhes que a tabela esconde:
 
 * **O plano SCC é gRPC.** A biblioteca `google-cloud-securitycenter` registra os transports
   na ordem `("grpc", "grpc_asyncio", "rest")` e escolhe o **primeiro** quando o chamador não
@@ -69,6 +84,10 @@ Três detalhes que a tabela esconde:
   (`config.googleapis.com/v1/projects/<project>/locations/<location>/previews/<preview>/resourceDrifts`).
 * **`compute`, `config` e `container` dividem o mesmo upstream REST** (`gcp-sim:8085`), como
   `oauth2` e `cloudresourcemanager`.
+* **O plano Kubernetes não imita ninguém.** `opencost.synthetic-clouds.test` não é o hostname
+  de nenhum serviço de nuvem real — é o nome do contrato OpenCost dentro do simulador, em uma
+  TLD que não resolve na internet. O front o encaminha para o alias `k8s-sim:8089`, que
+  continua sendo o endereço **interno** do plano.
 
 `sts.amazonaws.com` e `sts.us-east-1.amazonaws.com` **não** são publicados nesta rede: o STS
 resolve na AWS de verdade. Ver a seção "STS" abaixo.
@@ -117,6 +136,11 @@ não fazem mal, e o `ensure-cloudpilot.ps1` **reassina a folha** (com a mesma CA
 bundle) quando a lista de aliases roteados não está contida no SAN. A regra é: o cliente
 verifica o nome que discou, então **rota e certificado são um contrato só**.
 
+Desde a S4b2-E a folha do front carrega também o nome do plano Kubernetes
+(`opencost.synthetic-clouds.test`), assinado pela mesma CA — 13 SANs na instalação atual. A
+folha **não** é versionada: ela vive em `emulators/azure-sim/tls/` (git-ignored) e é
+regerada/reassinada localmente.
+
 O bundle do CloudPilot é `certifi/cacert.pem` do container + `ca.crt`, copiado para
 `C:\Projetos\cloudpilot-deploy\.local\tls\ca-bundle.pem`. Se a CA mudar, o bundle precisa ser refeito
 e os containers do CloudPilot recriados. As folhas podem ser regeradas sem tocar na CA —
@@ -162,7 +186,8 @@ Equivalente manual, na mesma ordem:
    (Azure, GCP, AWS; ver o quick-start de `deploy/synthetic-clouds/`).
 3. **Integração**: `deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1`. Ele anexa
    `azure-sim` com os dois aliases Azure, anexa o front com os sete hostnames `.googleapis.com`
-   e anexa `gcp-sim`, `bigquery-emulator`, `aws-sim`, `s3mock` e **`k8s-sim`** com os nomes que
+   **e com o nome do plano Kubernetes** (`opencost.synthetic-clouds.test`) e anexa `gcp-sim`,
+   `bigquery-emulator`, `aws-sim`, `s3mock` e **`k8s-sim`** com os nomes que
    o nginx — e o backend — resolvem. **O front é iniciado só depois dos aliases**: o nginx
    resolve os upstreams no *startup*, então subi-lo antes queima o timeout inteiro em restart
    loop (defeito medido em 2026-10-28, corrigido no `ensure-cloudpilot.ps1`).
@@ -182,7 +207,9 @@ isso até o dia UTC atual.
 `deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1` reaplica, de forma
 idempotente, containers/aliases DNS, CA confiável, folha do front (reassina se o SAN
 estiver atrás dos aliases), janela do estate e (com `-Smoke`) o probe do `k8s-sim` por
-dentro do backend, "Verificar Conexão" + `/costs/unified`. Ele só reconecta uma rede quando
+dentro do backend — **pelo nome HTTPS** (`https://opencost.synthetic-clouds.test`, o caminho
+do consumidor) e **pelo alias HTTP** (`http://k8s-sim:8089`, o upstream do front) —,
+"Verificar Conexão" + `/costs/unified`. Ele só reconecta uma rede quando
 falta um alias, só reconstrói o estate quando a janela está vencida e só cria o container do
 `k8s-sim` (a partir de `compose.k8s.yaml`, sem rebuild) quando ele não existe.
 

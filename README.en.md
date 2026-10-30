@@ -138,12 +138,15 @@ measured in code and in the emulator tests, recorded in the impact maps
 (`docs/regression/`) and in `docs/k8s-sim-opencost-contract.md`.
 
 **How CloudPilot reaches the `k8s-sim`.** Since S4b2-C it is attached to the
-`cloudpilot-deploy_cloudpilot_net` network with the `k8s-sim` alias, and the backend
-reaches it by name, at `http://k8s-sim:8089` (plain HTTP, **no** TLS). The link is
+`cloudpilot-deploy_cloudpilot_net` network with the `k8s-sim` alias; since **S4b2-E** the
+consumer reaches it over **HTTPS**, at the front's own name,
+`https://opencost.synthetic-clouds.test` — the `k8s-sim` alias stays as the front's
+upstream, at `http://k8s-sim:8089`. The link is
 re-applied idempotently by `deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1`,
 which also creates the container from `compose.k8s.yaml` when it is missing — without
 a rebuild. Detail in
-[regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md).
+[regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md) and
+[regression/mapa-impacto-s4b2e.md](docs/regression/mapa-impacto-s4b2e.md).
 
 **How CloudPilot reaches the `aws-sim`.** The AWS plane has its **own** variable
 namespace: `compose.aws.yaml` reads `AWS_SIM_SEED`/`AWS_SIM_PROFILE`, not the generic
@@ -182,8 +185,9 @@ silent delivery. Measured in S4b3-B: delivery of day `2026-10-26` → **exit 0**
 `data_source: focus_cost_records` (before: `cost: null`, `data_state: "unavailable"`). Detail in
 [regression/mapa-impacto-s4b3b.md](docs/regression/mapa-impacto-s4b3b.md).
 
-**Debts on this front.** The Kubernetes plane still has **no** real hostname and no
-certificate (TLS is the rest of S4b2); `scripts/synthetic-clouds/up.ps1` does **not**
+**Debts on this front.** The Kubernetes plane **has** TLS since S4b2-E (own name
+`opencost.synthetic-clouds.test`, with the SAN on the front's leaf), but still has **no** real
+cloud hostname to imitate; `scripts/synthetic-clouds/up.ps1` does **not**
 bring that plane up (it comes up with the integration, which owns the link); and
 `docs/DECISOES-PENDENTES.md` still says the `k8s-sim` "has no Containerfile and no
 compose service" — a sentence that became false at S4b2-B, in a file outside this
@@ -256,8 +260,10 @@ The fourth emulator, `k8s-sim`, serves the OpenCost contract
 (`/allocation/compute`, `/clusterInfo`, `/healthz`) from the versioned fixture
 `k8s_sim/fixtures/clusters.json`. Since **S4b2-B** it has a `Containerfile` and a
 compose service (`deploy/synthetic-clouds/compose.k8s.yaml`); since **S4b2-C** it is
-**attached to the CloudPilot network** with the `k8s-sim` alias, and the CloudPilot
-backend reaches it by name, at `http://k8s-sim:8089`. The contract and the run
+**attached to the CloudPilot network** with the `k8s-sim` alias; and since **S4b2-E** the
+CloudPilot backend reaches it over **HTTPS**, at
+`https://opencost.synthetic-clouds.test` (the TLS front's own name — the plane imitates no
+cloud hostname). The contract and the run
 command are in
 [`docs/k8s-sim-opencost-contract.md`](docs/k8s-sim-opencost-contract.md).
 

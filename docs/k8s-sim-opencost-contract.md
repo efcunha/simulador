@@ -42,6 +42,17 @@ corrigido: o que ainda falta é **TLS**, API server do Kubernetes, Prometheus, K
 migration — o restante da S4b2. Detalhe no
 [mapa de impacto](regression/mapa-impacto-s4b2c.md).
 
+**Atualizado em 2026-10-30 pela S4b2-E**: o **TLS também fechou**. O contrato HTTP continua
+igual — o que mudou é que agora ele chega ao consumidor por **HTTPS**, num nome do front
+(**`opencost.synthetic-clouds.test`**, §2.1), com o certificado na folha do front e a mesma CA
+de sempre. O provider `opencost` do CloudPilot foi apontado para essa URL na conta de
+homologação e a leitura de custo responde por ela (5 linhas para `TEMP-aks_cluster-0025`, tanto
+pelo nome quanto pelo id nativo). A pendência de TLS saiu do §9; o que continua aberto é o
+restante da S4b2 (API server do Kubernetes, Prometheus, Kubecost, UI e migration) e um defeito
+**pré-existente do CloudPilot** que impede o botão "Verificar Conexão" da UI de funcionar com
+qualquer endpoint — detalhado no
+[mapa de impacto](regression/mapa-impacto-s4b2e.md).
+
 Os números do §6.1 e os testes do §10 foram reconferidos nesta data contra o código e o fixture;
 F1–F14 permanecem como foram lidas em 2026-10-28.
 
@@ -168,14 +179,15 @@ alguma coisa sobre um dado que o simulador não tem. (O consumidor lê `version`
 `nodeCount`/`podCount` com **default 0** — `opencost.py:487-490` — então a ausência é lida
 como ausência, não como erro.)
 
-### 2.1 A URL de deploy (S4b2-C, 2026-10-30)
+### 2.1 A URL de deploy (S4b2-C, 2026-10-30; URL HTTPS na S4b2-E)
 
 O contrato HTTP acima é o que o `k8s-sim` serve; **onde** ele atende é uma questão de
-deployment, e ela está fechada desde a S4b2-C:
+deployment, e ela está fechada desde a S4b2-C — e passou a ser **HTTPS** na S4b2-E:
 
 | Contexto | URL | Quem a usa |
 |---|---|---|
-| **Do backend do CloudPilot** | **`http://k8s-sim:8089`** | o provider `opencost` — `http://` puro, **sem TLS** |
+| **Do backend do CloudPilot** | **`https://opencost.synthetic-clouds.test`** | o provider `opencost` — TLS na frente, certificado do front |
+| Do front, para o upstream | `http://k8s-sim:8089` | o `nginx` do front (`upstream k8s_opencost`) e o probe em HTTP |
 | Do host, para o operador | `http://localhost:8089/healthz` | o resumo do `cold-start.ps1` e a conferência manual |
 
 **O host `k8s-sim` é um alias de rede**, criado pelo
@@ -190,9 +202,16 @@ A porta **8089** é a do container, fixa em `compose.k8s.yaml` (`K8S_SIM_PORT: "
 exposta pelo `Containerfile`. No host ela é `${K8S_SIM_PORT:-8089}`, declarada em
 `deploy/synthetic-clouds/.env.example`.
 
-**Esta URL não passa pelo front TLS.** Os hostnames `*.googleapis.com` do front são do
-plano GCP; o plano Kubernetes não tem hostname real nem certificado — o TLS para ele é o
-restante da S4b2 (§9).
+**Desde a S4b2-E o consumidor passa pelo front TLS.** O plano Kubernetes não tem hostname de
+nuvem real para imitar, então o front o serve sob um nome próprio,
+**`opencost.synthetic-clouds.test`** (decidido no checkpoint da fase; `.test` é a TLD
+reservada para testes, RFC 6761, e **não resolve na internet pública**). O nome é publicado
+como alias na bridge, entra na folha do front como SAN (reassinada pela mesma CA — o bundle
+do CloudPilot não muda) e é encaminhado ao upstream `k8s-sim:8089`. O alias `k8s-sim`
+continua existindo: é o **upstream** do front e o que o probe do `ensure-cloudpilot.ps1`
+mede em HTTP para provar que ele continua de pé.
+
+Detalhe da decisão e da medição: [mapa de impacto](regression/mapa-impacto-s4b2e.md).
 
 ---
 
@@ -681,12 +700,23 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   **Atualizado em 2026-10-30 (S4b2-C):** a primeira metade dessa frase foi **fechada** — o
   `Containerfile` e o `compose.k8s.yaml` chegaram na S4b2-A/B, e a S4b2-C integratei o
   `k8s-sim` à rede do CloudPilot com o alias `k8s-sim` e a URL **`http://k8s-sim:8089`**
-  (§2.1 e o [mapa de impacto](regression/mapa-impacto-s4b2c.md)). Continuam **abertos**, e
-  são o restante da S4b2: **TLS** (a URL interna é HTTP puro na bridge, sem hostname real e
-  sem certificado), API server do Kubernetes, Prometheus, Kubecost, UI e migration.
+  (§2.1 e o [mapa de impacto](regression/mapa-impacto-s4b2c.md)).
+  **Atualizado em 2026-10-30 (S4b2-E):** o **TLS também está fechado**. O plano é servido pelo
+  front TLS sob o nome próprio **`opencost.synthetic-clouds.test`** (porta 443), com SAN na
+  folha do front assinada pela mesma CA; a URL do consumidor passou a ser
+  **`https://opencost.synthetic-clouds.test`** (§2.1 e o
+  [mapa de impacto](regression/mapa-impacto-s4b2e.md)). Continuam **abertos**, e são o restante
+  da S4b2: API server do Kubernetes, Prometheus, Kubecost, UI e migration.
 - **Sem spec de máquina** em `specs/` e **sem entrada na matriz de fidelidade**.
 - **Sem** wiring no provider do CloudPilot, **sem** rodar sync, **sem** validar tela. O CloudPilot
   não foi tocado **por esta fase**; ele evoluiu depois por conta própria (C-IDENT, §1.2).
+  **Atualizado em 2026-10-30 (S4b2-E):** o **wiring existe** — na conta de homologação, o
+  provider `opencost` do CloudPilot aponta para `https://opencost.synthetic-clouds.test` e a
+  leitura de custo foi validada por ele (5 linhas, nome e id nativo). Continuam **abertos**:
+  **rodar sync** (nenhum snapshot foi gravado nesta fase) e **validar tela** — o botão
+  "Verificar Conexão" não chega ao provider por um defeito **pré-existente do CloudPilot**
+  (a factory passa `db=` a um provider que não o aceita; ver o
+  [mapa de impacto](regression/mapa-impacto-s4b2e.md) §6).
 - **Sem gêmea `.en.md`** deste documento — verificado em 2026-10-29: `docs/k8s-sim-opencost-contract.en.md`
   não existe. A allowlist da fase S4b1 permitia só este arquivo em `docs/`; a gêmea fica como
   pendência declarada.

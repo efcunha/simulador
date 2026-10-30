@@ -137,11 +137,14 @@ codigo e nos testes do emulador, registrado nos mapas de impacto
 (`docs/regression/`) e em `docs/k8s-sim-opencost-contract.md`.
 
 **Como o CloudPilot alcanca o `k8s-sim`.** Desde a S4b2-C ele esta anexado a rede
-`cloudpilot-deploy_cloudpilot_net` com o alias `k8s-sim`, e o backend o alcanca pelo
-nome, em `http://k8s-sim:8089` (HTTP puro, **sem** TLS). O vinco e reaplicado
+`cloudpilot-deploy_cloudpilot_net` com o alias `k8s-sim`; desde a **S4b2-E** o consumidor
+chega ate ele por **HTTPS**, no nome proprio do front TLS,
+`https://opencost.synthetic-clouds.test` — o alias `k8s-sim` continua sendo o upstream do
+front, em `http://k8s-sim:8089`. O vinco e reaplicado
 idempotentemente por `deploy/synthetic-clouds/integration/ensure-cloudpilot.ps1`, que
 tambem cria o container a partir de `compose.k8s.yaml` quando ele falta — sem rebuild.
-Detalhe em [regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md).
+Detalhe em [regression/mapa-impacto-s4b2c.md](docs/regression/mapa-impacto-s4b2c.md) e
+[regression/mapa-impacto-s4b2e.md](docs/regression/mapa-impacto-s4b2e.md).
 
 **Como o CloudPilot alcanca o `aws-sim`.** O plano AWS tem o **proprio namespace** de
 variaveis: `compose.aws.yaml` le `AWS_SIM_SEED`/`AWS_SIM_PROFILE`, nao os nomes genericos
@@ -179,8 +182,9 @@ S4b3-B a entrega publicava em `cloudpilot-focus12-daily-full` — o nome do rend
 `data_source: focus_cost_records` (antes: `cost: null`, `data_state: "unavailable"`). Detalhe em
 [regression/mapa-impacto-s4b3b.md](docs/regression/mapa-impacto-s4b3b.md).
 
-**Debitos desta frente.** O plano Kubernetes ainda **nao tem** hostname real nem
-certificado (TLS e o restante da S4b2); `scripts/synthetic-clouds/up.ps1` **nao** sobe esse
+**Debitos desta frente.** O plano Kubernetes **já tem** TLS desde a S4b2-E (nome próprio
+`opencost.synthetic-clouds.test`, com SAN na folha do front), mas segue **sem** hostname de
+nuvem real para imitar; `scripts/synthetic-clouds/up.ps1` **nao** sobe esse
 plano (ele sobe pela integracao, que e o dono do vinco); e
 `docs/DECISOES-PENDENTES.md` ainda afirma que o `k8s-sim` "nao tem Containerfile nem
 servico de compose" — frase que ficou falsa na S4b2-B e que este arquivo esta fora da
@@ -253,8 +257,10 @@ O quarto emulador, o `k8s-sim`, serve o contrato OpenCost
 (`/allocation/compute`, `/clusterInfo`, `/healthz`) a partir do fixture versionado
 `k8s_sim/fixtures/clusters.json`. Desde a **S4b2-B** ele tem `Containerfile` e servico
 de compose (`deploy/synthetic-clouds/compose.k8s.yaml`); desde a **S4b2-C** ele e
-**anexado a rede do CloudPilot** com o alias `k8s-sim`, e o backend do CloudPilot o
-alcanca pelo nome, em `http://k8s-sim:8089`. O contrato e o comando de execucao estao em
+**anexado a rede do CloudPilot** com o alias `k8s-sim`; e desde a **S4b2-E** o backend do
+CloudPilot o alcanca por **HTTPS**, em `https://opencost.synthetic-clouds.test` (o nome
+proprio do front TLS — o plano nao imita hostname de nuvem). O contrato e o comando de
+execucao estao em
 [`docs/k8s-sim-opencost-contract.md`](docs/k8s-sim-opencost-contract.md).
 
 O `gcp-sim` precisa dos *fixtures* renderizados para responder; o

@@ -19,6 +19,8 @@ Last updated: **2026-10-30** (revision `a16aa7fb`, branch `feat/p76-security-pos
 | `21cc0eaa` | S4b3-A — the `aws-sim` FOCUS/S3 tree on the `medium` profile | The `aws-sim` served **two volumes**: the APIs on `medium` and the billing export on `small` — the uploader (`scripts/synthetic-clouds/aws-up.ps1`) resolved the AWS plane's namespace **from the process environment only**, with a `small` default, and the installation's `.env` (which pins `AWS_SIM_PROFILE=medium`) never reached the generator. The uploader now reads that `.env` (process environment first), uses the repository venv, **replaces** the tree in the volume instead of merging it, **does not rebuild** images by default (`-Build` is explicit) and **verifies** the tree through the emulator's own S3 surface. Two configuration fixes were needed on the consumer side for the ingestion: `cur_config.export_name` (`cloudpilot-focus12-daily-full` → `synthetic-focus12-daily-full`, the name the renderer emits) and `external_account_id` (empty → `911368690069`, required by the promotion's fail-closed guard). Measured: `aws-up.ps1` → **exit 0** with no rebuild and no recreate; tree = 6 objects / 14,011,803 B, `"profile": "medium"`, **130,236 rows**, **966** `ResourceId`s — the 966 AWS resources with a billing line in the `medium` estate (1,110 resources / 474,390 lines); official ingestion → `status: ok`, `rows_promoted=58926`, **US$ 166,204.47** in `/costs/unified` (`by_account: aws · HOMOLOGATION AWS [sim]`) and in the browser (`/costs` YTD → US$ 225,578, the AWS account at 73.7%). Detail in [regression/mapa-impacto-s4b3a.md](regression/mapa-impacto-s4b3a.md). |
 | `a16aa7fb` | S4b3-B — the daily delivery publishes to the export the consumer reads | The delivery (FR-22) published into `cloudpilot-focus12-daily-full` — the name of the renderer **before** the standalone publish —, while the bucket (`AWS_SIM_BUCKET`) and the homologation account's `cur_config` use `synthetic-focus12-daily-full`, the name the renderer emits: the delivery was the **only** piece of the circuit outside that namespace, and the failure was **silent** (`deliver_aws` PUTs the keys and counts them, validating nothing — the same `ok: true` for the right bucket and for the dead one). The namespace became one source of truth (`DEFAULT_AWS_BUCKET` / `DEFAULT_AWS_EXPORT_NAME` in `deliver/core.py`), covering **both** delivery paths: the CLI (the `DELIVERY_AWS_*` variable defaults) and the Windows task (`schedule/__main__.py:227` calls `deliver_day()` **with no** namespace, so it takes the code defaults) — the `.env` did not resolve it and would not have, because it carries no `DELIVERY_*` variable. Measured: delivery of day `2026-10-26` → **exit 0** (`aws_objects: 1`), the new key under `focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/...` (2,734,569 B = exactly the source parquet) and **no** `cloudpilot-focus12-daily-full` bucket created; official ingestion → `rows_promoted=54096` and `cur_last_execution_id` = the delivery's execution; `/costs/unified` → `HOMOLOGATION AWS [sim] · 54,143.54` with `data_source: focus_cost_records` (before: `cost: null`, `data_state: "unavailable"`), and the volume agrees in all three places (parquet `EffectiveCost` 54,143.544220 = `focus_cost_records` for period 2026-10 = `/costs/unified`). Suite: **1109 passed / 20 skipped**. Detail in [regression/mapa-impacto-s4b3b.md](regression/mapa-impacto-s4b3b.md). |
 
+
+
 ## Principle
 
 The simulator generates cloud data **faithful to the official export format** of AWS,
@@ -1436,3 +1438,71 @@ account still carries the dead `export_name` (`cloudpilot-focus12-daily-full`) �
 another account, outside this phase's target.
 
 Detail in [regression/mapa-impacto-s4b3b.md](regression/mapa-impacto-s4b3b.md).
+
+## S4b2-E — the `k8s-sim` over HTTPS: own name, SAN and the consumer URL (2026-10-30)
+
+**The Kubernetes plane was the only one speaking plain HTTP.** Everything else in the stack
+talks TLS to CloudPilot through the real hostnames; the `k8s-sim` was reached at
+`http://k8s-sim:8089`, a network alias on the bridge — no certificate and **no cloud
+hostname**. The catch: OpenCost is not a cloud service, it is a contract, and there is no real
+hostname to imitate. Inventing one would hijack someone's name (which this stack already found
+dangerous with `sts.*`); leaving the TLS out would keep the plane as the only plain-HTTP surface
+in the stack. The way out was the phase's **checkpoint**: the hostname belongs to the **front**,
+not to a cloud.
+
+**What was approved.** `opencost.synthetic-clouds.test` — the OpenCost contract named, in the
+TLD reserved for testing (RFC 6761), which **does not resolve on the public internet**. The
+consumer URL and the provider value: **`https://opencost.synthetic-clouds.test`** (port 443, the
+front's). The `k8s-sim` alias **stays** — it is the front's upstream.
+
+**What changed.** The new alias joins the `cloudpilot_net` in `compose.tls-front.yaml`;
+`nginx.conf` gains `upstream k8s_opencost { server k8s-sim:8089; }` and a `server` with
+`server_name opencost.synthetic-clouds.test`; `ensure-cloudpilot.ps1` gains the name in
+`$FrontAliases` (the list that **re-signs the leaf** when a routed alias is missing from the
+SAN) and now measures **both** ends — HTTPS (the consumer path) and HTTP (the front's
+upstream). The **CA was not touched**: the leaf carries 13 SANs now (12 + the new one), and the
+CloudPilot bundle is unchanged.
+
+**Measured.** Leaf re-signed (`missing SANs: opencost.synthetic-clouds.test`), front recreated
+through the official mechanism (`podman compose -f deploy/synthetic-clouds/compose.tls-front.yaml
+up -d` → `Recreate`/`Recreated`/`Started`, ID `846747b7…` → `9a313a73ab7f`, `health=healthy`) and
+**only it** — every other container kept its ID. From inside `cloudpilot_backend`, with the
+default TLS context (which trusts the local CA through `SSL_CERT_FILE`):
+`https://opencost.synthetic-clouds.test/healthz` → **200** `{"status":"ok","synthetic":true}`;
+`…/clusterInfo?filter=cluster:"TEMP-aks_cluster-0025"` → **200**
+`{"code":200,"data":{"version":"synthetic"}}`. `nginx -t` → `syntax is ok`, and the other planes
+keep answering through the front (`compute.googleapis.com` → 404 from gcp-sim,
+`bigquery.googleapis.com` → 200, `management.azure.com` → 404 from azure-sim).
+
+**In CloudPilot (homologation account, `[SYNTH] synthetic-homologation` workspace).** The
+`opencost` provider was pointed at the HTTPS URL (`provider_endpoint =
+https://opencost.synthetic-clouds.test`, `has_token: false` — the token was left empty on
+purpose). With the **config read from the database** and the **real CloudPilot provider**:
+`success: true`, `latency_ms: 29`; and the cost read returns **5 rows** for
+`TEMP-aks_cluster-0025` — by **name** and by **native id** alike, i.e. the C-IDENT alias still
+resolves through the new path.
+
+**A pre-existing CloudPilot defect, found mid-path.** The UI's "Test Connection" button **never
+reaches the provider**: `TypeError: OpenCostProvider.__init__() got an unexpected keyword
+argument 'db'`. The root cause is in the CloudPilot repo — the factory passes `db=` to every
+provider (`factory.py:132`), but `opencost.py:47` and `kubecost.py:44` do not accept `db` (unlike
+`azure.py:285` and `gcp.py:242`). **This is not a regression of this phase:** the same
+`TypeError` was logged with **two** different URLs — the approved HTTPS one and, on purpose, the
+old `http://k8s-sim:8089` — and the code inside the container is identical, line for line, to the
+repo's (`IGUAIS=True`). The fix belongs to CloudPilot (one line per provider, mirroring
+`azure.py`/`gcp.py`) and **this phase cannot make it**: `C:\Projetos\cloudpilot-deploy\**` is
+outside the allowlist, and the fix would require recreating CloudPilot's containers, which the
+phase forbids.
+
+**What is still open.** The UI's "Test Connection" button (the defect above, on the CloudPilot
+side) and the **sync** (no new snapshot was written). Outside this phase's allowlist, and
+therefore **not corrected**: `deploy/synthetic-clouds/README.md` (it still says the backend
+reaches the `k8s-sim` at `http://k8s-sim:8089` and that TLS is the rest of S4b2) and
+`deploy/synthetic-clouds/.env.example` (it still documents `K8S_SIM_URL=http://k8s-sim:8089` —
+the right value is `https://opencost.synthetic-clouds.test`); `docs/DECISOES-PENDENTES.md`, which
+describes the Kubernetes plane without TLS; and `AGENTS.md`, which describes the `k8s-sim` as
+reached over plain HTTP. The TLS leaf is local and git-ignored: the repository holds the
+*contract* (the name, the route, the SAN via `$FrontAliases`), and a fresh install re-signs the
+leaf through `ensure-cloudpilot.ps1`.
+
+Detail in [regression/mapa-impacto-s4b2e.md](regression/mapa-impacto-s4b2e.md).

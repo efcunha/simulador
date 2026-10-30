@@ -41,6 +41,13 @@ services:
           - config.googleapis.com
           - container.googleapis.com
           - securitycenter.googleapis.com
+          # The Kubernetes plane (S4b2-E). It has NO real cloud hostname, so the
+          # front serves it under a name of its own: "opencost" is the contract
+          # it speaks (the OpenCost allocation API) and ".test" is the TLD
+          # reserved for testing (RFC 6761), which never resolves on the
+          # public internet. The CloudPilot consumer reaches the k8s-sim
+          # through this name over TLS.
+          - opencost.synthetic-clouds.test
 
 networks:
   cloudpilot_net:

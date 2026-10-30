@@ -8,12 +8,14 @@
       1. podman machine up; emulator containers running (azure, gcp, aws and
          the k8s-sim, which is created from compose.k8s.yaml when missing)
       2. DNS aliases on the CloudPilot bridge (management/login on azure-sim,
-         GCP/AWS hostnames on the TLS front, emulator names for the front,
-         and `k8s-sim` so the backend reaches the OpenCost contract by name)
+         GCP/AWS hostnames AND the Kubernetes plane's own name on the TLS
+         front, emulator names for the front, and `k8s-sim` -- the front's
+         upstream for the Kubernetes plane)
       3. CA trust present in the CloudPilot containers (env + /certs mount)
       4. azure-sim estate window reaches the current UTC day
-      5. optional end-to-end smoke: the k8s-sim reached by name from the
-         backend, "Verificar Conexão" on the three accounts and
+      5. optional end-to-end smoke: the k8s-sim reached from the
+         backend -- through the front over TLS and by its alias over HTTP --
+         "Verificar Conexão" on the three accounts and
          /costs/unified with stale=false
 
     Safe to run on a schedule: it only reconnects a network endpoint when an
@@ -69,12 +71,17 @@ $K8sSim = 'synthetic-clouds-k8s-sim-1'
 # file lives next to the other planes and is NOT edited by this script.
 $K8sSimCompose = 'compose.k8s.yaml'
 
-# The URL the CloudPilot backend uses for the OpenCost contract. The host is
-# the NETWORK ALIAS on the CloudPilot bridge (not the container name, not
-# localhost): the backend resolves `k8s-sim` only if this script attached
-# the container to the bridge with that alias. The port is the container
-# port, pinned by compose.k8s.yaml (K8S_SIM_PORT) and by the Containerfile.
-$K8sSimUrl = 'http://k8s-sim:8089'
+# The URL the CloudPilot backend uses for the OpenCost contract. Since the
+# S4b2-E the consumer goes through the TLS front: the host is the NAME the
+# front serves (and the alias the front publishes on the CloudPilot bridge),
+# not the container name and not localhost. The port is the front's 443 --
+# the k8s-sim's own 8089 stays behind the front.
+$K8sSimUrl = 'https://opencost.synthetic-clouds.test'
+
+# The same contract reached WITHOUT the front: the network alias on the
+# bridge, plain HTTP. The front's upstream is this address, so the alias is
+# what the plane itself is addressed by.
+$K8sSimAliasUrl = 'http://k8s-sim:8089'
 
 $AzureHostAliases = @('management.azure.com', 'login.microsoftonline.com')
 # NO STS hostname here on purpose. The CloudPilot network also carries REAL AWS
@@ -93,7 +100,11 @@ $FrontAliases = @(
     'compute.googleapis.com',
     'config.googleapis.com',
     'container.googleapis.com',
-    'securitycenter.googleapis.com'
+    'securitycenter.googleapis.com',
+    # The Kubernetes plane (S4b2-E): the front's own name for the OpenCost
+    # contract. It is an alias like the others, so the leaf is re-signed with
+    # it and the backend resolves it to the front.
+    'opencost.synthetic-clouds.test'
 )
 
 $script:Problems = [System.Collections.Generic.List[string]]::new()
@@ -250,18 +261,28 @@ function Ensure-NetworkAliases {
 function Test-K8sSimFromBackend {
     <#
       .SYNOPSIS
-        Proves the CloudPilot backend reaches the k8s-sim BY NAME.
+        Proves the CloudPilot backend reaches the k8s-sim contract.
 
       .DESCRIPTION
         The probe runs INSIDE cloudpilot_backend, because that is the only
-        place where the bridge alias matters: a 200 here means the backend
-        resolved `k8s-sim` through the CloudPilot network and got the
+        place where the bridge names matter: a 200 here means the backend
+        resolved the name through the CloudPilot network and got the
         OpenCost contract back.
 
-        Two routes are checked. /healthz proves the name resolves and the
-        service is up. /clusterInfo with a real cluster of the estate proves
-        the response is the CONTRACT (a service that answered 200 on
-        /healthz but not the filter would still be a broken integration).
+        TWO routes are measured, and both have to be 200:
+
+          * https://opencost.synthetic-clouds.test -- the path the CloudPilot
+            consumer takes (the TLS front, with the leaf signed by the local
+            CA the container trusts through SSL_CERT_FILE).
+          * http://k8s-sim:8089 -- the same plane addressed by its network
+            alias, plain HTTP. That is the front's own upstream, so it proves
+            the alias the front depends on is still there.
+
+        On each route two endpoints are checked. /healthz proves the name
+        resolves and the service is up. /clusterInfo with a real cluster of
+        the estate proves the response is the CONTRACT (a service that
+        answered 200 on /healthz but not the filter would still be a broken
+        integration).
 
         The cluster name is URL-encoded in the query string exactly like the
         CloudPilot provider encodes it, so the probe exercises the same wire
@@ -274,23 +295,34 @@ function Test-K8sSimFromBackend {
 
     $probe = @'
 import json
+import os
+import ssl
 import urllib.request
 
-BASE = "http://k8s-sim:8089"
+HTTPS_BASE = "https://opencost.synthetic-clouds.test"
+HTTP_BASE = "http://k8s-sim:8089"
 CLUSTER = "TEMP-aks_cluster-0025"
 PATHS = {
     "healthz": "/healthz",
     "clusterInfo": "/clusterInfo?filter=cluster%3A%22" + CLUSTER + "%22",
 }
 
+# The CloudPilot containers trust the simulator CA through SSL_CERT_FILE
+# (/certs/ca-bundle.pem), so the default context already validates the leaf
+# the front serves.
+ca_file = os.environ.get("SSL_CERT_FILE")
+context = ssl.create_default_context(cafile=ca_file) if ca_file else ssl.create_default_context()
+
 out = {}
-for label, path in PATHS.items():
-    try:
-        with urllib.request.urlopen(BASE + path, timeout=5) as response:
-            body = response.read().decode("utf-8", "replace")
-            out[label] = {"status": response.status, "body": body[:160]}
-    except Exception as exc:  # noqa: BLE001 -- the failure IS the measurement
-        out[label] = {"status": None, "error": repr(exc)}
+for scheme, base in (("https", HTTPS_BASE), ("http", HTTP_BASE)):
+    out[scheme] = {}
+    for route, path in PATHS.items():
+        try:
+            with urllib.request.urlopen(base + path, timeout=5, context=context) as response:
+                body = response.read().decode("utf-8", "replace")
+                out[scheme][route] = {"status": response.status, "body": body[:160]}
+        except Exception as exc:  # noqa: BLE001 -- the failure IS the measurement
+            out[scheme][route] = {"status": None, "error": repr(exc)}
 print("K8SSIM:" + json.dumps(out))
 '@
     $raw = ($probe | & podman exec -i cloudpilot_backend python - 2>&1)
@@ -300,13 +332,16 @@ print("K8SSIM:" + json.dumps(out))
         return
     }
     $result = ($line.Substring(7) | ConvertFrom-Json)
-    foreach ($route in @('healthz', 'clusterInfo')) {
-        $status = $result.$route.status
-        if ($status -eq 200) {
-            Write-Log 'INFO' "k8s-sim $route = 200 from cloudpilot_backend ($K8sSimUrl)"
-        } else {
-            $error = $result.$route.error
-            Add-Problem "k8s-sim $route from cloudpilot_backend = $status ($error)"
+    foreach ($scheme in @('https', 'http')) {
+        $base = if ($scheme -eq 'https') { $K8sSimUrl } else { $K8sSimAliasUrl }
+        foreach ($route in @('healthz', 'clusterInfo')) {
+            $status = $result.$scheme.$route.status
+            if ($status -eq 200) {
+                Write-Log 'INFO' "k8s-sim $scheme/$route = 200 from cloudpilot_backend ($base)"
+            } else {
+                $error = $result.$scheme.$route.error
+                Add-Problem "k8s-sim $scheme/$route from cloudpilot_backend = $status ($error)"
+            }
         }
     }
 }
@@ -613,8 +648,10 @@ Ensure-NetworkAliases -Container $GcpSim -Network $CpNet -Aliases @('gcp-sim')
 Ensure-NetworkAliases -Container $AwsSim -Network $CpNet -Aliases @('aws-sim')
 Ensure-NetworkAliases -Container $S3Mock -Network $CpNet -Aliases @('s3mock')
 Ensure-NetworkAliases -Container $BqEmu -Network $CpNet -Aliases @('bigquery-emulator')
-# The backend reaches the OpenCost contract by NAME, not by container name:
-# `k8s-sim` is the alias that makes http://k8s-sim:8089 resolve on the bridge.
+# The k8s-sim plane is addressed by the alias `k8s-sim` on the bridge: that
+# is the address the TLS front forwards to (its upstream), so the alias has to
+# be there before the front starts. The CloudPilot consumer itself reaches
+# the plane through the front's own name, over TLS ($K8sSimUrl).
 Ensure-NetworkAliases -Container $K8sSim -Network $CpNet -Aliases @('k8s-sim')
 
 # 2b. Now that the upstreams answer by name, the front can start.
