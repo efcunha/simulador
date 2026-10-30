@@ -1,6 +1,6 @@
 # synthetic-clouds — stack local dos emuladores (Azure, GCP, AWS e Kubernetes)
 
-> Última atualização: **2026-10-30** (revisão `9ccbc71c`).
+> Última atualização: **2026-10-30** (revisão `21cc0eaa`).
 
 Cinco arquivos compose, um por lado da pilha, em `deploy/synthetic-clouds/`:
 
