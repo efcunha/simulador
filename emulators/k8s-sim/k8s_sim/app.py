@@ -1,8 +1,8 @@
 """FastAPI app for k8s-sim: the OpenCost allocation contract for the estate's clusters,
-and the Kubernetes API the CloudPilot consumer reads the estate's namespaces and pods
-from.
+the Kubernetes API the CloudPilot consumer reads the estate's namespaces and pods
+from, and the Prometheus instant query it reads the estate's usage from.
 
-Two planes, six routes:
+Three planes, seven routes:
 
 **The OpenCost plane** (the contract this service was born with):
 
@@ -33,19 +33,28 @@ Two planes, six routes:
     The pods of one namespace. The GCP and Azure providers read it after listing the
     namespaces.
 
-The two planes describe ONE estate, so their constants agree by construction (see
+**The Prometheus plane** (the usage the CloudPilot consumer measures):
+
+``/api/v1/query``
+    The Prometheus instant query. The CloudPilot ``opencost`` provider reads it to
+    obtain the estate's namespace-grain CPU and memory telemetry, and the rightsizing
+    path is closed without that telemetry.
+
+The three planes describe ONE estate, so their constants agree by construction (see
 :mod:`k8s_sim.projections.kubernetes`). They answer with different envelopes on
 purpose: the OpenCost plane with the OpenCost envelope, the Kubernetes plane with the
 official Kubernetes shapes (``NamespaceList``, ``PodList`` and, on a failure, a
-``Status``). The Kubernetes plane asks for a bearer token -- the consumer always sends
-one -- and the OpenCost plane does not, so the contract that already existed is
-untouched.
+``Status``), and the Prometheus plane with the Prometheus envelope (``status`` plus
+``data``, or the error envelope). The Kubernetes plane asks for a bearer token -- the
+consumer always sends one -- and the OpenCost and Prometheus planes do not, so the
+contract that already existed is untouched.
 
-The app is stateless. There is no estate to build, no clock to read, no price list to
-fetch and no connection to open: every answer is a pure function of the query string.
-The estate's clusters are DATA -- the versioned fixture
-``k8s_sim/fixtures/clusters.json`` -- and the generator is not a dependency of the
-service.
+The app is stateless. There is no estate to build, no price list to fetch and no
+connection to open: every answer is a pure function of the query string. The one
+clock the service reads is the Prometheus evaluation instant (see
+:mod:`k8s_sim.projections.prometheus`). The estate's clusters are DATA -- the
+versioned fixture ``k8s_sim/fixtures/clusters.json`` -- and the generator is not a
+dependency of the service.
 
 The wire shape, the sources it was read from, and the places where this phase narrows
 or deviates from OpenCost are documented in ``docs/k8s-sim-opencost-contract.md``.
@@ -58,7 +67,7 @@ from typing import Any
 from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
 
-from k8s_sim.projections import allocation, kubernetes
+from k8s_sim.projections import allocation, kubernetes, prometheus
 
 
 def _error(status: int, message: str) -> JSONResponse:
@@ -309,5 +318,32 @@ def create_app() -> FastAPI:
             )
 
         return JSONResponse(status_code=200, content=kubernetes.pod_list())
+
+    @app.get("/api/v1/query")
+    async def prometheus_query(query: str | None = None, time: str | None = None) -> JSONResponse:
+        """The Prometheus instant query over the estate.
+
+        The CloudPilot ``opencost`` provider reads this route to obtain the
+        namespace-grain CPU and memory telemetry it materializes into the snapshot
+        (``cpu_usage_current_millicores`` and ``memory_usage_current_bytes``), and
+        the rightsizing path is closed without it. The provider sends **no**
+        authentication header, so this plane does not ask for one -- the OpenCost
+        plane does not either, and the contract that already existed is untouched.
+
+        The answer is the Prometheus HTTP API's shape: ``status`` plus ``data``
+        (``resultType`` and ``result``) on success, and ``status``, ``errorType``
+        and ``error`` on a failure -- which carries the HTTP status ``400``.
+
+        A query the estate has no series for is answered with an **empty vector**,
+        the way a Prometheus answers a query that selects nothing. The estate
+        publishes no series for the Karpenter queries the consumer may send, because
+        it models no Karpenter.
+        """
+        try:
+            payload = prometheus.evaluate(query=query, time_param=time)
+        except prometheus.QueryError as exc:
+            return JSONResponse(status_code=400, content=prometheus.failure(str(exc)))
+
+        return JSONResponse(status_code=200, content=payload)
 
     return app

@@ -1,4 +1,4 @@
-# Contrato do `k8s-sim` — o OpenCost e a API do Kubernetes (Fases S4a, S4b1, S4b1-C, S4b1-E, S4b2-C, S4b2-E, S4b2-G e S4b3-F)
+# Contrato do `k8s-sim` — o OpenCost, a API do Kubernetes e o Prometheus (Fases S4a, S4b1, S4b1-C, S4b1-E, S4b2-C, S4b2-E, S4b2-G, S4b2-H e S4b3-F)
 
 > Idioma: **Português**. Sem gêmea `.en.md`: a allowlist permite **apenas** este arquivo em
 > `docs/`. A gêmea em inglês fica como pendência (§9).
@@ -69,6 +69,18 @@ superfície não foi inventada: ela foi medida no código do consumidor (§2.2.1
 publica é a mesma namespace e o mesmo workload que o contrato OpenCost precifica. A pendência
 "API server do Kubernetes" saiu do §9. Detalhe e medição:
 [mapa de impacto](regression/mapa-impacto-s4b2g.md).
+
+**Atualizado em 2026-10-31 pela S4b2-H: o contrato ganhou um terceiro plano — o Prometheus.** A
+superfície é `GET /api/v1/query`, a mesma rota que o provider `opencost` do CloudPilot chama para
+obter a telemetria de CPU e memória por namespace (§2.3). Ela também **não foi inventada**: o
+checkpoint da fase levantou primeiro, no código do consumidor, se e como o Prometheus é lido
+(endpoint, formato, labels, auth) — e o que a leitura encontrou foi que **o consumidor lê**, e que
+sem essa leitura o caminho de rightsizing **fecha** (`get_recommendations` devolve lista vazia sem
+telemetria). O plano novo **não pede token** (o cliente do provider não carrega credencial), serve
+as **duas** queries que o consumidor envia, publica o **mesmo uso** que os outros dois planos
+publicam — 2 núcleos e 4 GiB — e responde com a forma da API HTTP do Prometheus. A pendência
+"Prometheus" saiu do §9. Detalhe e medição:
+[mapa de impacto](regression/mapa-impacto-s4b2h.md).
 
 **O que este documento NÃO é:** uma reconciliação de billing. **Os valores desta fase são
 SINTÉTICOS.** O `k8s-sim` não lê billing, não lê preço de nuvem e não lê o cluster AKS real; a
@@ -336,10 +348,92 @@ Não é um API server: é o **subconjunto** que o consumidor chama.
   `get_workload_labels` e trata falta como `{}` (best-effort), então a ausência não quebra
   ninguém.
 - **Sem `apis/metrics.k8s.io/v1beta1/pods`** — a Metrics API. O consumidor degrada com elegância
-  quando ela falta; e o Prometheus é o **S4b2-H**.
+  quando ela falta; e o Prometheus, que é um contrato **diferente**, foi fechado pela **S4b2-H**
+  (§2.3).
 - **Sem `nodes`, sem `pods` de outra namespace** — a namespace que não é do estate é 404.
 - **Sem RBAC, sem `SelfSubjectAccessReview`**, sem `watch`, sem `resourceVersion` — o plano é de
   leitura pontual, e o `watch` que o client oficial manda (`?watch=False`) é aceito e ignorado.
+
+### 2.3 O terceiro plano: a superfície Prometheus (S4b2-H, 2026-10-31)
+
+**A superfície foi medida, não escolhida.** O §9 nomeava "Prometheus" como pendência **sem dizer
+qual** — o §9 é a lista do que a fase anterior não implementou, não uma especificação. O que o
+consumidor lê foi levantado no **código do CloudPilot** (somente-leitura, em 2026-10-31, em
+`C:\Projetos\cloudpilot-deploy`), e a resposta é: **ele lê** — e o que ele deixa de ler quando a
+superfície falta é **o caminho de rightsizing inteiro**.
+
+#### 2.3.1 O que o consumidor lê (a medição)
+
+| O quê | Onde | O que a leitura diz |
+|---|---|---|
+| De onde vem a URL | `opencost.py:56-57` | `config.prometheus_endpoint` **ou** `settings.K8S_PROMETHEUS_URL` (`config.py:619`). O modelo `K8sFinOpsConfig` **não tem** a coluna `prometheus_endpoint` (ele tem `provider_endpoint`, `clusters`, `cluster_account_map`, `is_active`, `kubeconfig_vault`), então o endpoint chega pela **variável de ambiente**. |
+| O pedido | `opencost.py:112-132` | `GET {endpoint}/api/v1/query` com a query no parâmetro `query`, **sem nenhum header de autenticação**. O `raise_for_status()` transforma um 401 num erro de provider, e a telemetria é descartada. |
+| O que a resposta precisa ter | `opencost.py:134-148` | `status == "success"` (o contrário é `ProviderDataError`), e `data.result[]`, cada entrada com `metric.namespace` e `value` — uma lista de dois, cujo segundo elemento é o número, lido como decimal e **mantido só se finito e não-negativo**, e depois convertido em `int`. |
+| As queries | `opencost.py:155-170` | `sum by (namespace) (rate(container_cpu_usage_seconds_total{cluster="<id>",container!="",image!=""}[5m])) * 1000` e `sum by (namespace) (container_memory_working_set_bytes{cluster="<id>",container!="",image!=""})`. O `cluster` carrega o **id nativo** que a descoberta publica (§1.2), escapado como `\"` e `\\`. |
+| Para que serve | `k8s_finops_sync.py:466-508` | A telemetria vira `cpu_usage_current_millicores` e `memory_usage_current_bytes` do snapshot, com `collection_method = "opencost_prometheus"`. |
+| O que fecha sem ela | `opencost.py:375-457` | `get_recommendations` **falha fechado**: sem telemetria de CPU e memória, a lista de recomendações é **vazia**. É o "rightsizing DEVE exigir telemetria" do requisito, medido no código. |
+
+#### 2.3.2 O que este plano serve
+
+Uma rota: **`GET /api/v1/query`** — o mesmo nome HTTPS do contrato OpenCost
+(`https://opencost.synthetic-clouds.test`), porque o front já encaminha `location /` para o upstream
+`k8s-sim:8089` e o `nginx.conf` do front está **fora** da allowlist.
+
+A forma da resposta é a da **API HTTP do Prometheus**
+(<https://prometheus.io/docs/prometheus/latest/querying/api/>), consultada em 2026-10-31:
+
+- **Sucesso** — `status: "success"` e `data` com `resultType: "vector"` e `result`. Cada entrada
+  carrega `metric` (o conjunto de labels) e `value` (o par `[timestamp, "valor"]`).
+- **Erro** — `status: "error"`, `errorType: "bad_data"` e `error`, com o **HTTP 400**.
+
+Dois detalhes da forma oficial, que são fáceis de errar e que o consumidor lê:
+
+- **A agregação descarta o nome da métrica.** `sum by (namespace)` agrupa só pela label `namespace`,
+  e o Prometheus remove o `__name__` do resultado de uma agregação que não agrupa por ele. O
+  conjunto de labels publicado aqui é **`namespace` e `cluster`** — e **nenhum** `__name__`.
+- **O valor é uma string.** O Prometheus serializa o valor da amostra como texto; o consumidor o lê
+  como decimal.
+
+**Este plano não pede token.** O cliente do provider não carrega credencial nenhuma
+(`opencost.py:58-61`), então um plano que exigisse bearer devolveria 401 e derrubaria a
+telemetria. O plano OpenCost continua sem token, como sempre — o contrato que já existia não muda.
+
+#### 2.3.3 O que ele publica — e de onde o número vem
+
+O uso é o **mesmo uso** que o plano OpenCost precifica e que o plano da API do Kubernetes publica
+nos `requests` do pod (§6): **2 núcleos** e **4 GiB**. A query de CPU é um `rate` de 5 minutos sobre
+uma série constante, então a resposta é `2 × 1000` = **2000 millicores**; a de memória é o valor
+instantâneo, **4294967296 bytes**. Um teste fixa a coerência dos **três** planos.
+
+A identidade publicada é o **nome** do cluster (§6.1), como nos outros dois planos: o seletor aceita
+os três aliases — nome, `cluster_id` do estate e `native_id` — e a resposta carrega o **nome**.
+
+O **timestamp** da avaliação é o **relógio da parede**, como no Prometheus: uma query instantânea é
+avaliada *agora*, a menos que o pedido traga o parâmetro `time` (timestamp Unix ou instante RFC
+3339), que este plano lê. O **valor** não depende do instante — o uso do estate é constante —, só o
+carimbo muda. É o **único** relógio que o serviço lê, e é o único uso que ele faz.
+
+#### 2.3.4 O que este plano **não** serve (declarado)
+
+- **Sem engine de PromQL.** As **duas** queries que o consumidor envia são lidas; qualquer outra
+  query é respondida com **200 e vetor vazio** — a resposta de um Prometheus para uma query que não
+  seleciona série nenhuma. Um plano que não sabe avaliar não inventa série para preencher.
+- **Sem métricas do Karpenter.** O consumidor tem um segundo cliente Prometheus
+  (`karpenter_metrics.py`), que lê `karpenter_nodes_created_total`,
+  `karpenter_nodes_terminated_total` e o quantil de startup de pods. O estate **não modela
+  Karpenter** — não tem nós, nem node claims, nem provisionamento —, então publishar essas métricas
+  seria dizer algo sobre um estate que não existe. Elas respondem **vetor vazio**, que é a resposta
+  honesta ("não há série"), e o cliente do consumidor degrada com elegância.
+- **Sem `/api/v1/query_range`** — o consumidor não a chama.
+- **Sem a Metrics API** (`apis/metrics.k8s.io/v1beta1/pods`) — que é um contrato **diferente** (API
+  de métricas do Kubernetes, não Prometheus), continua **não servida** (§2.2.6 e §9).
+
+#### 2.3.5 O wiring no consumidor
+
+O `K8S_PROMETHEUS_URL` é a **URL base** — o provider **acrescenta** `/api/v1/query`. Na conta de
+homologação ele vale `https://opencost.synthetic-clouds.test`, o mesmo nome do contrato OpenCost. A
+chave foi escrita no `backend/.env.local` do CloudPilot (arquivo **não rastreado**), e nenhum código
+do CloudPilot foi tocado. A medição do consumidor está no §10.2.
 
 ---
 
@@ -841,6 +935,15 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   continua **não** servido está declarado na §2.2.6: as rotas de descoberta, as labels do workload
   (`apis/apps/v1`), a Metrics API (`apis/metrics.k8s.io`), os `nodes` e o RBAC. Continuam
   **abertos**, e são o restante da S4b2: Prometheus, Kubecost, UI e migration.
+  **Atualizado em 2026-10-31 (S4b2-H):** o **Prometheus também está fechado** — no mesmo sentido
+  de "o subconjunto que o consumidor chama": a rota `GET /api/v1/query` com as **duas** queries que
+  o provider `opencost` envia (§2.3), sob o mesmo nome HTTPS, sem token, sem mexer no contrato
+  OpenCost. Continuam **abertos**, e são o restante da S4b2: **Kubecost**, **UI** e **migration**.
+  A **Metrics API** (`apis/metrics.k8s.io/v1beta1/pods`) continua **não servida**, por uma razão
+  medida: o provider `opencost` — o que aponta para este plano — tira a telemetria do **Prometheus**,
+  e não da Metrics API; a Metrics API é lida pelos providers **EKS** e **Azure**, pelo kubeconfig, e
+  a ausência dela é tratada pelo consumidor com elegância (404 → `metrics_error` →
+  `collection_method = "k8s_api_requests_only"`).
 - **Sem spec de máquina** em `specs/` e **sem entrada na matriz de fidelidade**.
 - **Sem** wiring no provider do CloudPilot, **sem** rodar sync, **sem** validar tela. O CloudPilot
   não foi tocado **por esta fase**; ele evoluiu depois por conta própria (C-IDENT, §1.2).
@@ -851,6 +954,16 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   "Verificar Conexão" não chega ao provider por um defeito **pré-existente do CloudPilot**
   (a factory passa `db=` a um provider que não o aceita; ver o
   [mapa de impacto](regression/mapa-impacto-s4b2e.md) §6).
+  **Atualizado em 2026-10-31 (S4b2-H):** o **wiring do Prometheus também existe** — a chave
+  `K8S_PROMETHEUS_URL=https://opencost.synthetic-clouds.test` foi escrita no
+  `backend/.env.local` do CloudPilot (arquivo **não rastreado**, §2.3.5), e a leitura da telemetria
+  pelo **provider real** foi validada: `get_namespace_telemetry(<id nativo>)` devolveu
+  `NamespaceTelemetry(namespace='payments', cpu_usage_millicores=2000,
+  memory_usage_bytes=4294967296)` — os mesmos números que o allocation precifica. **Nenhum código
+  do CloudPilot foi tocado**, e os containers do CloudPilot **não** foram recriados: a variável
+  entra em vigor na próxima recriação. Continuam **abertos**: **rodar sync** — a config da
+  homologação tem `clusters: []`, então a tarefa não itera cluster nenhum — e **validar tela**, pelo
+  mesmo defeito pré-existente do botão "Verificar Conexão".
 - **Sem gêmea `.en.md`** deste documento — verificado em 2026-10-29: `docs/k8s-sim-opencost-contract.en.md`
   não existe. A allowlist da fase S4b1 permitia só este arquivo em `docs/`; a gêmea fica como
   pendência declarada.
@@ -869,12 +982,13 @@ a gêmea `.en.md`.
 ## 10. Onde o contrato é testado
 
 O contrato OpenCost está em `emulators/k8s-sim/k8s_sim/tests/test_allocation.py`; o contrato da
-API do Kubernetes, em `emulators/k8s-sim/k8s_sim/tests/test_kubernetes_api.py`. Ambos via
+API do Kubernetes, em `emulators/k8s-sim/k8s_sim/tests/test_kubernetes_api.py`; o contrato do
+Prometheus, em `emulators/k8s-sim/k8s_sim/tests/test_prometheus.py`. Todos via
 `fastapi.testclient.TestClient`.
 
-Medido em **2026-10-31** (após a S4b2-G): `pytest emulators\k8s-sim\k8s_sim\tests -q -p no:cacheprovider`
-→ **122 passed** em 12,8 s (1 aviso de depreciação do `TestClient` com `httpx`) — os **91** da
-S4b1-E mais **31** da S4b2-G. Antes desta fase, a mesma suíte dava **91 passed** em 12,7 s: a
+Medido em **2026-10-31** (após a S4b2-H): `pytest emulators\k8s-sim\k8s_sim\tests -q -p no:cacheprovider`
+→ **138 passed** em 13,1 s (1 aviso de depreciação do `TestClient` com `httpx`) — os **122** da
+S4b2-G mais **16** da S4b2-H. Antes desta fase, a mesma suíte dava **122 passed** em 14,9 s: a
 contagem subiu, nenhuma medição antiga mudou.
 
 | O que o teste fixa |
@@ -957,3 +1071,26 @@ Em `emulators/k8s-sim/k8s_sim/tests/test_kubernetes_api.py` — **31** testes. O
 | **o plano OpenCost continua respondendo sem token**: `/healthz`, `/allocation/compute` e `/clusterInfo` |
 | **os dois planos descrevem o mesmo estate**: a namespace da API é a `NAMESPACE` da projeção de allocation, e o workload é o `CONTROLLER` dela |
 | **os `requests` do pod nomeiam o uso que o allocation precifica**: `cpu` == `cpuCores` e `memory` == `ramBytes` |
+
+### 10.2 O contrato do Prometheus (S4b2-H)
+
+Em `emulators/k8s-sim/k8s_sim/tests/test_prometheus.py` — **16** testes. O que eles fixam:
+
+| O que o teste fixa |
+|---|
+| a rota responde **sem token** — o cliente do consumidor não carrega credencial (`opencost.py:112-132`) |
+| a query de CPU do consumidor → 200, uma série, `metric.namespace == "payments"`, `value[1] == "2000"` |
+| a query de memória do consumidor → 200, uma série, `value[1] == "4294967296"` |
+| a resposta tem a **forma** que o consumidor lê: `status` + `data`, `data.resultType == "vector"`, entrada com `metric` e `value`, `value` de dois elementos, `value[1]` decimal finito e não-negativo |
+| a agregação **descarta o `__name__`** — o conjunto de labels é `namespace` e `cluster` |
+| **os três planos descrevem o mesmo estate**: o `requests` do pod (`cpu: "2"`, `memory: "4Gi"`) é o `cpuCores`/`ramBytes` que o allocation precifica, e é o que este plano mede |
+| o **`native_id`** é aceito no seletor — e a resposta carrega o **NOME** do cluster |
+| o **nome** e o `cluster_id` do estate também são aceitos, e respondem a mesma série |
+| um cluster que o estate não tem → **200 com vetor vazio** (não 400: o Prometheus não dá erro para "nenhuma série") |
+| uma query que o estate não tem série — `up` e as **três queries do Karpenter** → **200 com vetor vazio** |
+| um pedido **sem query** → **400** com o envelope de erro do Prometheus (`status`, `errorType: "bad_data"`, `error`) |
+| o parâmetro `time` é lido: um timestamp Unix e um instante RFC 3339 avaliam a query naquele instante |
+| um `time` ilegível → **400** com o envelope de erro |
+| o **valor** é o mesmo entre duas chamadas — só o carimbo da avaliação muda |
+| **`/healthz` e `/allocation/compute` continuam respondendo** (não-regressão do contrato OpenCost) |
+| a **API do Kubernetes continua pedindo token**: 401 sem, 200 com |

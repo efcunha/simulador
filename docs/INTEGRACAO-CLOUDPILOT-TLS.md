@@ -85,7 +85,7 @@ próprio do plano Kubernetes.
 | `config.googleapis.com` | `gcp-sim:8085` | front nginx | `resourceDrifts.list` do Infrastructure Manager |
 | `container.googleapis.com` | `gcp-sim:8085` | front nginx | `projects.locations.clusters.list` (GKE) |
 | `securitycenter.googleapis.com` | `gcp-sim:8088` | front nginx com `grpc_pass` (TLS + HTTP/2) | `SecurityCenter/ListFindings` por gRPC |
-| `opencost.synthetic-clouds.test` | `k8s-sim:8089` | front nginx (TLS) | contrato OpenCost: `/healthz`, `/clusterInfo`, `/allocation/compute` — e, desde a S4b2-G, a API do Kubernetes: `/api/v1/namespaces`, `/api/v1/pods`, `/api/v1/namespaces/{ns}/pods` |
+| `opencost.synthetic-clouds.test` | `k8s-sim:8089` | front nginx (TLS) | contrato OpenCost: `/healthz`, `/clusterInfo`, `/allocation/compute` — e, desde a S4b2-G, a API do Kubernetes: `/api/v1/namespaces`, `/api/v1/pods`, `/api/v1/namespaces/{ns}/pods` — e, desde a S4b2-H, o Prometheus: `/api/v1/query` |
 
 Quatro detalhes que a tabela esconde:
 
@@ -178,6 +178,16 @@ início do processo).
 - AWS: `cur_config.endpoint_url` foi MANTIDO (decisão do operador). É um
   recurso genérico de S3-compatível (MinIO/LocalStack) já exposto no schema
   `cur_ingestion`; não é branch, credencial sintética nem override de SDK.
+- Kubernetes/OpenCost: `K8S_PROMETHEUS_URL` =
+  `https://opencost.synthetic-clouds.test`, escrita no `backend/.env.local` (arquivo **não
+  rastreado**) pela S4b2-H, para o provider `opencost` do CloudPilot encontrar a telemetria de
+  CPU e memória por namespace. É a **URL base**: o provider **acrescenta** `/api/v1/query` a ela
+  (`opencost.py:56-57`, `opencost.py:112-132`), então a variável **não** leva o caminho. Sem
+  essa variável o provider não tem telemetria e o caminho de rightsizing **fecha** — a lista de
+  recomendações volta vazia (`opencost.py:375-457`). A variável só entra em vigor quando os
+  containers do CloudPilot são recriados (`pwsh -File
+  C:\Projetos\cloudpilot-deploy\scripts\compose-local.ps1 -Action up`), porque o `settings` é
+  lido na importação do processo.
 
 ## Ordem de subida
 

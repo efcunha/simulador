@@ -60,13 +60,24 @@ CONTAINER = "api"
 #: says what it is instead of wearing a minted UUID it did not earn.
 UID = "synthetic-deployment-api"
 
-#: The CPU the pod requests, in Kubernetes' whole-core form: two cores, the
-#: same usage the allocation projection costs.
-CPU_REQUEST = "2"
+#: The CPU the pod requests, in cores: two cores, the same usage the allocation
+#: projection costs. It is the numeric form of the estate's usage, and the Prometheus
+#: projection reads it to answer the consumer's CPU query.
+CPU_CORES = 2
 
-#: The memory the pod requests: four gibibytes, the same usage the allocation
-#: projection costs.
-MEMORY_REQUEST = "4Gi"
+#: The memory the pod requests, in bytes: four gibibytes, the same usage the
+#: allocation projection costs. Like :data:`CPU_CORES`, it is the numeric form of the
+#: estate's usage, read by the Prometheus projection.
+MEMORY_BYTES = 4 * 1024**3
+
+#: The CPU the pod requests, in Kubernetes' whole-core form: two cores. It is the
+#: same number as :data:`CPU_CORES`, written the way the Kubernetes API writes a
+#: quantity.
+CPU_REQUEST = str(CPU_CORES)
+
+#: The memory the pod requests: four gibibytes. It is the same number as
+#: :data:`MEMORY_BYTES`, written the way the Kubernetes API writes a quantity.
+MEMORY_REQUEST = f"{MEMORY_BYTES // 1024**3}Gi"
 
 
 def has_namespace(namespace: str) -> bool:
