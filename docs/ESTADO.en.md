@@ -5,7 +5,7 @@ Language: **English** | [Português](ESTADO.md)
 Living document. It records what exists, what was decided and why, so that the
 work can continue without depending on conversation context.
 
-Last updated: **2026-10-31** (revision `a9633aa6`, branch `feat/p76-security-posture-gcp-azure`).
+Last updated: **2026-10-31** (revision `6765522b`, branch `feat/p76-security-posture-gcp-azure`).
 
 ## Recorded deliveries
 
@@ -20,6 +20,7 @@ Last updated: **2026-10-31** (revision `a9633aa6`, branch `feat/p76-security-pos
 | `a16aa7fb` | S4b3-B — the daily delivery publishes to the export the consumer reads | The delivery (FR-22) published into `cloudpilot-focus12-daily-full` — the name of the renderer **before** the standalone publish —, while the bucket (`AWS_SIM_BUCKET`) and the homologation account's `cur_config` use `synthetic-focus12-daily-full`, the name the renderer emits: the delivery was the **only** piece of the circuit outside that namespace, and the failure was **silent** (`deliver_aws` PUTs the keys and counts them, validating nothing — the same `ok: true` for the right bucket and for the dead one). The namespace became one source of truth (`DEFAULT_AWS_BUCKET` / `DEFAULT_AWS_EXPORT_NAME` in `deliver/core.py`), covering **both** delivery paths: the CLI (the `DELIVERY_AWS_*` variable defaults) and the Windows task (`schedule/__main__.py:227` calls `deliver_day()` **with no** namespace, so it takes the code defaults) — the `.env` did not resolve it and would not have, because it carries no `DELIVERY_*` variable. Measured: delivery of day `2026-10-26` → **exit 0** (`aws_objects: 1`), the new key under `focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/...` (2,734,569 B = exactly the source parquet) and **no** `cloudpilot-focus12-daily-full` bucket created; official ingestion → `rows_promoted=54096` and `cur_last_execution_id` = the delivery's execution; `/costs/unified` → `HOMOLOGATION AWS [sim] · 54,143.54` with `data_source: focus_cost_records` (before: `cost: null`, `data_state: "unavailable"`), and the volume agrees in all three places (parquet `EffectiveCost` 54,143.544220 = `focus_cost_records` for period 2026-10 = `/costs/unified`). Suite: **1109 passed / 20 skipped**. Detail in [regression/mapa-impacto-s4b3b.md](regression/mapa-impacto-s4b3b.md). |
 | `77a6a03a` | S4b3-C — the daily delivery runs on its own: task registered and ledger up to date | The `simulador-nuvem-daily` task **did exist**, but its wrapper pointed at `D:\Simulador\...` — a previous installation on a drive that does not exist — so the last result was `1` and nothing fired on its own; S4b3-B had written that it "is not registered", and the real reading corrected the premise. The cause is mechanical: `install` resolves the path from the package location, so **moving the installation** leaves a stale wrapper — the official mechanism (`schedule install`) rewrites the `run-daily.cmd` and the XML and redoes the registration (**exit 0**, command `cmd.exe /c "C:\Projetos\Simulador\tools\synthetic_clouds\schedule\run-daily.cmd"`, daily trigger at 12:00 + on logon, `StartWhenAvailable`), and triggered through `schtasks /run` at 13:06:47 returned **`Last Result: 0`**, with the `tick` line in the `task.log`. **The test suite deleted the wrapper** (`test_written_files_have_no_doubled_carriage_return` wrote to the production path and deleted it in the `finally`, because `windows.py` derived the path from the *package*): the 13:02:33 task returned `1` with nothing in the log — the wrapper was not there; **fixed** in `tools/synthetic_clouds/schedule/windows.py` (wrapper and XML now come from `config_path.parent`; production path identical; `92 passed` and the wrapper survives the suite). On the way there was an **environment incident**: `podman` would not start because a stale Unix socket (`%LOCALAPPDATA%\Temp\podman\podman-machine-default-api.sock`, dated 2026-10-30) blocked `gvproxy`'s bind, and `gvproxy` died before opening the SSH forward (`accept tcp 127.0.0.1:61926: use of closed network connection` was the consequence, not the cause); removing the socket, `podman machine start` → *"started successfully"*. The VM's fall had taken the two planes' in-memory state with it (containers down for ~15 h, **before** the phase), restored **without rebuild and without recreate**: `podman start` on the existing containers and the BigQuery provisioner with the image already on disk (`--no-deps`, no `--build` — `gcp-up.ps1` would do `--build --force-recreate`). The backfill, through the official mechanism and in one command (`schedule tick --deliver`) → **exit 0** (830.5 s): `generated: 2026-10-27 … 2026-10-31` (**60,620 artifacts**), five deliveries without error (`aws=1 objects`, `gcp=2260/2260/2256/2272/2282 rows`, `azure=304 days`); ledger from **11** to **16 days** (`2026-10-16` → `2026-10-31`), `target_day: 2026-10-31`. The target is `2026-10-31` and not `2026-10-30` because, with `lag_days=0`, the target **is the current day**. The `2026-10-27` day — which was **partial** (render interrupted, no `aws_focus`, out of the ledger) — was rewritten in full (**45** surfaces, identical to `2026-10-31`), so the conditional gap **did not** materialize. On CloudPilot (account `HOMOLOGATION AWS [sim]`, workspace *Homologation's Workspace* `9ff4da5f…`, **not** the user's default workspace): official ingestion → `status: ok`, `total_billed_cost: 65575.879831`, promotion log **`rows_promoted=29946`** (the response says `cost_promotion_status: "skipped"` — **the field lies**: they are schema defaults never assigned); `/costs/unified` → **`HOMOLOGATION AWS [sim] · 65,575.88`** with `data_source: focus_cost_records` (before `54,143.54`), and the volume agrees in all three places (parquet `EffectiveCost` 65,575.879831 = ledger = `/costs/unified`); the day's export is a **month-to-date** snapshot and the CUR reader reads the most recent execution (`files_read: 1`), which is why the number grows with the month. **Still open:** `docs/AGENDAMENTO.en.md` (outside the allowlist), the BigQuery CUD table count (`expected 3, got 9`, pre-existing) and the `aws-sim` tree in the bucket (in-memory store; repopulating is `aws-up.ps1`, "plan restart", out of scope). Detail in [regression/mapa-impacto-s4b3c.md](regression/mapa-impacto-s4b3c.md). |
 | `a9633aa6` | S4b3-D — the fix gets its test, the English document gets true, and the `[SYNTH]` account reads the export the simulator publishes | The S4b3-C fix gave the generated wrapper to its configuration and left the **regression test** as declared debt (the tests directory was outside that phase's allowlist). Two tests pin it now: a plan whose `config_path` points at a temporary directory writes the wrapper **there**, and the suite leaves the production `schedule/run-daily.cmd` **byte-identical** (same `sha256`, same `LastWriteTime`) — restoring it if a run ever touches it, so a red run cannot take the daily job's wrapper away. Proven red-green (revert the fix → both tests fail; restore → both pass): the scheduler suite goes **92 → 94 passed**, with ruff and mypy at their pre-existing baselines (4 and 10, none in the new tests). `docs/AGENDAMENTO.en.md` was corrected — it still said the task **is not registered** and that the ledger stops at `2026-10-26`; the task **is** registered (next run `2026-11-01T12:00:00`, fired on its own on `2026-10-31` at 13:06:47 with `Last Result: 0`) and the ledger holds **16 days** (`2026-10-16` → `2026-10-31`). On the consumer side no code changed: the `[SYNTH] AWS acct-01` account was aligned **through the official API** with the export the renderer publishes (`synthetic-focus12-daily-full`, was `cloudpilot-focus12-daily-full`), the official ingestion promoted **29,946 rows / US$ 65,575.88** into the workspace `e757043f`, and `/costs/unified` moved from **8,333.66** to **65,575.88** — the same figure as the homologation account in `9ff4da5f`, which **did not move**. Detail in [regression/mapa-impacto-s4b3d.md](regression/mapa-impacto-s4b3d.md). |
+| `6765522b` | S4b3-E — the document debt that never existed is erased and the `k8s-sim` URLs become the front's | S4b3-D closed the debt S4b3-C left on `docs/AGENDAMENTO.en.md` and **wrote, in the same breath, a debt that never existed**: that `docs/AGENDAMENTO.md` (the Portuguese twin) was still out of date — "11 days", ledger up to `2026-10-26`, task not registered. It was not: S4b3-C (`77a6a03a`) had already corrected it, and the git proves it — `git diff 77a6a03a HEAD -- docs/AGENDAMENTO.md` comes out **empty** (exit 0) and grepping the file for "11 dias"/"não registrada" finds nothing (exit 1). The file says **16 days** (`2026-10-16` → `2026-10-31`), the task **registered**, `Last Result: 0`. The debt was recorded by **deduction** (the EN twin was wrong, so the PT had to be too) — and deduction is not a reading. This phase erases the false record from both READMEs and from `mapa-impacto-s4b3d.md` (§7.1, §3 and the header), **preserving** the dated records of what the EN document said before S4b3-D and **without** rewriting the message of `dadba889`. In the same phase the **`k8s-sim` URLs** were aligned with the TLS front: the consumer URL is **`https://opencost.synthetic-clouds.test`** (the front's own name, with the SAN on the leaf, since S4b2-E), and the alias `k8s-sim:8089` is now described by what it is — the front's **upstream** on the bridge. `deploy/synthetic-clouds/README.md` loses the "**No TLS.**" block (false since S4b2-E), the `.env.example` documents the new `K8S_SIM_URL`, and both `docs/DECISOES-PENDENTES*` stop claiming that the `k8s-sim` "has no Containerfile and no compose service" — it has had both since S4b2-B. **Documentation all the way**: no line of code, container, scheduled task or CloudPilot configuration was touched. Detail in [regression/mapa-impacto-s4b3e.md](regression/mapa-impacto-s4b3e.md). |
 
 
 
@@ -1622,3 +1623,69 @@ restart", out of scope. That **does not** change the current-window measurement 
 persistent in Postgres and the October window depends only on the October export).
 
 Detail in [regression/mapa-impacto-s4b3c.md](regression/mapa-impacto-s4b3c.md).
+
+## S4b3-E — the document debt that never existed is erased, and the `k8s-sim` URLs become the front's
+
+**Date:** 2026-10-31 · **Base revision:** `aee05eb9` (branch `feat/p76-security-posture-gcp-azure`) ·
+**Scope:** `README.md`, `README.en.md`, `docs/regression/mapa-impacto-s4b3d.md`,
+`docs/regression/mapa-impacto-s4b3e.md` (new), `docs/DECISOES-PENDENTES.md`,
+`docs/DECISOES-PENDENTES.en.md`, `deploy/synthetic-clouds/README.md`,
+`deploy/synthetic-clouds/.env.example`, `docs/ESTADO.md`, `docs/ESTADO.en.md`.
+**Out of scope:** `AGENTS.md`, `emulators/**`, `deploy/synthetic-clouds/compose.*.yaml`,
+`deploy/synthetic-clouds/integration/**`, `deploy/synthetic-clouds/tls-front/**`, `specs/**`,
+`docs/NAO-COMPROVADOS*`, `docs/AGENDAMENTO.md`, `docs/AGENDAMENTO.en.md`, `tools/**`,
+`scripts/**` and the `C:\Projetos\cloudpilot-deploy` code.
+
+**The debt that never existed.** S4b3-D corrected `docs/AGENDAMENTO.en.md` and, in the same
+breath, wrote that `docs/AGENDAMENTO.md` (the Portuguese twin) was still out of date — "11
+days", ledger up to `2026-10-26`, task not registered. It was not. **S4b3-C** (`77a6a03a`) had
+already corrected it, and the history itself proves it:
+
+```
+git diff 77a6a03a HEAD -- docs/AGENDAMENTO.md
+# -> empty (exit 0)
+
+git grep -n "11 dias\|não registrada\|not registered" -- docs/AGENDAMENTO.md
+# -> no match (exit 1)
+```
+
+The file says **16 days** (`2026-10-16` -> `2026-10-31`), the task **registered**, the target
+`2026-10-31`, `Last Result: 0`. The debt was recorded by **deduction** — the EN twin was wrong,
+so the PT had to be too — and deduction is not a reading. The allowlist was never the problem:
+the premise was. `docs/AGENDAMENTO.md` was (and is) outside this phase's allowlist and **needed
+no correction anyway**.
+
+**What was erased and what was preserved.** The false record leaves `README.md`,
+`README.en.md` and `docs/regression/mapa-impacto-s4b3d.md` (§7.1, §3 and the header), where it
+now says the truth. The **dated records** of what the EN document said before S4b3-D — the §1/§3
+tables of the S4b3-D map and the earlier phases' sections in this file — are **preserved**: they
+document the reading of a date, not a standing claim. The message of `dadba889`
+(`docs(estado): record the S4b3-D delivery`) carries the false claim and **stays as it is**:
+history is not rewritten, and the false record is corrected in the living files.
+
+**The `k8s-sim` URLs.** The consumer URL is **`https://opencost.synthetic-clouds.test`** — the
+front TLS's own name, with the SAN on the leaf, since S4b2-E. The alias `k8s-sim:8089` still
+exists and is still the front's **upstream** on the bridge (nginx resolves the upstreams at
+*startup*: without the alias the front does not even come up) — but it is **not** the consumer
+URL, and that is how `deploy/synthetic-clouds/README.md` and the `.env.example` now describe it.
+The "**No TLS.**" block (false since S4b2-E) becomes "**TLS since S4b2-E**", and both
+`docs/DECISOES-PENDENTES*` stop saying the `k8s-sim` "has no Containerfile and no compose
+service" — it has had both since S4b2-B.
+
+**What is still open.** `AGENTS.md` still describes the `k8s-sim` as "without a `Containerfile`"
+(the "Environment traps" section) — it is **forbidden to edit** in this phase and stays as a
+**note to the user**. Outside the allowlist, and still carrying pre-S4b2-E text:
+`deploy/synthetic-clouds/integration/README.md` ("TLS for the Kubernetes plane is the rest of
+S4b2"), `docs/k8s-sim-opencost-contract.md` (the block "Updated on 2026-10-30 by S4b2-C") and
+`docs/INTEGRACAO-CLOUDPILOT-TLS.md` (which does not give the consumer URL). The Kubernetes
+plane's **real** debts **stay**: it still has **no** real cloud hostname to imitate, and
+`scripts/synthetic-clouds/up.ps1` does **not** bring that plane up. Out of scope, and preserved:
+the CloudPilot UI's "Test Connection" button (a pre-existing defect, `opencost.py:47` /
+`kubecost.py:44`), the `aws-sim` FOCUS/S3 tree missing from the bucket, and the diverging
+BigQuery CUD table (expected 3, got 9).
+
+**The phase does not run the generator suite**: it does not touch a line of code — not of the
+generator, not of the emulators, not of CloudPilot. The last measurement is the one of revision
+`aee05eb9` (**1111 passed · 20 skipped**).
+
+Detail in [regression/mapa-impacto-s4b3e.md](regression/mapa-impacto-s4b3e.md).
