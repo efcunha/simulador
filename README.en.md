@@ -185,12 +185,36 @@ silent delivery. Measured in S4b3-B: delivery of day `2026-10-26` → **exit 0**
 `data_source: focus_cost_records` (before: `cost: null`, `data_state: "unavailable"`). Detail in
 [regression/mapa-impacto-s4b3b.md](docs/regression/mapa-impacto-s4b3b.md).
 
+**And the delivery now runs on its own (S4b3-C).** The Windows task `simulador-nuvem-daily` is
+**registered** — daily at 12:00 and on logon, with `StartWhenAvailable` — and the wrapper it runs
+points at the **current path** (`tools/synthetic_clouds/schedule/run-daily.cmd`). The ledger
+backlog was recovered through the mechanism itself (`schedule tick --deliver`): it generated and
+delivered `2026-10-27` .. `2026-10-31` (5 days, 5 objects in the `s3mock` S3, 2,260–2,282 rows
+per day in BigQuery, 304 estate days in the `azure-sim`), exit 0. The `2026-10-27` day, which had
+been left **partial** (render interrupted, no `aws_focus`, out of the ledger), was rewritten in
+full (45 surfaces). Official ingestion on the homologation account → **29,946 rows / US$ 65,575.88**
+in `focus_cost_records`; `/costs/unified` → `HOMOLOGATION AWS [sim] · 65,575.88` with
+`data_source: focus_cost_records`, and the volume agrees in all three places (parquet
+`EffectiveCost` 65,575.879831 = ledger = `/costs/unified`). Detail in
+[regression/mapa-impacto-s4b3c.md](docs/regression/mapa-impacto-s4b3c.md).
+
+**And the test suite can no longer switch the task off.** The generated `run-daily.cmd` now belongs
+to the **owner of the configuration** (`config_path.parent`), not to the package: the path used to
+come from the *package* location, and a scheduler test wrote to that production path and deleted
+it in its `finally` — running the suite switched the scheduled task off (`Last Result: 1`, with
+nothing in the `task.log`, because the wrapper was not there to run). The fix is in
+`tools/synthetic_clouds/schedule/windows.py` and keeps the production path identical. Detail in
+[regression/mapa-impacto-s4b3c.md](docs/regression/mapa-impacto-s4b3c.md) §3.3.
+
 **Debts on this front.** The Kubernetes plane **has** TLS since S4b2-E (own name
 `opencost.synthetic-clouds.test`, with the SAN on the front's leaf), but still has **no** real
 cloud hostname to imitate; `scripts/synthetic-clouds/up.ps1` does **not**
 bring that plane up (it comes up with the integration, which owns the link); and
 `docs/DECISOES-PENDENTES.md` still says the `k8s-sim` "has no Containerfile and no
 compose service" — a sentence that became false at S4b2-B, in a file outside this
+phase's allowlist, so the text was not corrected here. S4b3-C leaves a debt of the same
+kind: `docs/AGENDAMENTO.en.md` (the English twin of the scheduling document) still says the
+task is not registered and that the ledger stops at `2026-10-26` — it is **not** in the
 phase's allowlist, so the text was not corrected here.
 
 ## Environment

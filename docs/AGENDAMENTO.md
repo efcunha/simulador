@@ -286,23 +286,44 @@ do CLI recusa caminho fora dela, e `save_config` também.
 export — os artefatos continuam byte-determinísticos (há teste que prova: regerar o mesmo
 dia com `--force` reproduz os mesmos hashes).
 
-## Estado desta instalação (leitura de 2026-10-29)
+## Estado desta instalação (leitura de 2026-10-31)
 
 `schedule status` é a forma barata de responder "o que está acontecendo". Nesta leitura:
 
 | Item | Leitura |
 |---|---|
 | configuração | `medium`, 12:00 `America/Sao_Paulo`, `lag_days=0`, retenção 30 (ver acima) |
-| ledger | **11 dias** gerados, de `2026-10-16` a `2026-10-26`; último registro `2026-10-26T19:42:27.502954-03:00` (`up-to-date`) |
-| alvo agora | `2026-10-29` |
-| tarefa do Windows | **não registrada** (`simulador-nuvem-daily` não aparece para o `schtasks`) |
+| ledger | **16 dias** gerados, de `2026-10-16` a `2026-10-31`; último registro `2026-10-31T12:37:15.480065-03:00` (`ok`) |
+| alvo agora | `2026-10-31` |
+| tarefa do Windows | **registrada**, com o caminho atual: `cmd.exe /c "C:\Projetos\Simulador\tools\synthetic_clouds\schedule\run-daily.cmd"` |
 
-A consequência é direta: o ledger está 3 dias atrás do alvo (faltam 27, 28 e 29) e um
-`tick` agora geraria exatamente esses três. O XML gerado em `schedule/simulador-nuvem-daily.xml`
-(leitura: `StartBoundary 2026-10-27T12:00:00`, dois gatilhos, conta do usuário) existe,
-mas o wrapper `schedule/run-daily.cmd` que ele referencia não está na árvore — **rodar
-`install` de novo reescreve os dois arquivos e registra a tarefa**. Até isso acontecer,
-nada dispara sozinho; o backfill só acontece quando alguém roda o `tick`.
+O ledger está **em dia com o alvo**: um `tick` agora responde `nada a gerar: o ledger ja cobre o
+alvo`. A tarefa dispara **diariamente às 12:00** e **no logon** da conta que a registrou
+(`DESKTOP-38HP3S9\ECUNHA`), com `StartWhenAvailable=true`; disparada por `schtasks /run`, ela
+devolveu `Último Resultado: 0`.
+
+O atraso foi recuperado com o mecanismo oficial — um `tick --deliver` gerou e entregou
+`2026-10-27` … `2026-10-31` (5 dias, 60.620 artefatos, 5 objetos no S3 do `s3mock`, 2.260–2.282
+linhas por dia no BigQuery, 304 dias de estate no `azure-sim`), e a ingestão oficial no CloudPilot
+promoveu **29.946 linhas / US$ 65.575,88** para `focus_cost_records`. O volume confere nos três
+lugares (parquet = ledger = `/costs/unified`). Detalhe em
+[`regression/mapa-impacto-s4b3c.md`](regression/mapa-impacto-s4b3c.md).
+
+**A tarefa precisa ser registrada de novo sempre que a árvore for movida.** `install` resolve o
+caminho a partir da localização do pacote, então uma instalação movida fica com um wrapper
+obsoleto — o que aconteceu aqui: a tarefa existia, mas apontava para `D:\Simulador\...`, de uma
+instalação anterior, e por isso o último resultado era `1`. Rodar `install` reescreve o
+`run-daily.cmd` e o XML e refaz o registro; o wrapper e o XML são **gerados**, não editados à mão.
+
+**E o wrapper gerado é do dono da configuração, não do pacote.** O `run-daily.cmd` e o XML são
+escritos **no diretório do `config.json`** ao qual pertencem — na instalação, `schedule/`. Isso
+não é detalhe: o caminho era derivado da localização do *pacote*, e um teste da suíte do
+agendador escrevia nesse caminho de produção e o apagava no `finally` — **rodar a suíte desligava
+a tarefa agendada**, com `Último resultado: 1` e **nenhuma linha no `task.log`** (o wrapper nem
+existia para executar). Medido na S4b3-C: `install` às 12:21, suíte rodada logo depois, tarefa às
+13:02:33 → `1` e `run-daily.cmd` ausente. A correção (`schedule/windows.py`: o caminho vem de
+`config_path.parent`) mantém o caminho de produção idêntico e tira da suíte a possibilidade de
+apagar o job. Detalhe em [`regression/mapa-impacto-s4b3c.md`](regression/mapa-impacto-s4b3c.md) §3.3.
 
 ## Entrega aos emuladores (`--deliver`)
 
@@ -367,8 +388,9 @@ Na execução real de 2026-10-15, com a tarefa registrada, a leitura do Agendado
 `Hora da próxima execução: 15/10/2026 06:30:00`, `Último resultado: 0`, e o gatilho
 diário **disparou sozinho** num teste com horário antecipado (`runs.log` registrou o
 instante exato). **Aquilo é histórico**: desde então o horário mudou para 12:00 (para
-casar com a janela de entrega) e, na leitura de 2026-10-29, a tarefa **não está
-registrada** nesta árvore — ver [Estado desta instalação](#estado-desta-instalação-leitura-de-2026-10-29).
+casar com a janela de entrega) e, na leitura de 2026-10-31, a tarefa **está registrada**
+nesta árvore, com o caminho atual e com `Último Resultado: 0` — ver
+[Estado desta instalação](#estado-desta-instalação-leitura-de-2026-10-31).
 
 ## Limites conhecidos — o que este trabalho NÃO resolve
 

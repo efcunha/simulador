@@ -182,13 +182,37 @@ S4b3-B a entrega publicava em `cloudpilot-focus12-daily-full` — o nome do rend
 `data_source: focus_cost_records` (antes: `cost: null`, `data_state: "unavailable"`). Detalhe em
 [regression/mapa-impacto-s4b3b.md](docs/regression/mapa-impacto-s4b3b.md).
 
+**E a entrega roda sozinha (S4b3-C).** A tarefa `simulador-nuvem-daily` do Windows esta
+**registrada** — diario as 12:00 e no logon, com `StartWhenAvailable` — e o wrapper que ela
+executa aponta para o **caminho atual** (`tools/synthetic_clouds/schedule/run-daily.cmd`). O
+atraso do ledger foi recuperado pelo proprio mecanismo (`schedule tick --deliver`): gerou e
+entregou `2026-10-27` .. `2026-10-31` (5 dias, 5 objetos no S3 do `s3mock`, 2.260-2.282 linhas
+por dia no BigQuery, 304 dias de estate no `azure-sim`), exit 0. O dia `2026-10-27`, que tinha
+ficado **parcial** (render interrompido, sem `aws_focus`, fora do ledger), foi reescrito inteiro
+(45 superficies). Ingestao oficial na conta de homologacao → **29.946 linhas / US$ 65.575,88** em
+`focus_cost_records`; `/costs/unified` → `HOMOLOGATION AWS [sim] · 65.575,88` com
+`data_source: focus_cost_records`, e o volume confere nos tres lugares (parquet `EffectiveCost`
+65.575,879831 = ledger = `/costs/unified`). Detalhe em
+[regression/mapa-impacto-s4b3c.md](docs/regression/mapa-impacto-s4b3c.md).
+
+**E a suite ja nao consegue desligar a tarefa.** O `run-daily.cmd` gerado e, hoje, do **dono da
+configuracao** (`config_path.parent`), e nao mais do pacote: o caminho era derivado da localizacao
+do *pacote*, e um teste da suite do agendador escrevia nesse caminho de producao e o apagava no
+`finally` — rodar a suite desligava a tarefa agendada (`Ultimo resultado: 1`, sem linha no
+`task.log`, porque o wrapper nem existia). A correcao esta em
+`tools/synthetic_clouds/schedule/windows.py` e mantem o caminho de producao identico. Detalhe em
+[regression/mapa-impacto-s4b3c.md](docs/regression/mapa-impacto-s4b3c.md) §3.3.
+
 **Debitos desta frente.** O plano Kubernetes **já tem** TLS desde a S4b2-E (nome próprio
 `opencost.synthetic-clouds.test`, com SAN na folha do front), mas segue **sem** hostname de
 nuvem real para imitar; `scripts/synthetic-clouds/up.ps1` **nao** sobe esse
 plano (ele sobe pela integracao, que e o dono do vinco); e
 `docs/DECISOES-PENDENTES.md` ainda afirma que o `k8s-sim` "nao tem Containerfile nem
 servico de compose" — frase que ficou falsa na S4b2-B e que este arquivo esta fora da
-allowlist da fase, entao o texto nao foi corrigido aqui.
+allowlist da fase, entao o texto nao foi corrigido aqui. A S4b3-C deixa um debito da mesma
+especie: `docs/AGENDAMENTO.en.md` (o gemeo ingles do documento de agendamento) continua
+afirmando que a tarefa nao esta registrada e que o ledger para em `2026-10-26` — ele **nao** esta
+na allowlist da fase, entao o texto nao foi corrigido aqui.
 
 ## Ambiente
 
