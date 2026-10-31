@@ -5,7 +5,8 @@
 `docs/AGENDAMENTO.en.md` (correção), `docs/ESTADO.md`, `docs/ESTADO.en.md`, `README.md`,
 `README.en.md`, este mapa.
 **Fora do escopo:** `emulators/**`, `deploy/synthetic-clouds/compose.*.yaml`, `specs/**`,
-`docs/NAO-COMPROVADOS*` (gerado), `docs/AGENDAMENTO.md` (fora da allowlist — ver §7),
+`docs/NAO-COMPROVADOS*` (gerado), `docs/AGENDAMENTO.md` (fora da allowlist — ver §7; a dívida
+registrada ali **não existia**, e a S4b3-E fechou o registro falso),
 `tools/synthetic_clouds/schedule/windows.py` (fora da allowlist — a correção da S4b3-C **não**
 foi tocada aqui, só protegida) e o código do `C:\Projetos\cloudpilot-deploy` — na CloudPilot
 houve **apenas ingestão/verificação** com a conta de homologação, sem uma linha de código
@@ -146,8 +147,10 @@ ganhou uma subseção nova, *"The wrapper belongs to its configuration"*, que ex
 wrapper é escrito ao lado da configuração que o possui — e por que um teste não pode apagar o
 que a tarefa de produção executa.
 
-**O `docs/AGENDAMENTO.md` (PT) continua desatualizado** — ele está **fora da allowlist**
-desta fase. Ver §7.
+**O `docs/AGENDAMENTO.md` (PT) não está desatualizado.** Ele está **fora da allowlist**
+desta fase — mas a leitura real mostra que a S4b3-C (`77a6a03a`) **já o corrigiu**. A dívida
+que esta fase registrou sobre ele era **falsa**: ver §7 e
+[o mapa da S4b3-E](mapa-impacto-s4b3e.md).
 
 ## 4. A conta `[SYNTH] AWS acct-01` alinhada ao export
 
@@ -262,11 +265,15 @@ padrão mostrando custo de outubro em vez de um número congelado.**
 
 ## 7. Lacunas declaradas (o que esta fase **não** resolve)
 
-1. **`docs/AGENDAMENTO.md` (a versão em português) continua desatualizado.** Ele ainda diz
-   "11 dias", ledger até `2026-10-26` e tarefa não registrada. O arquivo está **fora da
-   allowlist** desta fase (`docs/AGENDAMENTO.en.md` é que estava dentro), então o texto não
-   foi corrigido aqui. **A dívida que a S4b3-C deixou em cima do próprio gemelo agora está no
-   outro idioma** — é a próxima fase que fecha.
+1. **`docs/AGENDAMENTO.md` (a versão em português) — a dívida registrada aqui não existia.**
+   O arquivo **não** está desatualizado: a S4b3-C (`77a6a03a`) **já o corrigiu** — ledger de
+   **16 dias** (`2026-10-16` → `2026-10-31`), tarefa **registrada**, alvo `2026-10-31`,
+   `Último Resultado: 0` — e `git diff 77a6a03a HEAD -- docs/AGENDAMENTO.md` sai **vazio**.
+   Esta fase registrou a dívida por **dedução** (o gêmeo EN estava errado, então o PT também
+   estaria) — leitura que a evidência não sustentava. O `docs/AGENDAMENTO.md` estava (e está)
+   fora da allowlist desta fase e da S4b3-E, e mesmo assim **não precisava de correção
+   nenhuma**: a **S4b3-E** apaga este registro falso e o substitui pelo que é verdade
+   ([mapa-impacto-s4b3e.md](mapa-impacto-s4b3e.md)).
 2. **A árvore FOCUS de `2026-01` → `2026-04` do `aws-sim` não está no bucket.** O `s3mock` é
    em memória; repô-la é outra fase, como na S4b3-C.
 3. **A tabela CUD do BigQuery diverge do esperado** (esperado 3, veio 9) — fora do escopo

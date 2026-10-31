@@ -611,7 +611,7 @@ rewritten** — it is the evidence of that date. What is measured today is here.
 | versioned files | **492** (`git ls-files`) |
 | test suite (measurement of the round) | **1106 passed · 20 skipped** — 1126 cases collected — in **14m00s**, revision `9533b901`, with the command `pytest tools\synthetic_clouds\tests` |
 | prose specs | **30** `.md` files in `specs/<provider>/` (aws 8 · azure 12 · gcp 10) — 31 if `specs/README.md` is counted, and it is not a surface spec |
-| emulators | **4** — `aws-sim`, `azure-sim`, `gcp-sim`, `k8s-sim` (`k8s-sim` has no Containerfile and no compose service) |
+| emulators | **4** — `aws-sim`, `azure-sim`, `gcp-sim`, `k8s-sim` (the `k8s-sim` **has** a `Containerfile` and a compose service — `compose.k8s.yaml` — since S4b2-B, and it is published over TLS by the front since S4b2-E) |
 
 **What changed in the decisions since the 2026-10-19 baseline, and what did not:**
 

@@ -19,8 +19,9 @@ consome é o front TLS, pela rede compartilhada (ver
 
 O `k8s-sim` **entra no compose** (`compose.k8s.yaml`, entregue pela S4b2-B) e é **anexado à
 rede do CloudPilot** pelo `integration/ensure-cloudpilot.ps1`, que cria o alias `k8s-sim`:
-é assim que o backend alcança o contrato OpenCost em `http://k8s-sim:8089` (ver
-[k8s-sim](#plano-kubernetes--k8s-sim)).
+é assim que o **front TLS** o alcança, em `http://k8s-sim:8089`, e é pelo front que o backend
+do CloudPilot chega ao contrato OpenCost, em **`https://opencost.synthetic-clouds.test`**
+(desde a S4b2-E) (ver [k8s-sim](#plano-kubernetes--k8s-sim)).
 
 > **Podman, não Docker.** Os compose usam o schema que `podman compose` aceita. Os comandos
 > abaixo assumem `podman compose`; troque por `podman-compose` se for o que a máquina tem.
@@ -122,7 +123,10 @@ agendada e o CLI, e termina mostrando endpoints e containers. Detalhes, flags e 
 `emulators/k8s-sim/` serve o contrato **OpenCost** (`/allocation/compute`, `/clusterInfo`,
 `/healthz`). Desde a **S4b2-B** ele tem `Containerfile` e serviço de compose
 (`compose.k8s.yaml`); desde a **S4b2-C** ele é **anexado à rede do CloudPilot** com o alias
-`k8s-sim`, e o backend passa a alcançá-lo pelo nome, em **`http://k8s-sim:8089`**.
+`k8s-sim`; e desde a **S4b2-E** o **front TLS** o publica sob o nome próprio
+`opencost.synthetic-clouds.test` (com o SAN na folha), de modo que o backend do CloudPilot o
+alcança em **`https://opencost.synthetic-clouds.test`**. O alias `k8s-sim:8089` continua sendo
+o **upstream** do front — não é a URL do consumidor.
 
 O plano é **autocontido**: o fixture do estate (`k8s_sim/fixtures/clusters.json`) vai dentro
 da imagem, então não há provisioning a fazer — só `compose up`. O contrato HTTP e os
@@ -150,15 +154,21 @@ podman compose -f compose.k8s.yaml up -d --no-build
 
 | Contexto | URL |
 |---|---|
-| do backend do CloudPilot | `http://k8s-sim:8089` — o host `k8s-sim` é o **alias de rede** na bridge `cloudpilot-deploy_cloudpilot_net` |
+| do backend do CloudPilot | **`https://opencost.synthetic-clouds.test`** — nome próprio do front TLS, com o SAN na folha (desde a S4b2-E) |
+| do front TLS para o plano | `http://k8s-sim:8089` — o host `k8s-sim` é o **alias de rede** na bridge `cloudpilot-deploy_cloudpilot_net`, e o `nginx.conf` o usa como `upstream` |
 | do host, para o operador | `http://localhost:8089/healthz` (porta `${K8S_SIM_PORT:-8089}`) |
 
-Sem o alias, o nome não resolve e o pedido falha com
+Sem o alias, o nome não resolve: o front não consegue resolver o *upstream* (o nginx resolve
+os upstreams no *startup*, então nem sobe) e um pedido enviado direto para o alias falha com
 `URLError: <urlopen error [Errno -2] Name or service not known>`.
 
-**Sem TLS.** A URL é HTTP puro na bridge: o plano Kubernetes não tem hostname real nem
-certificado (o front TLS serve os hostnames `*.googleapis.com` do plano GCP). O TLS para
-este plano é o restante da S4b2.
+**TLS desde a S4b2-E.** O plano Kubernetes **já tem** TLS: o `tls-front` serve o hostname
+próprio `opencost.synthetic-clouds.test` (TLD reservada para testes, RFC 6761) e o alcança
+por `http://k8s-sim:8089` **na rede**, sem TLS; o certificado, com o SAN do hostname, é
+reemitido pela mesma CA local. O que **ainda não** existe é um hostname de **nuvem real**
+para imitar — o OpenCost é um contrato, não um serviço de nuvem, e inventar um nome
+sequestraria o nome de alguém (como o `sts.*`). Detalhe em
+[`docs/regression/mapa-impacto-s4b2e.md`](../../docs/regression/mapa-impacto-s4b2e.md).
 
 <details>
 <summary>Rodar o serviço direto, sem container (modo desenvolvimento)</summary>
@@ -210,8 +220,10 @@ Quatro blocos no template:
   (medido: `_provenance.json` com `"profile": "medium"`, 130.236 linhas, 966 recursos com
   faturamento — ver [`docs/regression/mapa-impacto-s4b3a.md`](../../docs/regression/mapa-impacto-s4b3a.md)).
 - **Kubernetes** — `K8S_SIM_PORT` (porta do host para o container 8089; a porta do
-  container é fixa) e a URL `K8S_SIM_URL` documentada e comentada. O plano é
-  autocontido: não há seed, perfil nem provisioning.
+  container é fixa) e a URL `K8S_SIM_URL` documentada e comentada — a URL do **consumidor**
+  é `https://opencost.synthetic-clouds.test` (front TLS, desde a S4b2-E); o alias
+  `k8s-sim:8089` continua sendo o upstream do front. O plano é autocontido: não há seed,
+  perfil nem provisioning.
 
 O bloco **"Phase-4 override contract"** do `.env.example` (`AZURE_MANAGEMENT_ENDPOINT`,
 `AZURE_AUTHORITY_HOST`, `AZURE_BLOB_ENDPOINT`) está **documentado, não implementado por

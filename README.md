@@ -218,14 +218,14 @@ homologacao, que **nao se moveu**. Detalhe em
 **Debitos desta frente.** O plano Kubernetes **já tem** TLS desde a S4b2-E (nome próprio
 `opencost.synthetic-clouds.test`, com SAN na folha do front), mas segue **sem** hostname de
 nuvem real para imitar; `scripts/synthetic-clouds/up.ps1` **nao** sobe esse
-plano (ele sobe pela integracao, que e o dono do vinco); e
-`docs/DECISOES-PENDENTES.md` ainda afirma que o `k8s-sim` "nao tem Containerfile nem
-servico de compose" — frase que ficou falsa na S4b2-B e que este arquivo esta fora da
-allowlist da fase, entao o texto nao foi corrigido aqui. A S4b3-D fecha o debito da S4b3-C
-sobre o `docs/AGENDAMENTO.en.md` (corrigido nesta fase) e **deixa um da mesma especie**: o
-`docs/AGENDAMENTO.md` (o gemeo em portugues) continua afirmando que a tarefa nao esta
-registrada e que o ledger para em `2026-10-26` — ele **nao** esta na allowlist desta fase,
-entao o texto nao foi corrigido aqui.
+plano (ele sobe pela integracao, que e o dono do vinco). A S4b3-E fecha a frase falsa do
+`docs/DECISOES-PENDENTES.md` (o `k8s-sim` **tem** `Containerfile` e servico de compose desde a
+S4b2-B) e a falsa divida sobre o `docs/AGENDAMENTO.md` (PT): ele **nao** esta desatualizado —
+a S4b3-C ja o corrigiu (ledger de 16 dias ate `2026-10-31`, tarefa registrada), e
+`git diff 77a6a03a HEAD -- docs/AGENDAMENTO.md` sai **vazio**. A divida que a S4b3-D escreveu no
+`README.en.md` e no `mapa-impacto-s4b3d.md` (a de que o gemeo em portugues seguia
+desatualizado) **nao existia**. Detalhe em
+[regression/mapa-impacto-s4b3e.md](docs/regression/mapa-impacto-s4b3e.md).
 
 ## Ambiente
 
