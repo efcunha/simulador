@@ -5,7 +5,7 @@
 Documento vivo. Registra o que existe, o que foi decidido e por quê, para que o
 trabalho continue sem depender de contexto de conversa.
 
-Última atualização: **2026-10-31** (revisão `605458e2`, branch `feat/p76-security-posture-gcp-azure`).
+Última atualização: **2026-10-31** (revisão `8efcf020`, branch `feat/p76-security-posture-gcp-azure`).
 
 ## Entregas registradas
 
@@ -23,6 +23,7 @@ trabalho continue sem depender de contexto de conversa.
 | `6765522b` | S4b3-E — a dívida documental que não existia é apagada e as URLs do `k8s-sim` passam a ser as do front TLS | A S4b3-D fechou a dívida que a S4b3-C deixou no `docs/AGENDAMENTO.en.md` e **escreveu, no mesmo fôlego, uma dívida que não existia**: a de que o `docs/AGENDAMENTO.md` (o gêmeo em português) continuava desatualizado — "11 dias", ledger até `2026-10-26`, tarefa não registrada. **Não continuava**: a S4b3-C (`77a6a03a`) já o tinha corrigido, e o git prova — `git diff 77a6a03a HEAD -- docs/AGENDAMENTO.md` sai **vazio** (exit 0) e o grep de "11 dias"/"não registrada" no arquivo não acha nada (exit 1). O arquivo diz **16 dias** (`2026-10-16` → `2026-10-31`), tarefa **registrada**, `Último Resultado: 0`. A dívida foi escrita por **dedução** (o gêmeo EN estava errado, então o PT também estaria) — e dedução não é leitura. Esta fase apaga o registro falso nos dois READMEs e no `mapa-impacto-s4b3d.md` (§7.1, §3 e cabeçalho), **preservando** os registros datados do que o documento EN dizia antes da S4b3-D e **sem** reescrever a mensagem de `dadba889`. Na mesma fase as **URLs do `k8s-sim`** foram alinhadas ao front TLS: a URL do consumidor é **`https://opencost.synthetic-clouds.test`** (nome próprio do front, com o SAN na folha, desde a S4b2-E) e o alias `k8s-sim:8089` passa a ser descrito pelo que ele é — o **upstream** do front na bridge. O `deploy/synthetic-clouds/README.md` perde o bloco "**Sem TLS.**" (falso desde a S4b2-E), o `.env.example` documenta o `K8S_SIM_URL` novo, e os dois `docs/DECISOES-PENDENTES*` deixam de afirmar que o `k8s-sim` "não tem Containerfile nem serviço de compose" — tem os dois desde a S4b2-B. **Documental de ponta a ponta**: nenhuma linha de código, container, tarefa agendada ou configuração do CloudPilot foi tocada. Detalhe em [regression/mapa-impacto-s4b3e.md](regression/mapa-impacto-s4b3e.md). |
 | `a03f949f` | S4b3-F — o `AGENTS.md` e os docs de integração passam a falar do `k8s-sim` real | O `AGENTS.md` é a bússola do repositório, e carregava **duas** afirmações falsas sobre o `k8s-sim`. A primeira **já tinha sido vista e nomeada** em 2026-10-30 — o `mapa-impacto-s4b2c.md` §6 registra que o arquivo dizia "o caso extremo: sem `Containerfile`", que a frase "ficou falsa na S4b2-B" e que o `AGENTS.md` estava "explicitamente proibido de edição nesta fase": um **débito nomeado** que ninguém pagou. A segunda **nunca** tinha sido vista: o arquivo declarava uma **lacuna aberta** sobre o id nativo do cluster, que a S4b1-E já tinha **fechado no mesmo dia** (`a64b8414`: `native_id` por cluster — **309 clusters** — aceito como alias do `filter` e **não** publicado; o próprio `mapa-impacto-s4b1d.md` §8 já o listava como "Fechados em S4b1-E"). As duas passagens agora dizem o que é verdade, e as **regras permanentes ficam intactas**: os testes dos emuladores continuam fora do `.venv` do gerador e o `pytest` do `k8s-sim` continua rodando a partir de `emulators/k8s-sim`, com o `pyproject.toml` dele. O `integration/README.md` deixa de dizer que "TLS para o plano Kubernetes é o restante da S4b2" e passa a dizer o que o `ensure-cloudpilot.ps1` faz (garantir o **caminho**: o alias, o SAN na folha e o front) e o que ele **não** faz (apontar o consumidor — que é configuração do CloudPilot — e escrever a rota, que está no `nginx.conf`); o contrato do `k8s-sim` **preserva** o bloco datado da S4b2-C como registro e ganha uma retificação datada; o `INTEGRACAO-CLOUDPILOT-TLS.md` L23 passa a trazer a URL do consumidor. A URL do consumidor é **`https://opencost.synthetic-clouds.test`** (o nome próprio do front, com o SAN na folha) e passa a estar nos **quatro** documentos; `k8s-sim:8089` é o **upstream** do front na bridge, em HTTP puro. **Documental de ponta a ponta**: nenhuma linha de código, container, tarefa agendada ou configuração do CloudPilot foi tocada. Detalhe em [regression/mapa-impacto-s4b3f.md](regression/mapa-impacto-s4b3f.md). |
 | `605458e2` | S4b2-G — a API do Kubernetes no `k8s-sim`: as três rotas que o consumidor chama | O §9 do contrato nomeava "API server do Kubernetes" como pendência **sem dizer qual** — o §9 é a lista do que a fase anterior não implementou, não uma especificação. Esta fase fecha **uma fatia**, e a superfície **foi medida**, não escolhida: lida no código do consumidor (somente-leitura) e aprovada no checkpoint. São **três** rotas — `GET /api/v1/namespaces` (o `ConnectionTester` que roda antes de salvar um kubeconfig, e os providers `gcp`/`azure`), `GET /api/v1/pods` (o provider `aws`, pelo client **oficial** `kubernetes`) e `GET /api/v1/namespaces/{ns}/pods` (os `gcp`/`azure`, uma vez por namespace) — respondendo no **mesmo nome HTTPS** que o contrato OpenCost já usava: o front já encaminha `location /` para o upstream `k8s-sim:8089`, e o `nginx.conf` do front está **fora da allowlist**, então um nome novo não era opção. O plano novo pede **`Authorization: Bearer <token>`** (o simulador não modela identidade nem RBAC: qualquer token não-vazio passa; sem token, **401** com o `Status` oficial) e o plano OpenCost **continua sem pedir** — cada plano no seu contrato. O que ele publica é **o mesmo estate que o contrato OpenCost precifica**: a namespace `payments`, o workload `api` e um pod, com `requests` = `cpu: "2"` e `memory: "4Gi"` — o consumidor soma os `requests` dos pods para obter o uso da namespace, e publicar outro número faria o simulador dizer duas verdades sobre o mesmo cluster. O que o estate **não** modela não é publicado (sem `limits`, sem `status`, sem `image`, sem `resourceVersion`, sem `uid` nos metadados) — **exceto** o `uid` da `ownerReference`, que o modelo oficial **exige** e que o client oficial **recusou** desserializar sem ele (`ValidationError: uid — Input should be a valid string`, medido no `kubernetes` 37.x). Medido: **122 passed** (91 anteriores + **31** novos), ruff e mypy limpos; o `k8s-sim` reconstruído e **recriado sozinho**; as três rotas com **200** de dentro do `cloudpilot_backend` pelo nome HTTPS; o client oficial parseando o payload em `V1PodList`; o `ConnectionTester` real respondendo `success` com **1 namespace**; o endpoint de teste de kubeconfig da conta de homologação respondendo `success`; e o contrato OpenCost continuando em **200** com os mesmos números (`payments/api`, 3.88 USD) pelo provider real. O **502** depois da recriação foi **duas** coisas, ambas medidas: o alias `k8s-sim` na bridge (que não está no compose) e o **IP** do upstream no nginx (que, sem `resolver`, resolve o nome **uma vez**, na carga da configuração) — corrigidas com `podman network connect` + `nginx -s reload`, **sem** recriar o front. Detalhe em [regression/mapa-impacto-s4b2g.md](regression/mapa-impacto-s4b2g.md). |
+| `8efcf020` | S4b2-H — o Prometheus no `k8s-sim`: a query que o consumidor lê a telemetria | O §9 do contrato nomeava "Prometheus" como pendência **sem dizer qual** — o §9 é a lista do que a fase anterior não implementou, não uma especificação. O **checkpoint** da fase levantou primeiro, no **código do consumidor**, se e como o Prometheus é lido — e a resposta foi: **ele lê**. O provider `opencost` do CloudPilot resolve um endpoint Prometheus (`opencost.py:56-57`: `config.prometheus_endpoint`, que o modelo `K8sFinOpsConfig` **não tem**, ou a variável `settings.K8S_PROMETHEUS_URL`), chama `GET {endpoint}/api/v1/query` **sem nenhum header de autenticação** (`opencost.py:112-132`) e lê `data.result[].metric.namespace` + `value[1]` (`opencost.py:134-148`); as **duas** queries que ele envia são o `rate(...[5m]) * 1000` de CPU e o `container_memory_working_set_bytes` de memória, com o **id nativo** do cluster no seletor (`opencost.py:155-170`). Sem essa leitura, o **rightsizing fecha**: `get_recommendations` devolve lista vazia sem telemetria (`opencost.py:375-457`) — o requisito "rightsizing DEVE exigir telemetria", medido no código. O `k8s-sim` passou a servir **`GET /api/v1/query`**, no **mesmo nome HTTPS** (`opencost.synthetic-clouds.test`), no **envelope do Prometheus** (`status` + `data{resultType,result}`; `status`/`errorType`/`error` no erro, **400**), **sem token** (o cliente do consumidor não carrega credencial) e publicando o **mesmo uso** dos outros dois planos — **2000 millicores** e **4294967296 bytes**, os mesmos 2 núcleos e 4 GiB que o allocation precifica, com a coerência dos **três** planos fixada por teste. O que o plano **não** faz é declarado: não é motor de PromQL (qualquer outra query responde **200 com vetor vazio**), não serve `/api/v1/query_range`, e **não publica métricas de Karpenter** — o estate não modela Karpenter. Medido: **138 passed** (122 + **16** novos), ruff e mypy limpos, vermelho-verde provado (mutar o multiplicador derruba 3 testes); `k8s-sim` reconstruído e **recriado sozinho** (os outros containers "Up 5 hours"); de dentro do `cloudpilot_backend`, as três rotas novas respondendo e o contrato OpenCost **sem regressão** (`/allocation/compute` → `payments/api`, **3.88 USD**, os mesmos números da S4b2-E); e o **provider real**, com a config salva da **conta de homologação**, lendo a telemetria: `NamespaceTelemetry(namespace='payments', cpu_usage_millicores=2000, memory_usage_bytes=4294967296)`. Do lado do consumidor, **nenhuma linha de código mudou**: só a chave `K8S_PROMETHEUS_URL` no `backend/.env.local` (**não rastreado**), e os containers do CloudPilot **não** foram recriados. **Em aberto:** o `clusters: []` da config de homologação (o sync não itera cluster nenhum), o `/savings/requestSizing` do OpenCost (o rightsizing completo continua fora de alcance do simulador), a Metrics API (declarada fora, com a razão medida), e a gêmea em inglês do contrato. Detalhe em [regression/mapa-impacto-s4b2h.md](regression/mapa-impacto-s4b2h.md). |
 
 
 
@@ -1829,3 +1830,77 @@ declarado; e a gêmea em inglês do contrato (`docs/k8s-sim-opencost-contract.en
 existir** (pendência da S4b1).
 
 Detalhe em [regression/mapa-impacto-s4b2g.md](regression/mapa-impacto-s4b2g.md).
+
+## S4b2-H — o Prometheus no `k8s-sim`: a query que o consumidor lê a telemetria (2026-10-31)
+
+**A superfície foi medida, não escolhida.** O §9 do contrato nomeava "Prometheus" como pendência
+**sem dizer qual**: o §9 é a lista do que a fase anterior não implementou, não uma especificação. O
+checkpoint da fase levantou primeiro, no **código do CloudPilot** (somente-leitura), se e como o
+Prometheus é lido — **endpoint, formato, labels, auth** — e a resposta foi: **ele lê**. O provider
+`opencost` resolve um endpoint Prometheus (`opencost.py:56-57`: `config.prometheus_endpoint`, que o
+modelo `K8sFinOpsConfig` **não tem**, ou a variável `settings.K8S_PROMETHEUS_URL`), chama
+`GET {endpoint}/api/v1/query` **sem nenhum header de autenticação** (`opencost.py:112-132`) e lê
+`data.result[].metric.namespace` + `value[1]` (`opencost.py:134-148`). As **duas** queries que ele
+envia são o `rate(...[5m]) * 1000` de CPU e o `container_memory_working_set_bytes` de memória, com
+o **id nativo** do cluster no seletor (`opencost.py:155-170`).
+
+**O que a leitura mostra é que a superfície é obrigatória.** A telemetria vira
+`cpu_usage_current_millicores` e `memory_usage_current_bytes` do snapshot
+(`k8s_finops_sync.py:466-508`), e o **rightsizing falha fechado** sem ela:
+`get_recommendations` devolve **lista vazia** quando não há telemetria de CPU e memória
+(`opencost.py:375-457`) — o requisito "rightsizing DEVE exigir telemetria", medido no código, e
+não deduzido.
+
+**O plano novo não pede token** — o cliente do provider não carrega credencial, então exigir bearer
+devolveria 401 e derrubaria a telemetria. O contrato OpenCost continua sem token, como sempre.
+
+**O que o plano publica é o mesmo estate dos outros dois.** A query de CPU é um `rate` de 5 minutos
+sobre uma série constante, então a resposta é `2 × 1000` = **2000 millicores**; a de memória é
+**4294967296 bytes** — os mesmos 2 núcleos e 4 GiB que o allocation precifica e que o pod declara
+nos `requests`. A coerência dos **três** planos deixou de ser uma coincidência mantida à mão: a
+projeção do Kubernetes passou a **derivar** as strings de quantity dos números, e a projeção do
+Prometheus lê os números.
+
+**O que o plano não faz está declarado.** Não é motor de PromQL: só as duas queries do consumidor
+são lidas, e qualquer outra responde **200 com vetor vazio** — como um Prometheus responde uma
+query que não seleciona série nenhuma. Não serve `/api/v1/query_range`. E **não publica métricas
+do Karpenter**: o estate não modela Karpenter, e inventar um fato sobre um estate que não existe
+seria pior do que responder "não há série".
+
+**Medido.** Suíte do `k8s-sim`: **138 passed** (122 antes + **16** novos), ruff e mypy limpos, e
+**provado em vermelho-verde** (mutar o multiplicador da CPU derruba exatamente 3 testes: o da query
+de CPU, o da forma que o consumidor lê e o de coerência entre os planos; restaurado, a suíte volta
+a 138). O `k8s-sim` reconstruído e **recriado sozinho** — `podman ps` final: o `k8s-sim` "Up 3
+minutes" e **todos** os outros containers "Up 5 hours", o front TLS incluído. A dívida operacional
+da S4b2-G voltou a aparecer (o alias na bridge e o IP do upstream no nginx, que não tem `resolver`)
+e foi resolvida do mesmo jeito: `podman network connect` + `nginx -s reload`, **sem** recriar o
+front. De dentro do `cloudpilot_backend`, pelo nome HTTPS: a query de CPU e a de memória → **200**
+com `metric.namespace = "payments"`, `cluster` = o **nome** (o `native_id` é aceito como alias, o
+nome é publicado) e os valores `"2000"` / `"4294967296"`; cluster desconhecido e query sem série →
+**200 com vetor vazio**; pedido sem query → **400** com o envelope de erro do Prometheus. E o
+**contrato OpenCost não regrediu**: `/healthz` → 200, `/allocation/compute` → `payments/api`,
+`cpuCores: 2.0`, `ramBytes: 4294967296.0`, **3.88 USD** — os mesmos números da S4b2-E.
+
+**O consumidor, de verdade.** O **provider real** do CloudPilot, rodando dentro do container do
+backend, contra a **config salva da conta de homologação** (`provider_endpoint =
+https://opencost.synthetic-clouds.test`), leu a telemetria:
+`NamespaceTelemetry(namespace='payments', cpu_usage_millicores=2000, memory_usage_bytes=4294967296)`
+— e o custo continuou **3.88 USD** em `payments/api`, 2026-10-01. Do lado do CloudPilot,
+**nenhuma linha de código mudou**: a chave `K8S_PROMETHEUS_URL=https://opencost.synthetic-clouds.test`
+foi escrita no `backend/.env.local` (**não rastreado**), e os containers do CloudPilot **não** foram
+recriados — a variável entra em vigor na próxima recriação, porque o `settings` é lido na
+importação do processo; a medição acima rodou com a mesma chave injetada no processo.
+
+**O que continua aberto.** A **config da homologação tem `clusters: []`** — a tarefa de sync itera
+essa lista, então o **sync agendado não chama o Prometheus hoje**, mesmo com a variável
+configurada: a pendência "rodar sync" da S4b2-E continua aberta. O **`/savings/requestSizing`** do
+OpenCost **não é servido**, e o `get_recommendations` do provider o chama — o rightsizing
+completo continua fora de alcance do simulador, mesmo com a telemetria disponível: é uma fatia do
+contrato OpenCost, não do plano Prometheus. A **Metrics API** continua **não servida**, por uma
+razão **medida**: o provider `opencost` — o que aponta para este plano — tira a telemetria do
+Prometheus, e não da Metrics API; a Metrics API é lida pelos providers EKS e Azure, pelo
+kubeconfig, e a ausência dela é tratada com elegância. O mapa da S4b2-G dizia que a Metrics API
+"vai com o Prometheus"; a medição mostra que **não vai**. E continuam **abertos**, e são o resto
+da S4b2: **Kubecost**, a **UI** do plano Kubernetes e a **migration**.
+
+Detalhe em [regression/mapa-impacto-s4b2h.md](regression/mapa-impacto-s4b2h.md).
