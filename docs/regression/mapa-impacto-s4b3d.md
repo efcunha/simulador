@@ -102,6 +102,18 @@ wrapper DEPOIS : mtime=2026-10-31T13:06:47.0627020-03:00  sha256=D7C22E20EEA8D14
 O mesmo vale depois da **rodada vermelha** (com o fix revertido): o teste falhou — como deve
 falhar — e o `finally` devolveu o arquivo com o mesmo `sha256` e o mesmo `mtime`.
 
+E vale depois da **suíte completa** do gerador (`pytest tools\synthetic_clouds\tests`), que é
+onde a afirmação interessa de verdade:
+
+```
+1111 passed, 20 skipped, 1 warning in 535.21s (0:08:55)
+wrapper apos a suite completa: mtime=2026-10-31T13:06:47.0627020-03:00  sha256=D7C22E20EEA8D14F8585A8631782F13084D94F452E29264ECCE9DBC9473D8F51
+```
+
+Os 20 `skip` são testes que **não rodam por decisão** (a fixture `real_parser` e as fixtures
+GCP sem label condicional) — não são falha. Dos 1111, **dois** são os novos desta fase
+(`1109` era o número da S4b3-B).
+
 > O `run-daily.cmd` e o `simulador-nuvem-daily.xml` são artefatos **gerados** e **não
 > rastreados** no git. Por isso o backup antes da prova vermelha foi para `$env:TEMP`, e não
 > para o repositório.
@@ -277,6 +289,10 @@ padrão mostrando custo de outubro em vez de um número congelado.**
 # suíte do agendador
 & .\.venv\Scripts\python.exe -m pytest tools\synthetic_clouds\tests\test_schedule.py -q
 # -> 94 passed, 1 warning in 14.50s
+
+# suíte completa do gerador
+& .\.venv\Scripts\python.exe -m pytest tools\synthetic_clouds\tests -q
+# -> 1111 passed, 20 skipped, 1 warning in 535.21s (0:08:55)
 
 # lint e tipos (a forma oficial, com --config)
 & .\.venv\Scripts\python.exe -m ruff check tools\synthetic_clouds --config tools\synthetic_clouds\pyproject.toml
