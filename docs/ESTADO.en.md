@@ -5,7 +5,7 @@ Language: **English** | [Português](ESTADO.md)
 Living document. It records what exists, what was decided and why, so that the
 work can continue without depending on conversation context.
 
-Last updated: **2026-10-31** (revision `8efcf020`, branch `feat/p76-security-posture-gcp-azure`).
+Last updated: **2026-10-31** (revision `635dae18`, branch `feat/p76-security-posture-gcp-azure`).
 
 ## Recorded deliveries
 
@@ -24,6 +24,7 @@ Last updated: **2026-10-31** (revision `8efcf020`, branch `feat/p76-security-pos
 | `a03f949f` | S4b3-F — the `AGENTS.md` and the integration docs speak about the real `k8s-sim` | The `AGENTS.md` is the repository's compass, and it carried **two** false claims about the `k8s-sim`. The first had **already been seen and named** on 2026-10-30 — `mapa-impacto-s4b2c.md` §6 records that the file said "the extreme case: without a `Containerfile`", that the sentence "went false at S4b2-B", and that the `AGENTS.md` was "explicitly forbidden from being edited in this phase": a **named debt** nobody paid. The second had **never** been seen: the file declared an **open gap** about the cluster's native id, and the S4b1-E had **closed it the same day** (`a64b8414`: `native_id` per cluster — **309 clusters** — accepted as a filter alias and **not** published; `mapa-impacto-s4b1d.md` §8 already listed it under "Closed in S4b1-E"). Both passages now say what is true, and the **permanent rules stay intact**: the emulators' tests still do not run in the generator's venv and the `k8s-sim`'s `pytest` still runs rooted at `emulators/k8s-sim`, with its own `pyproject.toml`. The `integration/README.md` stops saying "TLS for the Kubernetes plane is the rest of S4b2" and starts saying what the `ensure-cloudpilot.ps1` does (guarantee the **path**: the alias, the SAN on the leaf and the front) and what it **does not** do (point the consumer at the plane — that is CloudPilot's own configuration — and write the route, which lives in `nginx.conf`); the `k8s-sim` contract **keeps** its dated S4b2-C block as a record and gains a dated retification; `INTEGRACAO-CLOUDPILOT-TLS.md` L23 now carries the consumer URL. The consumer URL is **`https://opencost.synthetic-clouds.test`** (the front's own name, with the SAN on the leaf) and it is now in all **four** documents; `k8s-sim:8089` is the front's **upstream** on the bridge, in plain HTTP. **Documentation all the way**: no line of code, container, scheduled task or CloudPilot configuration was touched. Detail in [regression/mapa-impacto-s4b3f.md](regression/mapa-impacto-s4b3f.md). |
 | `605458e2` | S4b2-G — the Kubernetes API in the `k8s-sim`: the three routes the consumer calls | The contract's §9 named "Kubernetes API server" as pending **without saying which one** — §9 is the list of what the previous phase did not implement, not a specification. This phase closes **one slice**, and the surface was **measured**, not chosen: read from the consumer's code (read-only) and approved at the phase checkpoint. There are **three** routes — `GET /api/v1/namespaces` (the `ConnectionTester` that runs before a kubeconfig is saved, and the `gcp`/`azure` providers), `GET /api/v1/pods` (the `aws` provider, through the **official** `kubernetes` client) and `GET /api/v1/namespaces/{ns}/pods` (the `gcp`/`azure` ones, once per namespace) — answering under the **same HTTPS name** the OpenCost contract already used: the front already proxies `location /` to the `k8s-sim:8089` upstream, and the front's `nginx.conf` is **outside the allowlist**, so a new name was not an option. The new plane asks for **`Authorization: Bearer <token>`** (the simulator models no identity and no RBAC: any non-empty token passes; without one, **401** with the official `Status`) and the OpenCost plane **keeps not asking** — each plane in its own contract. What it publishes is **the same estate the OpenCost contract prices**: the `payments` namespace, the `api` workload and one pod, with `requests` = `cpu: "2"` and `memory: "4Gi"` — the consumer sums the pods' requests to obtain a namespace's usage, and publishing another number would make the simulator tell two truths about the same cluster. What the estate **does not** model is not published (no `limits`, no `status`, no `image`, no `resourceVersion`, no `uid` in the metadata) — **except** the owner reference's `uid`, which the official model **requires** and which the official client **refused** to deserialize without it (`ValidationError: uid — Input should be a valid string`, measured on `kubernetes` 37.x). Measured: **122 passed** (91 before + **31** new), ruff and mypy clean; the `k8s-sim` rebuilt and **recreated alone**; the three routes answered **200** from inside the `cloudpilot_backend` through the HTTPS name; the official client parsed the payload into a `V1PodList`; the real `ConnectionTester` answered `success` with **1 namespace**; the homologation account's kubeconfig test endpoint answered `success`; and the OpenCost contract kept answering **200** with the same numbers (`payments/api`, 3.88 USD) through the real provider. The **502** after the recreation was **two** things, both measured: the `k8s-sim` alias on the bridge (which is not in the compose) and the upstream **IP** in the nginx (which, without a `resolver`, resolves the name **once**, at configuration load) — fixed with `podman network connect` + `nginx -s reload`, **without** recreating the front. Detail in [regression/mapa-impacto-s4b2g.md](regression/mapa-impacto-s4b2g.md). |
 | `8efcf020` | S4b2-H — Prometheus in the `k8s-sim`: the query the consumer reads its telemetry from | The contract's §9 named "Prometheus" as pending **without saying which**: §9 is the list of what the previous phase did not implement, not a specification. The phase's **checkpoint** first raised, in the **consumer's own code**, whether and how Prometheus is read — and the answer was: **it is**. The CloudPilot's `opencost` provider resolves a Prometheus endpoint (`opencost.py:56-57`: `config.prometheus_endpoint`, which the `K8sFinOpsConfig` model **does not have**, or the `settings.K8S_PROMETHEUS_URL` variable), calls `GET {endpoint}/api/v1/query` **with no authentication header at all** (`opencost.py:112-132`) and reads `data.result[].metric.namespace` + `value[1]` (`opencost.py:134-148`); the **two** queries it sends are the CPU `rate(...[5m]) * 1000` and the `container_memory_working_set_bytes` one, carrying the cluster's **native id** in the selector (`opencost.py:155-170`). Without that read, **rightsizing closes**: `get_recommendations` returns an empty list with no CPU/memory telemetry (`opencost.py:375-457`) — the "rightsizing MUST require telemetry" requirement, measured in the code. The `k8s-sim` now serves **`GET /api/v1/query`**, on the **same HTTPS name** (`opencost.synthetic-clouds.test`), in the **Prometheus envelope** (`status` + `data{resultType,result}`; `status`/`errorType`/`error` on failure, **400**), **without a token** (the provider's client carries no credential) and publishing the **same usage** as the other two planes — **2000 millicores** and **4294967296 bytes**, the same 2 cores and 4 GiB the allocation prices, with the **three** planes' agreement pinned by a test. What the plane **does not** do is declared: it is not a PromQL engine (any other query answers **200 with an empty vector**), it does not serve `/api/v1/query_range`, and it **does not publish Karpenter metrics** — the estate models no Karpenter. Measured: **138 passed** (122 + **16** new), ruff and mypy clean, proven red-green (mutating the CPU multiplier brings down exactly 3 tests: the CPU query, the shape the consumer reads, and the three-plane coherence; restored, the suite is 138 again). The `k8s-sim` rebuilt and **recreated alone** (final `podman ps`: the `k8s-sim` "Up 3 minutes" and **every** other container "Up 5 hours", the TLS front included). From inside `cloudpilot_backend`, over the HTTPS name: the CPU and memory queries answer **200** with `metric.namespace = "payments"`, `cluster` = the **name** (the `native_id` is accepted as an alias, the name is published) and the values `"2000"` / `"4294967296"`; an unknown cluster and a query with no series answer **200 with an empty vector**; a request with no query answers **400** with the Prometheus error envelope. And the **OpenCost contract did not regress**: `/healthz` → 200, `/allocation/compute` → `payments/api`, `cpuCores: 2.0`, `ramBytes: 4294967296.0`, **3.88 USD** — the same numbers as S4b2-E. On the consumer side, **not a single line of code changed**: only the `K8S_PROMETHEUS_URL` key in `backend/.env.local` (**untracked**), and the CloudPilot's containers were **not** recreated. **Still open:** the homologation config's `clusters: []` (the sync iterates no cluster), the OpenCost `/savings/requestSizing` (full rightsizing stays out of the simulator's reach), the Metrics API (declared out, with the measured reason), and the contract's English twin. Detail in [regression/mapa-impacto-s4b2h.md](regression/mapa-impacto-s4b2h.md). |
+| `635dae18` | S4b2-I — the Kubecost Model API in the `k8s-sim`: the route the `kubecost` provider reads | The contract's §9 named "Kubecost" as a pending item **without saying which** — §9 is the list of what the previous phase did not implement, not a specification. The phase's **checkpoint** first raised, **in the consumer's code and configuration**, whether and how Kubecost is read — and the answer was: **it is**. The CloudPilot ships a **`KubecostEnterpriseProvider`** (`backend/app/services/k8s_finops/providers/kubecost.py`), registered in the factory under `kubecost_enterprise` and **offered in the UI** — measured on the homologation account, `GET /api/v1/finops/kubernetes/config/providers` lists `kubecost_enterprise` next to `aws`, `azure`, `gcp` and `opencost`. The measurement was made by **running the real provider inside the `cloudpilot_backend` container** against the `k8s-sim` of that moment: the requests it issued were read from the service's access log — `GET /model/allocation?window=…&aggregate=namespace&filterClusters=…&accumulate=false`, the same with `aggregate=controller` and `filterNamespaces`/`filterControllers`, plus `GET /model/clusterInfo` and `GET /savings/requestSizing` — and **all of them answered 404**. The surface came from the **published Model API spec** (OpenAPI 3.2.0, 39,957 bytes), and it is what defines what was served: of the **fifteen** routes it publishes, the `k8s-sim` serves **`/model/allocation`** — the only one the consumer reads and the source publishes. The **two** other routes the consumer asks for are **not published by the source** (`/model/clusterInfo` is not among the fifteen; the product's engine has `/clusterInfo`, without the `/model/` prefix) and **were not served**: serving a route the source does not publish would be inventing a contract. The new plane lives on the **same HTTPS name** (`opencost.synthetic-clouds.test`), in the **same container and port** — the front already forwards `location /` to the `k8s-sim:8089` upstream, and the `nginx.conf` is **outside** the phase allowlist: no new hostname, no new certificate, no front recreate. The envelope is the published one (`code` + `data`, with `data` being the list of sets) and the allocation carries the fields the schema publishes **and** the estate has a figure for, including the **four averages** (`cpuCoreRequestAverage`, `cpuCoreUsageAverage`, `ramByteRequestAverage`, `ramByteUsageAverage`) that only the Model API publishes. **Two declared gaps, and they are the consumer's, not the simulator's**: (1) the consumer's parser reads `memCost`, which Kubecost **does not** publish — the published field is `ramCost` (`memCost` does not exist in the Kubecost model) — so the `memory_cost_usd` it assembles comes out **0**, with `cpuCost`, `pvCost`, `networkCost` and `totalCost` correct; (2) `test_connection` and `get_recommendations` stay at 404, because of the unpublished routes. The **token** is not required (the spec declares no `securitySchemes`) and is accepted; the parameters the plane does not read are **refused with 400**, never ignored. Measured: **164 passed** (138 previous + **26** new), ruff and mypy clean, **red-green proven twice** (mutating the usage average breaks 2 tests; mutating the Model API's default step breaks 1), the `k8s-sim` rebuilt and recreated **by itself** (the other planes and the front untouched — the same nginx PID), and from inside the `cloudpilot_backend`, over HTTPS, **200** on the new route and **zero regression** on the three previous planes; the **consumer's real provider** returned a complete cost row for the estate. Detail in [regression/mapa-impacto-s4b2i.md](regression/mapa-impacto-s4b2i.md). |
 
 
 
@@ -1929,3 +1930,135 @@ measurement shows it **does not**. And still open, the rest of S4b2: **Kubecost*
 plane's **UI** and the **migration**.
 
 Detail in [regression/mapa-impacto-s4b2h.md](regression/mapa-impacto-s4b2h.md).
+
+## S4b2-I — the Kubecost Model API in the `k8s-sim`: the route the `kubecost` provider reads (2026-10-31)
+
+### The checkpoint: the consumer does read Kubecost — measured, not presumed
+
+The contract's §9 named "Kubecost" as a pending item **without saying which** — §9 is the list of
+what the previous phase did not implement, not a specification. The phase first raised, **in the
+consumer's code and configuration**, whether and how Kubecost is read:
+
+- The CloudPilot **ships** a `KubecostEnterpriseProvider`
+  (`backend/app/services/k8s_finops/providers/kubecost.py`), registered in the factory under
+  `kubecost_enterprise` (`factory.py:118-132`) and **offered in the UI**. Measured on the
+  homologation account: `GET /api/v1/finops/kubernetes/config/providers` returns
+  `aws`, `azure`, `gcp`, **`kubecost_enterprise`** and `opencost`.
+- **No workspace** in the local database has `provider_type = kubecost_enterprise`: the three
+  `k8s_finops_configs` are `opencost`, `opencost` and `aws`; the homologation one
+  (`5d5a8ec7`, workspace `e757043f`) is `opencost`, with `clusters: []` and
+  `provider_endpoint = https://opencost.synthetic-clouds.test`. The `k8s_opencost_bridge`
+  table — the FinOps bridge that could carry `tool_type = kubecost` — has **0 rows**.
+- The **real provider**, instantiated inside the `cloudpilot_backend` container against the
+  homologation's saved configuration, issued **five** requests; all of them were read from the
+  `k8s-sim`'s access log, and **all of them answered 404**:
+
+  ```
+  GET /model/allocation?window=2026-10-01%2C2026-10-01&aggregate=namespace&filterClusters=%2Fsubscriptions%2F…&accumulate=false
+  GET /model/allocation?window=…&aggregate=controller&filterClusters=…&filterNamespaces=payments&accumulate=false
+  GET /model/clusterInfo?filterClusters=…
+  GET /savings/requestSizing?filterClusters=…
+  GET /model/clusterInfo
+  ```
+
+The `BLOCKED` the phase anticipated ("the consumer does not read Kubecost") **does not apply**:
+the consumer **has** the provider, exposes it in the UI and issues the requests. The phase went
+ahead with the implementation, and what it implemented is the **intersection** between what the
+consumer asks for and what the Kubecost source publishes.
+
+### The source: the published Model API spec
+
+The official Kubecost spec **would not** let itself be read by the obvious route:
+`docs.kubecost.com` answers **403** (the IBM edge blocks automated access, with and without a
+browser *user-agent*), `api.docs.kubecost.com` **does not resolve** in DNS, the apis.io mirror
+answered **404** and the Wayback answered **429** twice. All four URLs are recorded in §1.0 of
+the contract with what each one returned — the absence is evidence — and the spec came from the
+**artifact** (`https://artifacts.apis.io/kubecost/openapi/kubecost-model-api-openapi.yml`,
+39,957 bytes, OpenAPI 3.2.0), which is the definition published by Kubecost itself.
+
+What it says, and therefore what was served:
+
+- **fifteen** routes, of which the `k8s-sim` serves **one** — `/model/allocation` —: the only
+  one the consumer reads and the source publishes.
+- the `200` envelope = `{code, data}`, with `data` an **array** of sets (key→allocation map) —
+  the same envelope as the OpenCost plane, and the one the consumer's parser reads.
+- the `Allocation` schema publishes `ramCost`, `pvCost`, `networkCost`, `totalCost`, `cpuCores`,
+  `ramBytes`, the **four averages** (`cpuCoreRequestAverage`, `cpuCoreUsageAverage`,
+  `ramByteRequestAverage`, `ramByteUsageAverage`) and **does not** publish `memCost` nor
+  `minutes`.
+- an absent `step` means **the whole window** (one set, costs summed) — the published default,
+  different from the OpenCost plane, whose step is the day.
+- the spec **declares no `securitySchemes`**: the plane requires no token and accepts the one
+  the consumer sends.
+
+### What the plane does — and what it refuses to do
+
+The `k8s-sim` now serves **`GET /model/allocation`** on the **same HTTPS name**, in the **same
+container and port**: the front already forwards `location /` to the `k8s-sim:8089` upstream, and
+the `nginx.conf` is outside the phase allowlist — there was no new hostname, no new certificate
+and no front recreate.
+
+The parameters the plane **reads** are the ones the consumer sends; the ones it **does not** read
+(`filterControllerKinds`, `filterLabels`, `filterAnnotations`, `filterServices`, `shareIdle`,
+`splitIdle`, `idleByNode`, `format=csv`) are **refused with 400**, never ignored — answering a
+filtered request with the unfiltered answer would be lying about what was served. The
+comma-separated lists the spec publishes for the filters are **refused** too: this phase reads
+**one** cluster, one namespace and one controller per request, and picking one member of the list
+would be answering a question that was not asked.
+
+### Two gaps that belong to the consumer, not to the simulator
+
+1. **`memCost`.** The consumer's parser (`kubecost.py:216`) reads `alloc.get("memCost", 0)`; the
+   field Kubecost publishes is **`ramCost`** (`memCost` does not appear in the Kubecost model —
+   grep: zero occurrences). The plane publishes `ramCost` and **does not** publish `memCost`; the
+   measured effect is `memory_cost_usd = 0` in the row the consumer assembles, with `cpuCost`
+   (1.92), `pvCost` (0.384), `networkCost` (1.00) and `totalCost` (3.88) correct. Publishing a
+   `memCost` the source does not publish would be inventing a field to disguise the number — and
+   the wrong read is the consumer's, whose fix is outside this phase's allowlist.
+2. **`/model/clusterInfo` and `/savings/requestSizing`.** The consumer asks for both; the Model
+   API publishes **fifteen** routes and **neither** is one of them (the product's engine has
+   `/clusterInfo`, without the `/model/` prefix; the Model API publishes
+   `/model/savings/requestSizingV2`, a different route and a different version). Both answer
+   **404**, and the effect on the consumer is `get_cluster_health` → `status="unknown"` /
+   *"Cluster health endpoint not available"* (the provider swallows the 404) and
+   `get_recommendations` and `test_connection` → `ProviderDataError`.
+
+### Measured
+
+`k8s-sim` suite: **164 passed** (138 before + **26** new), ruff and mypy clean, and **proven
+red-green twice**: mutating the usage average (`cpuCoreUsageAverage`) breaks **2** tests — the
+averages one and the coherence one with the Prometheus plane — and mutating the Model API's
+default step (from "the whole window" to "the request's `accumulate`") breaks **1**; restored,
+the suite is back at 164 in both cases.
+
+The `k8s-sim` was rebuilt and **recreated by itself**; the S4b2-G operational debt showed up
+again (the alias on the bridge and the upstream IP in nginx, which has no `resolver`) and was
+resolved the same way — `podman network connect --alias k8s-sim` + `nginx -s reload`, **without**
+recreating the front (the nginx PID is the same as before).
+
+From inside the `cloudpilot_backend`, over HTTPS: the new route → **200** (with and without the
+`Authorization` header), and **zero regression** on the three previous planes — `/healthz` 200,
+`/allocation/compute` 200 with `payments/api`, `/clusterInfo` 200, `/api/v1/namespaces` 200,
+`/api/v1/pods` 200, `/api/v1/namespaces/payments/pods` 200, `/api/v1/query` 200 with `"2000"`.
+The two unpublished routes → **404**, as declared.
+
+The **consumer's real provider**, on the homologation account, returned the estate's cost row:
+`cluster_name='TEMP-aks_cluster-0025'`, `namespace='payments'`, `workload='api'`,
+`cpu_cost_usd=1.92`, `storage_cost_usd=0.384`, `network_cost_usd=1.0`, `total_cost_usd=3.88`,
+`cpu_requests=2.0`, `memory_requests_gb=4.0`, `cpu_usage_avg=2.0`, `memory_usage_avg_gb=4.0` —
+and `memory_cost_usd=0`, which is the `memCost` gap above. On the **homologation account**, the
+login answers **200**, `/auth/me` **200**, the plan's configuration is still `opencost` (which
+the CloudPilot's `opencost` provider reads, with no regression) and `/overview` answers `no_data`
+— the sync never ran, because the configuration has `clusters: []`.
+
+### What stays open
+
+The OpenCost's `/savings/requestSizing` and Kubecost's are **not served** (the latter is not a
+published route either); the UI's **"Verificar Conexão"** button stays broken by a
+**pre-existing CloudPilot defect**; the homologation **configuration has `clusters: []`**, so the
+scheduled sync iterates no cluster; the **Metrics API** stays **unserved**, with the reason
+already measured; and the contract's English twin
+(`docs/k8s-sim-opencost-contract.en.md`) still **does not exist**. Still open, and the rest of
+S4b2: the Kubernetes plane's **UI** and the **migration**.
+
+Detail in [regression/mapa-impacto-s4b2i.md](regression/mapa-impacto-s4b2i.md).
