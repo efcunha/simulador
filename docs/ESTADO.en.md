@@ -5,7 +5,7 @@ Language: **English** | [Português](ESTADO.md)
 Living document. It records what exists, what was decided and why, so that the
 work can continue without depending on conversation context.
 
-Last updated: **2026-10-30** (revision `a16aa7fb`, branch `feat/p76-security-posture-gcp-azure`).
+Last updated: **2026-10-31** (revision `77a6a03a`, branch `feat/p76-security-posture-gcp-azure`).
 
 ## Recorded deliveries
 
@@ -18,6 +18,7 @@ Last updated: **2026-10-30** (revision `a16aa7fb`, branch `feat/p76-security-pos
 | `41183517` | S4b2-D — the `aws-sim` on the `medium` profile and the AWS connection check | The AWS plane has its **own variable namespace**: `compose.aws.yaml` reads `AWS_SIM_SEED`/`AWS_SIM_PROFILE`, **not** the generic `SEED`/`PROFILE` names the Azure/GCP planes read — and without the `AWS_SIM_*` pair the `aws-sim` fell back to the `small` default and served a **different** estate from the rest of the stack. The root cause S4b2-C measured was **wrong**: the account ids derive from `(seed, index)`, not the profile (`small` and `medium` produce the **same** three ids), and the `InvalidClientTokenId` came from the **real AWS** — the running backend image predated the per-account endpoint override (`endpoint_overrides.py` absent, `sts_endpoint_url` missing), so the stored `cur_config.endpoint_overrides.sts` was inert and botocore resolved `https://sts.us-east-1.amazonaws.com`. Measured: the `aws-sim` recreated through the official compose with `PROFILE=medium`/`SEED=123` healthy; the CloudPilot backend image rebuilt from the `HEAD` with `[PARITY] Code parity OK (742 .py files, host == 5 running container(s))`; the credential re-minted in the `ASIA<account>SYNT` form (the declared account `911368690069` comes back, instead of the fallback to the estate's first account); `ensure-cloudpilot.ps1 -Smoke` → **exit 0**, `connection check aws = connected`, `summary: integration OK (0 problems)`. Detail in [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) §7 (dated revision of 2026-10-30). |
 | `21cc0eaa` | S4b3-A — the `aws-sim` FOCUS/S3 tree on the `medium` profile | The `aws-sim` served **two volumes**: the APIs on `medium` and the billing export on `small` — the uploader (`scripts/synthetic-clouds/aws-up.ps1`) resolved the AWS plane's namespace **from the process environment only**, with a `small` default, and the installation's `.env` (which pins `AWS_SIM_PROFILE=medium`) never reached the generator. The uploader now reads that `.env` (process environment first), uses the repository venv, **replaces** the tree in the volume instead of merging it, **does not rebuild** images by default (`-Build` is explicit) and **verifies** the tree through the emulator's own S3 surface. Two configuration fixes were needed on the consumer side for the ingestion: `cur_config.export_name` (`cloudpilot-focus12-daily-full` → `synthetic-focus12-daily-full`, the name the renderer emits) and `external_account_id` (empty → `911368690069`, required by the promotion's fail-closed guard). Measured: `aws-up.ps1` → **exit 0** with no rebuild and no recreate; tree = 6 objects / 14,011,803 B, `"profile": "medium"`, **130,236 rows**, **966** `ResourceId`s — the 966 AWS resources with a billing line in the `medium` estate (1,110 resources / 474,390 lines); official ingestion → `status: ok`, `rows_promoted=58926`, **US$ 166,204.47** in `/costs/unified` (`by_account: aws · HOMOLOGATION AWS [sim]`) and in the browser (`/costs` YTD → US$ 225,578, the AWS account at 73.7%). Detail in [regression/mapa-impacto-s4b3a.md](regression/mapa-impacto-s4b3a.md). |
 | `a16aa7fb` | S4b3-B — the daily delivery publishes to the export the consumer reads | The delivery (FR-22) published into `cloudpilot-focus12-daily-full` — the name of the renderer **before** the standalone publish —, while the bucket (`AWS_SIM_BUCKET`) and the homologation account's `cur_config` use `synthetic-focus12-daily-full`, the name the renderer emits: the delivery was the **only** piece of the circuit outside that namespace, and the failure was **silent** (`deliver_aws` PUTs the keys and counts them, validating nothing — the same `ok: true` for the right bucket and for the dead one). The namespace became one source of truth (`DEFAULT_AWS_BUCKET` / `DEFAULT_AWS_EXPORT_NAME` in `deliver/core.py`), covering **both** delivery paths: the CLI (the `DELIVERY_AWS_*` variable defaults) and the Windows task (`schedule/__main__.py:227` calls `deliver_day()` **with no** namespace, so it takes the code defaults) — the `.env` did not resolve it and would not have, because it carries no `DELIVERY_*` variable. Measured: delivery of day `2026-10-26` → **exit 0** (`aws_objects: 1`), the new key under `focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/...` (2,734,569 B = exactly the source parquet) and **no** `cloudpilot-focus12-daily-full` bucket created; official ingestion → `rows_promoted=54096` and `cur_last_execution_id` = the delivery's execution; `/costs/unified` → `HOMOLOGATION AWS [sim] · 54,143.54` with `data_source: focus_cost_records` (before: `cost: null`, `data_state: "unavailable"`), and the volume agrees in all three places (parquet `EffectiveCost` 54,143.544220 = `focus_cost_records` for period 2026-10 = `/costs/unified`). Suite: **1109 passed / 20 skipped**. Detail in [regression/mapa-impacto-s4b3b.md](regression/mapa-impacto-s4b3b.md). |
+| `77a6a03a` | S4b3-C — the daily delivery runs on its own: task registered and ledger up to date | The `simulador-nuvem-daily` task **did exist**, but its wrapper pointed at `D:\Simulador\...` — a previous installation on a drive that does not exist — so the last result was `1` and nothing fired on its own; S4b3-B had written that it "is not registered", and the real reading corrected the premise. The cause is mechanical: `install` resolves the path from the package location, so **moving the installation** leaves a stale wrapper — the official mechanism (`schedule install`) rewrites the `run-daily.cmd` and the XML and redoes the registration (**exit 0**, command `cmd.exe /c "C:\Projetos\Simulador\tools\synthetic_clouds\schedule\run-daily.cmd"`, daily trigger at 12:00 + on logon, `StartWhenAvailable`), and triggered through `schtasks /run` at 13:06:47 returned **`Last Result: 0`**, with the `tick` line in the `task.log`. **The test suite deleted the wrapper** (`test_written_files_have_no_doubled_carriage_return` wrote to the production path and deleted it in the `finally`, because `windows.py` derived the path from the *package*): the 13:02:33 task returned `1` with nothing in the log — the wrapper was not there; **fixed** in `tools/synthetic_clouds/schedule/windows.py` (wrapper and XML now come from `config_path.parent`; production path identical; `92 passed` and the wrapper survives the suite). On the way there was an **environment incident**: `podman` would not start because a stale Unix socket (`%LOCALAPPDATA%\Temp\podman\podman-machine-default-api.sock`, dated 2026-10-30) blocked `gvproxy`'s bind, and `gvproxy` died before opening the SSH forward (`accept tcp 127.0.0.1:61926: use of closed network connection` was the consequence, not the cause); removing the socket, `podman machine start` → *"started successfully"*. The VM's fall had taken the two planes' in-memory state with it (containers down for ~15 h, **before** the phase), restored **without rebuild and without recreate**: `podman start` on the existing containers and the BigQuery provisioner with the image already on disk (`--no-deps`, no `--build` — `gcp-up.ps1` would do `--build --force-recreate`). The backfill, through the official mechanism and in one command (`schedule tick --deliver`) → **exit 0** (830.5 s): `generated: 2026-10-27 … 2026-10-31` (**60,620 artifacts**), five deliveries without error (`aws=1 objects`, `gcp=2260/2260/2256/2272/2282 rows`, `azure=304 days`); ledger from **11** to **16 days** (`2026-10-16` → `2026-10-31`), `target_day: 2026-10-31`. The target is `2026-10-31` and not `2026-10-30` because, with `lag_days=0`, the target **is the current day**. The `2026-10-27` day — which was **partial** (render interrupted, no `aws_focus`, out of the ledger) — was rewritten in full (**45** surfaces, identical to `2026-10-31`), so the conditional gap **did not** materialize. On CloudPilot (account `HOMOLOGATION AWS [sim]`, workspace *Homologation's Workspace* `9ff4da5f…`, **not** the user's default workspace): official ingestion → `status: ok`, `total_billed_cost: 65575.879831`, promotion log **`rows_promoted=29946`** (the response says `cost_promotion_status: "skipped"` — **the field lies**: they are schema defaults never assigned); `/costs/unified` → **`HOMOLOGATION AWS [sim] · 65,575.88`** with `data_source: focus_cost_records` (before `54,143.54`), and the volume agrees in all three places (parquet `EffectiveCost` 65,575.879831 = ledger = `/costs/unified`); the day's export is a **month-to-date** snapshot and the CUR reader reads the most recent execution (`files_read: 1`), which is why the number grows with the month. **Still open:** `docs/AGENDAMENTO.en.md` (outside the allowlist), the BigQuery CUD table count (`expected 3, got 9`, pre-existing) and the `aws-sim` tree in the bucket (in-memory store; repopulating is `aws-up.ps1`, "plan restart", out of scope). Detail in [regression/mapa-impacto-s4b3c.md](regression/mapa-impacto-s4b3c.md). |
 
 
 
@@ -1508,3 +1509,115 @@ reached over plain HTTP. The TLS leaf is local and git-ignored: the repository h
 leaf through `ensure-cloudpilot.ps1`.
 
 Detail in [regression/mapa-impacto-s4b2e.md](regression/mapa-impacto-s4b2e.md).
+
+
+## S4b3-C — the daily delivery runs on its own: task registered and ledger up to date (2026-10-31)
+
+**The task existed, but it pointed at an installation that does not exist.** S4b3-B delivered the
+namespace and closed with this debt written down: *"The Windows task **is not registered**
+(`simulador-nuvem-daily` does not show up in `schtasks`): the delivery is ready, but nothing
+triggers it — the backfill still depends on someone running the `tick`"*. The real reading of
+2026-10-31 corrects the premise: the task **did exist**, with two triggers (daily at 12:00 and on
+logon), `StartWhenAvailable` and `Last Result: 1` — but its wrapper pointed at
+`D:\Simulador\tools\synthetic_clouds\schedule\run-daily.cmd`, a previous installation on a drive
+that does not exist on this machine (`Test-Path D:\Simulador` → `False`). That is why the result
+was `1`: the wrapper was not there to be executed at all.
+
+**The cause is mechanical, and it is what a moved tree produces.** `install` resolves the path
+from the package location (`schedule/windows.py:276`), so moving the installation leaves a stale
+wrapper until someone runs `install` again. That is not a scheduler bug, and the repository should
+not detect it: registering is an installation operation, not code. The official mechanism
+(`python -m tools.synthetic_clouds.schedule install`) **rewrites** the `run-daily.cmd` and the XML
+and redoes the `schtasks /Create /TN simulador-nuvem-daily /XML … /F` → **exit 0**, command now
+`cmd.exe /c "C:\Projetos\Simulador\tools\synthetic_clouds\schedule\run-daily.cmd"`, next run
+`2026-11-01T12:00:00`. Triggered through `schtasks /run` it returned **`Last Result: 0`**.
+
+**There was an environment incident on the way, and it has to be written down.** `podman ps`
+failed with `dial tcp 127.0.0.1:61926: … connection actively refused`; the HyperV VM was
+`Running`, but nothing was listening on 61926. **ROOT CAUSE:** a stale Unix socket —
+`%LOCALAPPDATA%\Temp\podman\podman-machine-default-api.sock`, dated **2026-10-30 10:13**. With
+`UserModeNetworking: true`, `gvproxy` must `bind` that path to open the API forward; the bind
+failed with *"only one usage of each socket address is normally permitted"*, `gvproxy` died before
+creating the SSH forward, and `podman machine start` kept waiting for a socket that would never
+open (the `accept tcp 127.0.0.1:61926: use of closed network connection` in the `gvproxy` log is
+the **consequence**, not the cause). Removing the stale socket, `podman machine start` → *"started
+successfully"*.
+
+**The VM's fall had taken the two planes' in-memory state with it** — the containers had been down
+for ~15 h, **before** this phase (the fall was not caused here). The `s3mock` store is in memory
+and the `bigquery-emulator` runs DuckDB in memory (`Mounts: []`), so the billing tables were gone.
+Restored **without rebuild and without recreate**: `podman start` on the existing containers (the
+`s3mock`/`aws-sim` aliases on the CloudPilot bridge survived in the container's config — checked
+from inside the backend: `s3mock -> 10.89.0.15`, `aws-sim -> 10.89.0.18`) and the BigQuery
+one-shot provisioner with the image **already on disk** (`--no-deps`, **no** `--build` — `gcp-up.ps1`
+would do `--build --force-recreate`, which is out of scope).
+
+**The backfill, through the official mechanism and in one command** (`schedule tick --deliver`, the
+same one the task runs): **exit 0**, 830.5 s, `target: 2026-10-31`, `generated: 2026-10-27,
+2026-10-28, 2026-10-29, 2026-10-30, 2026-10-31` (**60,620 artifacts**), and the five deliveries
+without error — `aws=1 objects`, `gcp=2260/2260/2256/2272/2282 rows`, `azure=304 days` each. The
+ledger went from **11** to **16 days** (`2026-10-16` → `2026-10-31`), with `target_day: 2026-10-31`
+and the last run `ok`.
+
+**The target is `2026-10-31`, not `2026-10-30`.** The phase was written on 2026-10-30; the run is
+on 2026-10-31 and, with `lag_days=0` (the 2026-10-26 decision), the target **is the current
+day**. Stopping at `2026-10-30` would arbitrarily truncate the backfill.
+
+**The `2026-10-27` day stopped being partial.** The phase conditioned its delivery on that; the
+reading of 2026-10-31 showed `render/` interrupted at `azure_arm_instances`, **without**
+`aws_focus`, and the day **out of the ledger**. The `tick` rewrote the whole day: **45** render
+directories (45 registered renderers = 45 directories), `aws_focus` present, identical to
+`2026-10-31`. The conditional gap **did not** materialize.
+
+**On CloudPilot (account `HOMOLOGATION AWS [sim]`, `e6bc24c7…`, `external_account_id=911368690069`,
+workspace *CloudPilot - Homologation's Workspace* `9ff4da5f…` — **not** the user's default
+workspace, which is `[SYNTH] Synthetic Workspace synthetic-homologation`).** Official ingestion →
+`status: ok`, `periods_ingested: ["2026-10-01"]`, `files_read: 1`, `invoice_records_upserted: 3`,
+`total_billed_cost: 65575.879831`; the promotion log records **`rows_promoted=29946`**
+(`cur_cost_promoted_resource`, *resource* grain, over 30,542 source rows). The response says
+`cost_rows_promoted: 0` and `cost_promotion_status: "skipped"` — **the field lies**: on the
+CloudPilot side those two are schema *defaults* (`schemas/cur_ingestion.py:224-226`) and are
+**never** assigned (zero assignment sites in `backend/app`); the real verdict only exists in the log.
+
+**`/costs/unified`** → `total_cost: 139563.32`, `HOMOLOGATION AWS [sim] · 65575.88` with
+**`data_source: focus_cost_records`** (before, at S4b3-B, `54,143.54`), `is_stale: true` — which is
+the endpoint's **cold** path (`costs.py:524`), not a stale cache. **The volume agrees in all three
+places**: delivered parquet `EffectiveCost` **65,575.879831** = `focus_cost_records` for period
+2026-10 (29,946 rows, `ChargePeriodStart` from `2026-10-01` to `2026-10-31`) **65,575.88** =
+`/costs/unified` **65,575.88**.
+
+**Why the number grew** from 54,143.54 to 65,575.88: the day's export is a **month-to-date
+snapshot**. The parquet for `2026-10-31` covers `ChargePeriodStart` from `2026-10-01` to
+`2026-10-31` (the one for `2026-10-26` covered up to `2026-10-26`), and the CUR reader reads the
+**most recent** execution (`files_read: 1`) — reading all five and adding them up would count the
+month five times.
+
+**The test suite deleted the wrapper — the second trap, and the quietest one.** After the `install`
+at 12:21, the task triggered at **13:02:33** answered **`Last Result: 1`** with no new line in the
+`task.log`: the wrapper was gone. Root cause: `schedule/windows.py` derived the wrapper's path
+from the **package** location, and the test `test_written_files_have_no_doubled_carriage_return`
+(`tools/synthetic_clouds/tests/test_schedule.py:647-673`) writes the plan's artifacts to that
+**production path** and deletes them in the `finally` — **running the suite switched the scheduled
+task off**. The fix (in `schedule/windows.py`, inside the allowlist): the wrapper and the XML are
+now derived from the **configuration's directory** (`config_path.parent`), which keeps the
+production path **identical** (`install` still prints `…\schedule\run-daily.cmd`) and keeps a test
+from deleting what the production task runs. Measured: `pytest tools\synthetic_clouds\tests\test_schedule.py
+-q` → **92 passed**, and the `run-daily.cmd` **survives** the suite (same `LastWriteTime` before
+and after). Re-triggered at **13:06:47** → **`Last Result: 0`** and the `tick` line in the
+`task.log` (`target: 2026-10-31 … nothing to generate: the ledger already covers the target`).
+
+**What is still open.** `docs/AGENDAMENTO.en.md` (the English twin of the scheduling document)
+still says the task is not registered and that the ledger stops at `2026-10-26` — it is **not** in
+this phase's allowlist, so the text was not corrected here. The **regression test** for the fix
+above lives in `tools/synthetic_clouds/tests/test_schedule.py`, also outside the allowlist: the fix
+is verifiable by measurement, but the automatic safety net is left to the phase that touches the
+tests. The BigQuery CUD table does not close
+its count (`expected 3, got 9`, a pre-existing inconsistency in the 2026-10-29 render, on a surface
+the daily delivery does not touch). The ingestion response does not report the promotion (schema
+defaults never assigned — CloudPilot's debt, outside the allowlist). And the `aws-sim` FOCUS/S3
+tree (2026-01 → 2026-04) did **not** come back to the bucket: the `s3mock` store is in memory and
+repopulating it requires `aws-up.ps1`, which re-renders the tree and replaces the volume — "plan
+restart", out of scope. That **does not** change the current-window measurement (the ledger is
+persistent in Postgres and the October window depends only on the October export).
+
+Detail in [regression/mapa-impacto-s4b3c.md](regression/mapa-impacto-s4b3c.md).
