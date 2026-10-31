@@ -1,8 +1,9 @@
 """FastAPI app for k8s-sim: the OpenCost allocation contract for the estate's clusters,
 the Kubernetes API the CloudPilot consumer reads the estate's namespaces and pods
-from, and the Prometheus instant query it reads the estate's usage from.
+from, the Prometheus instant query it reads the estate's usage from, and the Kubecost
+Model API's allocation route, the one its ``kubecost`` provider reads.
 
-Three planes, seven routes:
+Four planes, eight routes:
 
 **The OpenCost plane** (the contract this service was born with):
 
@@ -40,14 +41,30 @@ Three planes, seven routes:
     obtain the estate's namespace-grain CPU and memory telemetry, and the rightsizing
     path is closed without that telemetry.
 
-The three planes describe ONE estate, so their constants agree by construction (see
+**The Kubecost plane** (the contract the CloudPilot ``kubecost`` provider reads):
+
+``/model/allocation``
+    The allocation route of the Kubecost Model API. The CloudPilot ``kubecost`` provider
+    reads it for the cluster's costs, for a namespace's costs and for a workload's
+    labels. The answer is the published envelope -- ``code`` plus ``data`` -- and
+    ``data`` is a list of allocation sets, each a map from the allocation key to the
+    allocation, exactly as the OpenCost plane answers.
+
+    The Model API publishes fifteen paths and this is the only one the consumer reads.
+    The consumer also asks ``/model/clusterInfo`` and ``/savings/requestSizing``:
+    **neither is published by the Model API**, and this service does not serve what the
+    source does not publish -- the gap is declared in
+    ``docs/k8s-sim-opencost-contract.md``.
+
+The four planes describe ONE estate, so their constants agree by construction (see
 :mod:`k8s_sim.projections.kubernetes`). They answer with different envelopes on
-purpose: the OpenCost plane with the OpenCost envelope, the Kubernetes plane with the
-official Kubernetes shapes (``NamespaceList``, ``PodList`` and, on a failure, a
-``Status``), and the Prometheus plane with the Prometheus envelope (``status`` plus
-``data``, or the error envelope). The Kubernetes plane asks for a bearer token -- the
-consumer always sends one -- and the OpenCost and Prometheus planes do not, so the
-contract that already existed is untouched.
+purpose: the OpenCost and the Kubecost planes with the ``code`` plus ``data`` envelope
+the cost APIs publish, the Kubernetes plane with the official Kubernetes shapes
+(``NamespaceList``, ``PodList`` and, on a failure, a ``Status``), and the Prometheus
+plane with the Prometheus envelope (``status`` plus ``data``, or the error envelope).
+The Kubernetes plane asks for a bearer token -- the consumer always sends one -- and the
+OpenCost, Prometheus and Kubecost planes do not, so the contracts that already existed
+are untouched.
 
 The app is stateless. There is no estate to build, no price list to fetch and no
 connection to open: every answer is a pure function of the query string. The one
@@ -67,7 +84,7 @@ from typing import Any
 from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
 
-from k8s_sim.projections import allocation, kubernetes, prometheus
+from k8s_sim.projections import allocation, kubecost, kubernetes, prometheus
 
 
 def _error(status: int, message: str) -> JSONResponse:
@@ -345,5 +362,150 @@ def create_app() -> FastAPI:
             return JSONResponse(status_code=400, content=prometheus.failure(str(exc)))
 
         return JSONResponse(status_code=200, content=payload)
+
+    @app.get("/model/allocation")
+    async def model_allocation(
+        window: str | None = None,
+        aggregate: str | None = None,
+        step: str | None = None,
+        accumulate: str | None = None,
+        idle: str | None = None,
+        external: str | None = None,
+        # The filter parameters are spelled the way the Model API spells them, camelCase
+        # and all: the query string is the contract.
+        filterClusters: str | None = None,  # noqa: N803
+        filterNamespaces: str | None = None,  # noqa: N803
+        filterControllers: str | None = None,  # noqa: N803
+        filterControllerKinds: str | None = None,  # noqa: N803
+        filterLabels: str | None = None,  # noqa: N803
+        filterAnnotations: str | None = None,  # noqa: N803
+        filterServices: str | None = None,  # noqa: N803
+        shareIdle: str | None = None,  # noqa: N803
+        splitIdle: str | None = None,  # noqa: N803
+        idleByNode: str | None = None,  # noqa: N803
+        format: str | None = None,  # noqa: N803
+        authorization: str | None = Header(default=None),
+    ) -> JSONResponse:
+        """The allocation route of the Kubecost Model API.
+
+        The CloudPilot ``kubecost`` provider reads this route for the cluster's costs
+        (``aggregate=namespace``), for a namespace's costs and for a workload's labels
+        (``aggregate=controller``). It sends ``window``, ``aggregate``, ``accumulate``
+        and the filters, and it sends ``Authorization: Bearer <token>``.
+
+        ``window`` is required and read as ``YYYY-MM-DD,YYYY-MM-DD`` -- the spelling the
+        provider sends. The Model API also documents durations and relative windows
+        (F15); this phase reads exactly one spelling and refuses the rest instead of
+        guessing what was meant.
+
+        ``aggregate`` accepts the aggregations this estate can answer -- ``namespace``,
+        ``namespace,controller``, ``controller`` and ``cluster``. The Model API
+        publishes more (F15); the others are refused with a 400 rather than answered
+        with another aggregation's view wearing its name.
+
+        ``step`` is accepted in its one-day form (``1d``) and left out. **Left out means
+        the window itself** (F15: "If unspecified, this defaults to the window, so that
+        you receive exactly one set for the entire window"), so a request without a step
+        is answered with one set whose costs are summed over the window. Any other step
+        is refused with a 400.
+
+        ``accumulate`` is resolved the way the OpenCost plane resolves it: ``true`` asks
+        for the whole window in a single set.
+
+        The filters are read one value each -- the Model API publishes them as
+        comma-separated lists, and a list names more than one cluster, namespace or
+        controller, so it is refused rather than resolved to one of its members. The
+        cluster is read with the estate's three aliases (its name, its canonical
+        ``cluster_id`` and the **native id** the discovery publishes), exactly as the
+        OpenCost plane reads it, and the answer publishes the **name**. A cluster the
+        estate does not have is answered with an **empty** ``data``: the request
+        selected nothing, and nothing is invented to fill it.
+
+        The parameters the Model API publishes and this phase does not read are refused
+        with a 400, never ignored: answering a filtered request with an unfiltered
+        answer would be a lie about what was served.
+
+        ``idle`` and ``external`` are accepted and ignored. The estate models no idle
+        resource and no out-of-cluster cost, so the answer does not change either way:
+        what the payload says about idle and about external cost is true either way.
+
+        The ``Authorization`` header is accepted and ignored. The Model API's published
+        definition declares no security scheme (F15), so this phase does not demand a
+        token the source does not ask for; the provider's token is welcome and unused.
+
+        The error envelope is the one the sibling plane answers with -- ``code`` plus
+        ``message``, with the HTTP status as the code. The Model API declares the
+        ``400`` status but not the body (F15), and the two cost planes of this service
+        answer with the same shape.
+        """
+        del authorization
+
+        for name, value in (
+            ("filterControllerKinds", filterControllerKinds),
+            ("filterLabels", filterLabels),
+            ("filterAnnotations", filterAnnotations),
+            ("filterServices", filterServices),
+            ("shareIdle", shareIdle),
+            ("splitIdle", splitIdle),
+            ("idleByNode", idleByNode),
+        ):
+            if value is not None:
+                return _error(400, f"Invalid '{name}' parameter: this phase does not read it.")
+
+        requested_format = (format or "").strip().lower()
+        if requested_format and requested_format not in kubecost.SUPPORTED_FORMATS:
+            return _error(
+                400,
+                "Invalid 'format' parameter: this phase serves only "
+                f"{', '.join(kubecost.SUPPORTED_FORMATS)}.",
+            )
+
+        requested_aggregate = (aggregate or "").strip() or allocation.DEFAULT_AGGREGATE
+        if requested_aggregate not in allocation.SUPPORTED_AGGREGATES:
+            return _error(
+                400,
+                f"Invalid 'aggregate' parameter: this phase supports only "
+                f"{', '.join(allocation.SUPPORTED_AGGREGATES)}.",
+            )
+
+        requested_step = (step or "").strip()
+        if requested_step and requested_step != allocation.SUPPORTED_STEP:
+            return _error(
+                400,
+                f"Invalid 'step' parameter: this phase supports only "
+                f"'{allocation.SUPPORTED_STEP}'.",
+            )
+
+        if window is None:
+            return _error(400, "Invalid 'window' parameter: the parameter is required.")
+
+        try:
+            start, end = allocation.parse_window(window)
+        except allocation.WindowError as exc:
+            return _error(400, f"Invalid 'window' parameter: {exc}")
+
+        try:
+            alloc_filter = kubecost.parse_filter(
+                filterClusters, filterNamespaces, filterControllers
+            )
+        except kubecost.KubecostFilterError as exc:
+            return _error(400, f"Invalid filter: {exc}")
+
+        if requested_step == allocation.SUPPORTED_STEP:
+            accumulate_option = allocation.resolve_accumulate(accumulate)
+        else:
+            # No step: the Model API's default is the window itself (F15), so the answer
+            # is ONE set for the whole window, with the costs summed.
+            accumulate_option = allocation.ACCUMULATE_ALL
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "code": 200,
+                "data": kubecost.allocation_sets(
+                    start, end, accumulate_option, requested_aggregate, alloc_filter
+                ),
+            },
+        )
 
     return app

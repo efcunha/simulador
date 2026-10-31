@@ -53,11 +53,27 @@ https://opencost.synthetic-clouds.test/api/v1/pods
 https://opencost.synthetic-clouds.test/api/v1/namespaces/<namespace>/pods
 ```
 
+**Desde a S4b2-H (2026-10-31) o mesmo nome fala também o Prometheus** — a query que o provider
+`opencost` manda para a telemetria do namespace:
+
+```
+https://opencost.synthetic-clouds.test/api/v1/query?query=...
+```
+
+**Desde a S4b2-I (2026-10-31) o mesmo nome fala também a Model API do Kubecost** — a rota que o
+provider `kubecost` do CloudPilot lê (`config.provider_endpoint` do plano Kubernetes é **a mesma
+URL** do contrato OpenCost):
+
+```
+https://opencost.synthetic-clouds.test/model/allocation?window=...&aggregate=...&filterClusters=...
+```
+
 Não foi preciso nenhum hostname novo, nem certificado novo, nem mudança no `nginx.conf` (que está
 **fora** da allowlist da fase): o front já encaminha `location /` para o upstream `k8s-sim:8089`, e
 as rotas novas moram **dentro** desse encaminhamento. As rotas do plano Kubernetes pedem
-`Authorization: Bearer <token>`; as do contrato OpenCost **não** pedem token — cada plano tem seu
-contrato, e nenhum dos dois mudou.
+`Authorization: Bearer <token>`; as do contrato OpenCost e as do Prometheus **não** pedem token; as
+do plano Kubecost **aceitam** o token e **não** o exigem (a spec publicada da Model API não declara
+`securitySchemes`) — cada plano tem seu contrato, e nenhum dos anteriores mudou.
 
 A porta é a do front (**443**); o `k8s-sim` continua em `8089`, **atrás** do front. O alias de
 rede `k8s-sim` continua existindo na bridge `cloudpilot-deploy_cloudpilot_net` — é ele que o
@@ -85,7 +101,7 @@ próprio do plano Kubernetes.
 | `config.googleapis.com` | `gcp-sim:8085` | front nginx | `resourceDrifts.list` do Infrastructure Manager |
 | `container.googleapis.com` | `gcp-sim:8085` | front nginx | `projects.locations.clusters.list` (GKE) |
 | `securitycenter.googleapis.com` | `gcp-sim:8088` | front nginx com `grpc_pass` (TLS + HTTP/2) | `SecurityCenter/ListFindings` por gRPC |
-| `opencost.synthetic-clouds.test` | `k8s-sim:8089` | front nginx (TLS) | contrato OpenCost: `/healthz`, `/clusterInfo`, `/allocation/compute` — e, desde a S4b2-G, a API do Kubernetes: `/api/v1/namespaces`, `/api/v1/pods`, `/api/v1/namespaces/{ns}/pods` — e, desde a S4b2-H, o Prometheus: `/api/v1/query` |
+| `opencost.synthetic-clouds.test` | `k8s-sim:8089` | front nginx (TLS) | contrato OpenCost: `/healthz`, `/clusterInfo`, `/allocation/compute` — e, desde a S4b2-G, a API do Kubernetes: `/api/v1/namespaces`, `/api/v1/pods`, `/api/v1/namespaces/{ns}/pods` — e, desde a S4b2-H, o Prometheus: `/api/v1/query` — e, desde a S4b2-I, a Model API do Kubecost: `/model/allocation` |
 
 Quatro detalhes que a tabela esconde:
 
