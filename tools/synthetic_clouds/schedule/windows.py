@@ -78,9 +78,16 @@ class RegistrationPlan:
         )
 
 
-def wrapper_path() -> Path:
-    """Path of the generated ``.cmd`` the scheduled action invokes."""
-    return _PACKAGE_ROOT / "schedule" / "run-daily.cmd"
+def wrapper_path(directory: Path | None = None) -> Path:
+    """Path of the generated ``.cmd`` the scheduled action invokes.
+
+    ``directory`` defaults to the package's ``schedule/`` -- where the installed
+    configuration lives. It is a parameter because the generated files belong to
+    the configuration they were built from, not to the package that happens to
+    hold the code: see :func:`build_plan`.
+    """
+    base = _PACKAGE_ROOT / "schedule" if directory is None else Path(directory)
+    return base / "run-daily.cmd"
 
 
 def render_wrapper(*, python_exe: Path, repo_root: Path, task_log: Path, config_path: Path) -> str:
@@ -218,14 +225,26 @@ def build_plan(
     """Assemble the wrapper text, the task XML and the paths, touching nothing."""
     state_dir = _PACKAGE_ROOT / "out" / "daily" / "_state"
     task_log = state_dir / "task.log"
-    wrapper = wrapper_path()
+    # The generated files live NEXT TO the configuration they belong to. The
+    # installed configuration sits in ``schedule/``, so an install writes exactly
+    # where it always wrote; a configuration anywhere else -- a test, a second
+    # installation -- writes THERE.
+    #
+    # Deriving the path from the package location instead made the package the
+    # owner of a production file: the scheduler test suite wrote the real
+    # ``run-daily.cmd`` and then deleted it in its cleanup, so running the tests
+    # silently removed the daily job's wrapper and the scheduled task went back
+    # to failing with no trace in the task log. A test must not be able to
+    # delete what the production task runs.
+    target_dir = config_path.resolve().parent
+    wrapper = guard_within_package(wrapper_path(target_dir))
     start_boundary, machine_local = _machine_local_start_boundary(config, now)
     user_id = user_id or current_user_id()
     arguments = f'/c "{wrapper}"'
     return RegistrationPlan(
         task_name=task_name,
         xml=task_xml(command="cmd.exe", arguments=arguments, start_boundary=start_boundary, user_id=user_id),
-        xml_path=guard_within_package(_PACKAGE_ROOT / "schedule" / f"{task_name}.xml"),
+        xml_path=guard_within_package(target_dir / f"{task_name}.xml"),
         wrapper_path=wrapper,
         wrapper_text=render_wrapper(
             python_exe=python_exe,

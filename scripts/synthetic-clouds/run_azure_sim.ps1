@@ -6,7 +6,7 @@
 .DESCRIPTION
     Wraps `podman compose` for deploy/synthetic-clouds/compose.yaml:
       - builds the azure-sim image (build context = worktree root),
-      - starts azurite + azure-sim with named volumes (NO D:\ bind mounts, §6.4),
+      - starts azurite + azure-sim with named volumes (NO C:\Projetos\ bind mounts, §6.4),
       - optionally tears the stack down first.
 
     Supports -WhatIf (via SupportsShouldProcess): every podman invocation is

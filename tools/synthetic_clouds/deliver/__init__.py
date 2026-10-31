@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from tools.synthetic_clouds.deliver.core import (
+    DEFAULT_AWS_BUCKET,
+    DEFAULT_AWS_EXPORT_NAME,
     EPOCH,
     DeliveryResult,
     deliver_aws,
@@ -12,6 +14,8 @@ from tools.synthetic_clouds.deliver.core import (
 )
 
 __all__ = [
+    "DEFAULT_AWS_BUCKET",
+    "DEFAULT_AWS_EXPORT_NAME",
     "EPOCH",
     "DeliveryResult",
     "deliver_aws",

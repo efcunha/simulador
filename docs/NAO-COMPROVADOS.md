@@ -2,16 +2,16 @@
 
 > Idioma: **Português** | [English](NAO-COMPROVADOS.en.md)
 
-Registro **derivado das especificações** — a fonte normativa deste repositório — por `.artifacts/gerar-registro-nao-comprovados.py`. Ele existe porque as lacunas estavam declaradas dentro de cada spec, campo a campo, e não havia um lugar único que respondesse *"o que ainda não foi provado?"*; vários docstrings do gerador apontavam para um `docs/synthetic-clouds/UNVERIFIED.md` que **só existe dentro do repositório do FinOps**.
+Registro **derivado das especificações** — a fonte normativa deste repositório — por `specs/_tools/gerar-registro-nao-comprovados.py`. Ele existe porque as lacunas estavam declaradas dentro de cada spec, campo a campo, e não havia um lugar único que respondesse *"o que ainda não foi provado?"*; vários docstrings do gerador apontavam para um `docs/synthetic-clouds/UNVERIFIED.md` que **só existe dentro do repositório do FinOps**.
 
 **Nada aqui é novo.** Cada linha é um `unverified` que já estava escrito na spec, com o motivo que o autor registrou. O que este documento acrescenta é a **consolidação** e a **contagem** — e é por isso que ele é gerado, e não escrito à mão: uma segunda lista manteria duas verdades sobre o mesmo assunto.
 
-**Uma correção de leitura que vale registrar:** `spec.unverified` expõe apenas os **nomes**. Os motivos vivem em `unverified_fields` (nome que não pertence ao contrato) e `unverified_topics` (assunto que existe no contrato e cuja prova falta), e os dois precisam ser lidos: juntos dão 258 itens em **46** superfícies. Um registro que lesse só a lista de nomes daria um terço do problema e nenhum motivo — que é metade do valor para quem for fechar a lacuna. Os números são calculados, não escritos: um total fixo envelhecia em silêncio assim que uma lacuna fosse fechada por evidência.
+**Uma correção de leitura que vale registrar:** `spec.unverified` expõe apenas os **nomes**. Os motivos vivem em `unverified_fields` (nome que não pertence ao contrato) e `unverified_topics` (assunto que existe no contrato e cuja prova falta), e os dois precisam ser lidos: juntos dão 293 itens em **49** superfícies. Um registro que lesse só a lista de nomes daria um terço do problema e nenhum motivo — que é metade do valor para quem for fechar a lacuna. Os números são calculados, não escritos: um total fixo envelhecia em silêncio assim que uma lacuna fosse fechada por evidência.
 
 ## Números (na revisão em que foi gerado)
 
-* **258 itens não comprovados** em **46 de 46 superfícies** (ou seja: **nenhuma** superfície está sem lacuna declarada).
-* Por provedor: **aws** 88, **azure** 79, **gcp** 91.
+* **293 itens não comprovados** em **49 de 49 superfícies** (ou seja: **nenhuma** superfície está sem lacuna declarada).
+* Por provedor: **aws** 88, **azure** 83, **gcp** 122.
 * Por tipo: **campo** = o nome não pertence ao contrato; **tema** = o nome existe e a prova de que o valor é canônico falta.
 
 **Como ler cada item.** Uma spec declara dois tipos de não comprovado, e a diferença importa:
@@ -713,3 +713,65 @@ Spec: [`specs/azure/security-assessments-list.schema.json`]](../specs/azure/secu
 | tema | `variantes OnPremise de 'properties.resourceDetails'` | A pagina publica tres variantes (AzureResourceDetails, OnPremiseResourceDetails, OnPremiseSqlResourceDetails) e o estado so produz a Azure: as duas OnPremise descrevem maquinas sob um agente de Log Analytics, que este repositorio nao modela. A escolha da variante e um FATO do recurso avaliado, e o recurso avaliado aqui e uma VNet na Azure. |
 | tema | `pagina de 'nextLink'` | A resposta e uma pagina de uma colecao e a pagina nao publica o tamanho de pagina nem um cursor de exemplo. O envelope e entregue como pagina unica (todos os assessments do escopo cabem nela), com o membro presente e vazio. |
 | tema | `escopo por grupo de gerenciamento` | A pagina publica que 'scope' pode ser uma assinatura OU um grupo de gerenciamento. O consumidor do FinOps consulta a assinatura, e o estado canonico nao modela grupo de gerenciamento da Azure; um envelope por grupo seria um recorte que o modelo nao tem. |
+
+## `azure/deployment-stacks-what-if` — 4 item(ns)
+
+
+Spec: [`specs/azure/deployment-stacks-what-if.schema.json`]](../specs/azure/deployment-stacks-what-if.schema.json)
+
+
+| tipo | item | motivo declarado |
+|---|---|---|
+| tema | `properties.changes.deploymentScopeChange and denySettingsChange` | DeploymentStacksWhatIfChange publishes both members, but the simulator's estate models neither a stack scope change nor deny settings. They are not emitted rather than filled with a placeholder. |
+| tema | `the full DeploymentStacksWhatIfResult property set (parameters, template, templateLink, validationLevel, diagnostics, retentionInterval, provisioningState, ...)` | The REST reference publishes them as part of the result, but the simulator only models the resource changes this phase needs. Omitting them is intentional; inventing their values would be worse than an honest subset. |
+| tema | `resourceConfigurationChanges.delta element type` | The page publishes the delta member and describes DeploymentStacksWhatIfPropertyChange, but does not print an explicit type link for delta. The fields transcribed here are the ones the property-change definition publishes; the container type is not asserted. |
+| tema | `the concrete spelling of delta[].path for a tag key` | The property-change definition publishes path as a string and the examples shown are for resource properties, not for a tag key. The simulator emits tags.<key> as a scenario path; the documentation consulted does not print an example for a tag map key, so tags.<key> is not asserted as the published spelling. |
+
+## `gcp/infrastructure-manager-resource-drift` — 4 item(ns)
+
+
+Spec: [`specs/gcp/infrastructure-manager-resource-drift.schema.json`]](../specs/gcp/infrastructure-manager-resource-drift.schema.json)
+
+
+| tipo | item | motivo declarado |
+|---|---|---|
+| campo | `concrete shape of before/after for a given Terraform type` | The REST reference publishes before/after as a Value (arbitrary JSON). It does not publish a per-resource-type schema, so the simulator may emit only values derived from the estate's own model and must not infer a nested shape from a provider example. |
+| campo | `semantics of before/after relative to desired state` | The page describes the values as 'before/after the actions' without stating which side is the desired state for a drift preview. The direction must be measured on a real preview before a consumer maps it to expected/actual. |
+| tema | `the resourceDrifts[]/nextPageToken/unreachable[] envelope` | The envelope belongs to the list method, not to the ResourceDrift item; it is documented at the list method page and is intentionally outside this item schema. |
+| tema | `the grammar of propertyDrifts[].path for a map key` | The REST reference publishes `path` as the path of the property drift, but does not publish the path grammar for maps. The simulator emits `labels.<key>` as a scenario path derived from the estate; that spelling is not asserted by the GCP documentation and must not be read as a published contract. |
+
+## `gcp/container-clusters` — 27 item(ns)
+
+
+Spec: [`specs/gcp/container-clusters.schema.json`]](../specs/gcp/container-clusters.schema.json)
+
+
+| tipo | item | motivo declarado |
+|---|---|---|
+| campo | `currentMasterVersion` | Output only. The current software version of the master endpoint. The estate does not model a Kubernetes version: the cluster's sku_id names the NODE SKU it bills, which is not the master's version. Publishing one would be a version the estate never asserted. |
+| campo | `currentNodeVersion` | Output only. The current software version of the node software. The estate bills the cluster under a node SKU and models no Kubernetes release for it. |
+| campo | `nodePools` | The node pools associated with this cluster. The estate models one row per cluster and no pool inside it; a pool would be a resource the estate does not carry. |
+| campo | `nodeConfig` | The node configuration for this cluster. The estate carries the cluster's billed SKU, not a node configuration, and the two are not the same shape. |
+| campo | `network` | The name of the Google Compute Engine network to which the cluster is connected. The estate models no VPC for a cluster, so there is no network name to publish. |
+| campo | `subnetwork` | The VPC-native network id the cluster uses. The estate models no subnetwork for a cluster. |
+| campo | `status` | Output only. The current status of this cluster. The estate is a billing baseline, not a control-plane state machine: it asserts that the cluster is billed for, not that it is RUNNING. |
+| campo | `createTime` | Output only. The time the cluster was created, in RFC3339 text format. The estate asserts no creation time for a resource, and the simulator's clock would be a fabricated one. |
+| campo | `selfLink` | Output only. Server-defined URL for the resource. The estate mints a uuid, not a GCP server-defined URL, so any path published here would be a path the provider never defined. |
+| campo | `id` | Output only. Unique id for the cluster. The estate's uuid is the estate's own identifier and is not the provider's numeric id. |
+| campo | `zone` | Output only, and deprecated in favour of 'location'. The estate records a region and nothing finer, so there is no zone to publish; 'location' carries the region. |
+| campo | `clusterIpv4Cidr` | The IPv4 range for the cluster's nodes. The estate models no address plan for a cluster. |
+| campo | `masterAuth.clientKey` | Output only. Base64-encoded private key used by clients to authenticate to the cluster endpoint. It is a PRIVATE key: the simulator derives one to sign the CA certificate and never publishes it. Publishing it here would publish a secret the contract does not carry. |
+| campo | `masterAuth.clientCertificate` | Output only. Base64-encoded public certificate used by clients to authenticate to the cluster endpoint, issued only if clientCertificateConfig is set. The estate models no client certificate configuration. |
+| campo | `masterAuth.username` | The username to use for HTTP basic authentication to the master endpoint. The estate models no basic-authentication account for a cluster, and the page itself marks basic authentication as deprecated. |
+| campo | `masterAuth.password` | Deprecated on the page. The estate models no password for a cluster, and a published password would be a credential nobody published. |
+| campo | `masterAuth.clientCertificateConfig` | Configuration for client certificate authentication on the cluster. The estate models no client certificate configuration. |
+| tema | `the remaining published members of Cluster that the estate does not model (secretManagerConfig, alphaClusterFeatureGates, nodePoolAutoConfig, monitoringService, userManagedKeysConfig, description, nodeIpv4CidrSize, masterAuthorizedNetworksConfig, costManagementConfig, maintenancePolicy, networkPolicy, nodePoolDefaults, legacyAbac, secretSyncConfig, addonsConfig, podAutoscaling, locations, meshCertificates, servicesIpv4Cidr, etag, tpuIpv4CidrBlock, gkeAutoUpgradeConfig, satisfiesPzi, managedMachineLearningDiagnosticsConfig, rbacBindingConfig, compliancePostureConfig, workloadIdentityConfig, enterpriseConfig, scheduleUpgradeConfig, resourceUsageExportConfig, controlPlaneEgress, rollbackSafeUpgrade, releaseChannel, currentEmulatedVersion, controlPlaneEndpointsConfig, initialNodeCount, databaseEncryption, labelFingerprint, instanceGroupUrls, statusMessage, verticalPodAutoscaling, anonymousAuthenticationConfig, fleet, conditions, enableKubernetesAlpha, parentProductConfig, resourceLabels, monitoringConfig, networkConfig, privateClusterConfig, loggingConfig, shieldedNodes, securityPostureConfig, binaryAuthorization, expireTime, identityServiceConfig, enableK8sBetaApis, confidentialNodes, ipAllocationPolicy, notificationConfig, initialClusterVersion, enableTpu, managedOpentelemetryConfig, satisfiesPzs, defaultMaxPodsConstraint, loggingService, currentNodeCount, autopilot, autoscaling, authenticatorGroupsConfig, nodeCreationConfig)` | The API publishes these members and the estate models none of them: a cluster row carries a name, a region, a billed SKU and tags, and nothing else. They are listed by name so that no published member is silently omitted from the accounting, and they stay out of the artifact because publishing them would mean inventing the value the estate does not carry. |
+| tema | `the endpoint as an IP address (the published wording of the member)` | The field table publishes the endpoint as 'Output only. The IP address of this cluster's master endpoint', and the estate carries no address for a cluster. The simulator publishes an HTTPS URL derived from the resource's uuid instead -- the form the same paragraph shows the endpoint being used at ('https://username:password@endpoint/'). The divergence is declared, not silent: a consumer that needs an IP must know the simulator does not publish one. |
+| tema | `the zonal (projects.zones.clusters.list) and aggregated (projects.aggregated.clusters.list) variants of the same list` | Both exist in the same API version and return the same ListClustersResponse. Only the regional projects.locations.clusters.list is served by the emulator; the other two are a scope limit of this surface, not a claim that they do not exist. |
+| tema | `the deprecated query parameters 'projectId' and 'zone'` | The list method publishes both as deprecated and replaced by the 'parent' path parameter. The route takes the parent form only, so a client sending the deprecated spelling is answered by the same parent path instead. |
+| tema | `the reachability of the published endpoint` | The endpoint names the cluster's master endpoint and is derived from the resource's uuid; the emulator hosts no Kubernetes API server behind it. A client that dials it is not reaching a cluster control plane. |
+| tema | `the envelope clusters[]/missingZones[] of ListClustersResponse` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/ListClustersResponse (consulted 2026-10-27): 'clusters' is a list of clusters in the project in the specified zone, or across all ones; 'missingZones' lists the zones whose cluster list may be missing. The route serves both, and 'missingZones' is published empty because the estate models no zone the emulator failed to answer. The shape is proven; what lacks proof is an artifact to confront it against, because this surface has no durable export (see 'notes'). |
+| tema | `the member name of Cluster` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27). The route serves the estate's own resource_name, which is canonical for this simulator; what lacks proof is an artifact to confront the value against, because this surface has no durable export (see 'notes'). |
+| tema | `the member endpoint of Cluster` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27), where the member is 'Output only. The IP address of this cluster's master endpoint'. The route serves an HTTPS URL derived from the resource uuid instead, and the estate carries no address to publish; the divergence is declared in the notes and in the .md spec. What lacks proof here is the canonical VALUE (the provider's address), and no artifact exists to confront it against. |
+| tema | `the member location of Cluster` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27) as the zone or region in which the cluster resides. The route serves the estate's region, which is canonical for this simulator; what lacks proof is an artifact to confront the value against, because this surface has no durable export (see 'notes'). |
+| tema | `the member masterAuth.clusterCaCertificate of Cluster` | Documented at https://docs.cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters (consulted 2026-10-27) as 'Output only. Base64-encoded public certificate that is the root of trust for the cluster'. The route serves a synthetic CA certificate derived from the resource uuid -- deterministic per cluster, and never carrying a private key; it is NOT a certificate issued by the provider, so the canonical value is exactly what lacks proof here. No artifact exists to confront it against. |

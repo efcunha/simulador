@@ -265,8 +265,10 @@ gravam `SOURCE_CUR = "cur"` e o docstring deles diz por quê (`promotion.py (mod
 
 **A pergunta.** Qual revisão é a fonte, e quem reexecuta o `--audit` ao trocar?
 
-**Por que travava.** Este repositório muda a cada commit. O `--matrix` de hoje confirma
-`gerado=20 falta=0 bloqueado=1`. **Sem revisão fixada, "o simulador" não é um artefato
+**Por que travava.** Este repositório muda a cada commit. O `--matrix` de 2026-10-14 confirma
+`gerado=20 falta=0 bloqueado=1`; a medição de **2026-10-29** (revisão `9533b901`) já é
+**`gerado=47 falta=0 bloqueado=2`**, com **49** superfícies especificadas — contra **21** naquela
+medição (20 geradas + 1 bloqueada). **Sem revisão fixada, "o simulador" não é um artefato
 reproduzível** — e duas medições em revisões diferentes não são comparáveis.
 
 **DECISÃO: registrar a revisão (commit) junto do ambiente e reexecutar `--audit` na troca.**
@@ -280,6 +282,10 @@ pela própria medição** (`fidelity/revision.py`): `--audit`, `--matrix`, `--go
 ```
 revisao=d44624c  branch=master  arvore=com alteracoes nao commitadas
 ```
+
+*(O bloco acima é o exemplo de 2026-10-14. A medição de 2026-10-29 imprime, na última linha,
+`revisao=9533b901  branch=feat/p76-security-posture-gcp-azure  arvore=limpa` — o formato não
+mudou; o valor é que é de outra revisão.)*
 
 Três propriedades deliberadas: fora de um repositório git a revisão vira `desconhecida` e a
 medição continua valendo (a auditoria mede artefatos, não git); `arvore` distingue uma
@@ -326,13 +332,44 @@ muda a ordem:
   (`--matrix`: `gerado=21 falta=0 bloqueado=1`; `--audit`: 12 artefatos, 16 caminhos, 0 colunas
   inventadas). O que falta é a troca do `return []` no `azure-sim`, que continua sendo escrita
   no repositório do FinOps.
+
+  **Atualização de 2026-10-29 — a metade de cá está como estava, e ganhou uma peça.** O
+  `azure-sim` passou a aceitar **`api-version` `2026-03-01`** (e mantém `2025-05-01`) nas rotas de
+  network security groups, desde **2026-10-26** (commit `211f21c2`); a lista fechada está em
+  `emulators/azure-sim/azure_sim/api/network.py:34`, e o comentário do arquivo registra que o valor
+  foi lido, não adivinhado (é o default do SDK `33.1.0`). A projeção
+  `project_network_security_groups` **continua** devolvendo lista vazia
+  (`emulators/azure-sim/azure_sim/projections/network.py:29-31`), então o que falta do lado de cá
+  segue sendo exatamente a troca do `return []` — agora com o `api-version` que o cliente real
+  envia já aceito pela rota.
 - **(b) `sqladmin` — aberta, e o caminho citado mudou.** **Não existe `services/gcp-sim`**: o
   emulador está em `emulators/gcp-sim`, com 11 routers e nenhum `sqladmin`
   (`sqladmin|sql/v1beta4` → 0). O consumidor segue igual
   (`resources.py (modulo do consumidor):118,134`).
+
+  **Atualização de 2026-10-29:** o `gcp-sim` tem hoje **14 routers**
+  (`emulators/gcp-sim/gcp_sim/routers/`) e continua **sem** `sqladmin` (`sqladmin|sql/v1beta4` → 0
+  na árvore do pacote). A correção de caminho de 2026-10-14 (é `emulators/gcp-sim`, não
+  `services/gcp-sim`) continua valendo; entre os routers que entraram depois daquela data estão
+  `container` e `infra_manager`, ambos de **2026-10-27**.
 - **(c) `container` + API Kubernetes — aberta.** Sem `container.py`, e `container.googleapis.com`/
   `kubernetes`/`/api/v1/namespaces` → 0 na árvore do `gcp-sim`. O consumidor segue igual
   (`gcp.py (modulo do consumidor):407,409,415` e `:100,111`).
+
+  **Atualização de 2026-10-29 — a premissa desta alínea mudou, e é a maior mudança da rodada.**
+  O `gcp-sim` passou a servir o plano de controle do Kubernetes Engine:
+  `emulators/gcp-sim/gcp_sim/routers/container.py` serve
+  `GET /container/v1/projects/{project}/locations/{location}/clusters`
+  (`projects.locations.clusters.list`), o front TLS publica `container.googleapis.com` desde
+  **2026-10-26** (`deploy/synthetic-clouds/tls-front/nginx.conf`), e a superfície
+  **`gcp/container-clusters`** foi especificada em **2026-10-27** — ela está na matriz como
+  **BLOQUEADA**, e não como gerada, porque é uma **resposta de API servida ao vivo**, não um
+  arquivo de export: a documentação sustenta a forma (envelope `ListClustersResponse` e 4 dos 87
+  membros de `Cluster`), mas não há renderer que produza um artefato conferível contra a spec.
+  O que **continua** sem nada é a **API server do Kubernetes**: `kubernetes` e
+  `/api/v1/namespaces` → 0 na árvore do `gcp-sim` — o emulador serve o contrato de descoberta do
+  cluster, não o plano de dados dele. Portanto (c) deixou de ser "aberta do zero" do lado do
+  emulador: a metade que faltava foi entregue; o que resta é do lado do FinOps, como em (a).
 
 ---
 
@@ -412,6 +449,18 @@ monitorados —, então um leitor que resolva a série pelo label do recurso (`i
 **dois contratos disjuntos** (o mecanismo de `sets` que este repositório já usa), e é trabalho
 nomeado, não um ajuste de uma linha.
 
+**Estado em 2026-10-29 — a decisão de produto continua aberta, e nada foi aposentado.** A medição
+desta data (revisão `9533b901`) é **`gerado=47 falta=0 bloqueado=2 total=49`**, e a matriz continua
+reportando os mesmos dois *renderers sem superfície especificada*: `gcp_bigquery` e
+`gcp_rest_fixtures`. Os números `gerado=33` / `33 PRONTO` acima são a medição de 2026-10-14 e
+ficam como evidência datada. As 11 superfícies do G11 continuam **geradas**, e o
+`gcp_rest_fixtures` continua com **590 linhas e 13 fixtures** — a única delas sem superfície é
+`cai_analyze_iam_policy.json` (`analyzeIamPolicy`), como registra
+[CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.md). Nenhuma escolha entre "manter os dois" e "aposentar
+um" foi tomada nesta rodada. *(O parágrafo de "efeitos funcionais" acima é a leitura de
+2026-10-14; o E4, na tabela de estado consolidado, registra o que foi feito depois: as chaves
+condicionais entraram por conjuntos nomeados.)*
+
 ---
 
 ## E3 — Volume e retenção com o horário novo
@@ -419,6 +468,15 @@ nomeado, não um ajuste de uma linha.
 **DECIDIDO em 2026-10-14: perfil `medium`**, com a ressalva de disco medida abaixo. A
 configuração em `schedule/config.json` foi alterada (`profile: small → medium`) e validada por
 `schedule show`; o restante (`12:00`, `America/Sao_Paulo`, retenção **30**, seed 123) não mudou.
+
+**Atualização de 2026-10-29 — o agendador mudou de novo, e não foi o perfil.** A configuração
+desta instalação (`tools/synthetic_clouds/schedule/config.json`, **não versionado**) está com
+`profile=medium`, `lag_days=0`, `time=12:00`, `time_zone=America/Sao_Paulo`,
+`retention_days=30`, `seed=123`, `currency=USD`. O **`lag_days=0`** entrou em **2026-10-26**
+(commit `1f674563`): o simulador gera dias completos e entrega o dia corrente — não há export
+parcial a esperar. O código (`schedule/config.py`) mantém o **padrão de fábrica** (`lag_days=1`,
+`time=06:30`, fuso UTC com aviso); voltar ao padrão é `schedule set --lag-days 1`. O perfil e a
+retenção **não** mudaram nesta rodada, e a revisão marcada do teto de disco continua valendo.
 
 **Segunda decisão, no mesmo dia: a retenção fica em 30 dias por ora, com revisão marcada.** A
 opção (i) abaixo (15 dias) foi apresentada com o teto medido e **não** foi adotada: o disco
@@ -520,7 +578,7 @@ head deste branch.
 |---|---|---|
 | D1 | (b) por plano: este repo para arquivo e fixtures GCP | **pendente** — trocar o nome do manifesto em 4 arquivos no FinOps (verificado: nada mudou de lugar) |
 | D2 | (a) FinOps descobre Azure sem manifesto | **pendente** — leitor de blob; simulador não muda (verificado) |
-| D3 | (c) ASFF para `CSV`/`OCSF_JSON`; rede (a) **depois de D4** | **ESPECIFICAÇÃO PRONTA em 2026-10-15** — [INGESTAO-D3-SEGURANCA.md](INGESTAO-D3-SEGURANCA.md). **A linha anterior deste registro ("não é adaptação, é construção do zero") estava errada, e a medição desmente.** O que existe no FinOps: a tabela `findings` (19 colunas), o `SecurityFindingAdapter`, o lift Celery `ingest_security_findings` com batching de 500, a flag `OPPORTUNITY_SECURITY_PRODUCER_ENABLED` (fail-closed) e o agendamento CIP com `allowlist`. O que não existe: o **writer** — hoje o canônico é `scan_security.scan_workspace_security`, que chama a API da nuvem e não tem credencial em homologação. Placar do mapeamento ASFF → `findings`, medido: **9 colunas diretas, 4 derivações, 5 ausentes no formato, 2 chaves estrangeiras**. E o achado que encolhe o trabalho: `_SEVERITY_TO_RISK` do adapter usa `CRITICAL/HIGH/MEDIUM/LOW/INFORMATIONAL`, **exatamente** o `Valid Values` do `Severity.Label` que o simulador emite, e normaliza com `.upper()` — o contrato já foi feito para tolerar o que o simulador produz. **A decisão que bloqueia a execução:** `evidence`, `exposure` e `impact` são `Text NOT NULL` e o ASFF **não tem equivalente algum**; `fingerprint` é único por workspace e **não pode ser o `Id` do ASFF**. Três saídas na §5 do documento: sintetizar no writer, sentinela explícita, ou tornar as colunas `nullable` — todas mudam o produto, todas são suas |
+| D3 | (c) ASFF para `CSV`/`OCSF_JSON`; rede (a) **depois de D4** | **ESPECIFICAÇÃO PRONTA em 2026-10-15** — [INGESTAO-D3-SEGURANCA.md](INGESTAO-D3-SEGURANCA.md). **A linha anterior deste registro ("não é adaptação, é construção do zero") estava errada, e a medição desmente.** O que existe no FinOps: a tabela `findings` (19 colunas), o `SecurityFindingAdapter`, o lift Celery `ingest_security_findings` com batching de 500, a flag `OPPORTUNITY_SECURITY_PRODUCER_ENABLED` (fail-closed) e o agendamento CIP com `allowlist`. O que não existe: o **writer** — hoje o canônico é `scan_security.scan_workspace_security`, que chama a API da nuvem e não tem credencial em homologação. Placar do mapeamento ASFF → `findings`, medido: **9 colunas diretas, 4 derivações, 5 ausentes no formato, 2 chaves estrangeiras**. E o achado que encolhe o trabalho: `_SEVERITY_TO_RISK` do adapter usa `CRITICAL/HIGH/MEDIUM/LOW/INFORMATIONAL`, **exatamente** o `Valid Values` do `Severity.Label` que o simulador emite, e normaliza com `.upper()` — o contrato já foi feito para tolerar o que o simulador produz. **A decisão que bloqueia a execução:** `evidence`, `exposure` e `impact` são `Text NOT NULL` e o ASFF **não tem equivalente algum**; `fingerprint` é único por workspace e **não pode ser o `Id` do ASFF**. Três saídas na então §5 do documento (numeração de 2026-10-15; ver a atualização de 2026-10-29 nesta linha): sintetizar no writer, sentinela explícita, ou tornar as colunas `nullable` — todas mudam o produto, todas são suas. **Atualização de 2026-10-29 — a referência e o placar envelheceram, e são dois fatos distintos:** (a) a INGESTAO foi **renumerada** (§6→§5, §7→§6) e a §5 hoje é *«O que já está entregue e onde isso vale»*; mais do que isso, a reescrita de 2026-10-16 **removeu** aquelas três saídas do documento, e o que a §5 registra hoje é que o simulador carrega `category`, `evidence`, `exposure`, `impact` e `fingerprint` no `UserDefinedFields` do ASFF (commit `b3dd315` H-18), com a impressão recalculável a partir do documento — a ponte passa a existir se o caminho for o ASFF, e isso vale como molde da superfície nova; (b) o **placar do mapeamento** desta linha (9 diretas / 4 derivações / 5 ausentes / 2 chaves estrangeiras) é a medição de **2026-10-15**, e a §5 da INGESTAO registra hoje **13 diretas · 1 derivação de cardinalidade · 1 de vocabulário · 2 chaves estrangeiras (`workspace_id`, `cloud_account_id`) · 0 ausentes** — o placar **vigente** é esse, porque a INGESTAO é o documento canônico da ponte, reescrito em 2026-10-16 e atualizado em 2026-10-29; o placar de 2026-10-15 fica como evidência datada, e a diferença entre os dois **não foi reexplicada nesta rodada** |
 | D4 | (a) tabela de recurso com `resource_uuid` canônico | **pendente** — e **maior do que parecia**: o custo nem carrega identidade de recurso (promotores gravam sentinela) |
 | D5 | ligar os serviços de ingestão | **pendente** — ordem D6 → D2 → D5; os dois modelos a copiar existem (beat `celery_app.py:61-80`, rota `router.py:106`) |
 | D6 | aplicar a migração 128 | **pendente, e mais simples do que estava escrito** — o id 128 duplicado **não existe** nesta revisão: a migração já é o head da cadeia, então não há reencadeamento a fazer |
@@ -532,6 +590,64 @@ head deste branch.
 | E4 | **lacuna funcional de Monitoring** — os labels condicionais ao tipo | **FEITO em 2026-10-14** — a superfície `gcp/monitoring-time-series` voltou a emitir os labels do **tipo monitorado** (`gce_instance`: `instance_id`/`zone`; `cloudsql_database`: `database_id`/`region`), sem os quais a série **não é atribuível ao recurso**. A condicionalidade é expressa pelo mecanismo de **conjuntos nomeados** do projeto (`gce_instance_labels`, `cloudsql_database_labels`), e não em prosa: nenhum registro carrega os cinco, e um conjunto por tipo é o que permite conferir cada um. `--matrix` `gerado=34`; `--audit gcp`: a superfície entrega 3 arquivos, 50 registros, 16 caminhos, **0 colunas inventadas** |
 | E5 | **ASFF/OCSF: a superfície do formato que a AWS exporta** | **FEITO em 2026-10-14** — superfície nova `aws/security-hub-ocsf-export` (27 colunas, JSON por linha), com a forma do arquivo, os caminhos OCSF e o residual citados na fonte: [CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.md#contrato-ocsf-do-security-hub-aws--levantado-para-o-item-e5). O `aws/security-hub-asff` **não foi reescrito** — a leitura mostrou que ele descreve corretamente a **resposta da API**, e que o D3(c) pedia uma superfície **nova** para o export. `--matrix` `gerado=34`; `--audit aws`: 1 arquivo, 59 registros, 27 caminhos, **0 colunas inventadas**. **Duas lacunas ficam declaradas, não resolvidas por analogia:** a **classe OCSF** do envelope (`class_uid`/`category_uid`/`type_uid`) e o `metadata.version`. **Residual reprocurado em 2026-10-15 e declarado encerrado sem valor**: a AWS publica `class_name` como caminho do export e nunca o identificador numérico nem os valores, e a única frase de versão da AWS ("supports findings in OCSF schema version 1.6") é sobre a revisão suportada pelos achados do serviço, não sobre o campo no arquivo — registro com URLs em [CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.md#o-residual-procurado-de-novo-2026-10-15). **Uma terceira lacuna foi FECHADA por evidência no mesmo dia:** `severity_id`, cuja enum estava apenas "não lida nesta execução" — ver [CONTRATO-APIS-GCP.md](CONTRATO-APIS-GCP.md#a-lacuna-que-a-busca-fechou-severity_id-2026-10-15) |
 
+## Estado consolidado (2026-10-29)
+
+Medição desta data, revisão **`9533b901`**, branch **`feat/p76-security-posture-gcp-azure`**,
+árvore limpa no início da revisão; `main` está em **2026-10-24** e esta branch está **18 commits à
+frente**. A tabela de 2026-10-14 acima **não foi reescrita** — ela é a evidência daquela data. O
+que é medido hoje está aqui.
+
+| Medida | 2026-10-29 |
+|---|---|
+| superfícies especificadas | **49** — AWS **15** · GCP **23** · Azure **11** |
+| `fidelity --matrix` | **`gerado=47 falta=0 bloqueado=2`** |
+| `fidelity --ready` | **47 superfícies PRONTO** |
+| bloqueadas pela documentação | **2** — `azure/cost-management-export-cost-details` (a Microsoft publica nomes sem tipos; nenhum dos 132 nomes aparece nos cinco contratos ao mesmo tempo) e `gcp/container-clusters` (**nova desde 2026-10-27**: a doc sustenta a forma, mas é resposta de API servida ao vivo pelo `gcp-sim`, não export — sem renderer, "implemented" seria mentira) |
+| colunas declaradas nas 49 specs | **2.637** (soma de `columns` e `sets`) — a opção (b) do D1 citava 2.204 em 2026-10-14 |
+| colunas obrigatórias sem tipo publicado | **401**, em **4** superfícies: `cost-details` 272, `vnet-flow-logs` 107, `nsg-flow-logs-v2` 18, `scc-findings-bigquery` 4 |
+| itens em `docs/NAO-COMPROVADOS.md` | **293 em 49 de 49 superfícies** — AWS **88** · Azure **83** · GCP **122** |
+| renderers sem superfície especificada | `gcp_bigquery`, `gcp_rest_fixtures` — a decisão de produto do E2 continua aberta |
+| arquivos versionados | **492** (`git ls-files`) |
+| suíte de testes (medida da rodada) | **1106 passed · 20 skipped** — 1126 casos coletados — em **14m00s**, revisão `9533b901`, com o comando `pytest tools\synthetic_clouds\tests` |
+| specs em prosa | **30** arquivos `.md` em `specs/<provedor>/` (aws 8 · azure 12 · gcp 10) — 31 se o `specs/README.md` entrar na conta, e ele não é spec de superfície |
+| emuladores | **4** — `aws-sim`, `azure-sim`, `gcp-sim`, `k8s-sim` (o `k8s-sim` **tem** `Containerfile` e serviço de compose — `compose.k8s.yaml` — desde a S4b2-B, e é publicado por TLS no front desde a S4b2-E) |
+
+**O que mudou nas decisões desde a baseline de 2026-10-19, e o que não mudou:**
+
+* **D3/E5 — fechado, e agora com número.** A superfície `aws/security-hub-ocsf-export` é **gerada**
+  (renderer `security_hub_ocsf_export`); a spec dela declara hoje **29 colunas** (o "27 colunas"
+  das linhas acima é a medição de 2026-10-14/15) e mantém **quatro** temas em `unverified`: a
+  classe OCSF, o `metadata.version`, o particionamento e
+  `compliance.assessments/control/standards`. O `aws/security-hub-asff` continua com 96 colunas,
+  todas verificadas.
+* **E1(a)** — a metade de cá segue feita, e o `azure-sim` passou a aceitar **`api-version`
+  `2026-03-01`** nas rotas de network security groups (2026-10-26, commit `211f21c2`). A projeção
+  `networkSecurityGroups` continua vazia por desenho; falta a troca no FinOps.
+* **E1(b)** — o `gcp-sim` está em `emulators/gcp-sim` com **14 routers** e continua sem `sqladmin`.
+* **E1(c) — a premissa mudou, e é a mudança mais concreta da rodada.** O `gcp-sim` serve
+  `container v1` (`projects.locations.clusters.list`) desde 2026-10-26, o front TLS publica
+  `container.googleapis.com`, e a superfície `gcp/container-clusters` foi especificada em
+  2026-10-27 (bloqueada por não haver artefato durável). A API server do Kubernetes continua não
+  servida.
+* **D8** — a medição de hoje imprime, na última linha,
+  `revisao=9533b901  branch=feat/p76-security-posture-gcp-azure  arvore=limpa`. O ambiente ainda
+  não fixou o commit que adota.
+* **E2** — nenhuma escolha nova: os dois renderers seguem sem superfície e nada foi aposentado.
+* **E3** — o perfil e a retenção não mudaram; o `lag_days=0` entrou em 2026-10-26 (commit
+  `1f674563`).
+* **Nenhuma decisão D1–D7 nem E2/E3 foi resolvida pela onda de 2026-10-24..28.** Ela mexeu em
+  emuladores (TLS com hostnames reais, `container v1`, drift, what-if), no agendamento (lag 0) e no
+  `k8s-sim` (contrato OpenCost) — isto é, mudou a **evidência disponível** e as superfícies
+  entregues, não as escolhas que dependem do outro repositório.
+
+**O que esta rodada não reverificou, e não pode ser lido como estado de hoje:** as premissas de
+D1–D7 e E1 que vivem no repositório do FinOps (`cur_ingestion.py`, `promotion.py`,
+`celery_app.py`, `blob_reader.py`, a migração 128 e as flags de ingestão). Essa árvore **não está
+neste workspace** — não há `promotion.py` nem `cur_ingestion.py` nela —, então as medições
+`0f5e6da5` H-36 continuam sendo a evidência datada de 2026-10-14, preservada como tal. Remedi-las
+exigiria a árvore do outro repositório; o que esta rodada fez foi atualizar o que é medível aqui
+(superfícies, matriz, specs, emuladores, agendamento e as metades de cá de E1).
+
 ## O que este repositório segue fazendo
 
 **A fila de execução — trabalho que não depende de ninguém atravessar a regra nº 1:**
@@ -540,10 +656,10 @@ head deste branch.
 |---|---|---|---|
 | 1 | **A classe OCSF do export** (`class_uid`/`category_uid`/`type_uid`) e o `metadata.version` | evidência, depois pequeno | **FECHADO em 2026-10-15 — com o residual DECLARADO, não resolvido.** Deixados fora do artefato de propósito no E5; esta rodada procurou a página (ou um exemplo de saída) que dissesse a classe. O que a AWS publica é o **nome** do discriminador (`class_name`, no catálogo do export e na tabela das regras de automação) sem o identificador numérico e sem os valores; e a única frase de versão da AWS é sobre a revisão **suportada** pelos achados, não sobre o campo no arquivo exportado, cuja lista de campos sequer publica `metadata.version`. Sem valor, o contrato fica fiel a uma omissão declarada. Se um dia aparecer exemplo de saída, é evidência de campo — e o item reabre como peça nova, não como dedução |
 | 2 | **Os dois produtores** (`gcp_rest_fixtures`, `gcp_bigquery`) | decisão de produto, **já revisada** | **DECIDIDO em 2026-10-15: manter os dois, e não_write spec.** O enquadramento original ("dois produtores do mesmo contrato") estava **errado**, e vale registrar por quê. (a) `gcp_api_projection.py` não é produtor nenhum: é **biblioteca compartilhada**, importada por `gcp_api_fixtures.py` e por `gcp_cai_search_all_resources.py`, e some com qualquer cenário. (b) Os dois renderers **não concorrem pelo mesmo contrato**: `gcp_rest_fixtures` é o plano REST (590 linhas, alimenta o emulador, tem teste próprio, e as specs o citam como origem de duas chaves de junção que o contrato oficial recusa) e `gcp_bigquery` é a **sonda da Fase 1**, que o próprio `gcp_bigquery_topology.py` declara substituir. (c) O que o auditor acusa não é concorrência, é **`[renderer sem superfície]`**: os dois estão registrados e **nenhuma spec os reclama**. A resposta que bate com a disciplina do projeto é **escrever spec**, não aposentar: aposentar o `gcp_rest_fixtures` derrubaria justamente o produtor que expõe o conflito com o contrato oficial. O `gcp_bigquery` é o único candidato real a aposentadoria — e isso quebra dois arquivos de teste, o que é trabalho, não decisão |
-| 3 | **O `attic/` quebrando o `pytest` na raiz** | uma linha, decisão tomada | **FECHADO em 2026-10-15 por sua decisão: `conftest.py` na raiz com `collect_ignore_glob = ["attic/*"]`.** O enquadramento original (meu) era que o teste importava "um módulo que não existe mais" e que a pasta deveria ser **quarentenada**. Lendo o `attic/README.md`, as duas coisas estavam erradas: o pacote `coverage/` inteiro (~1.800 linhas) está lá, **arquivado junto com as suas 17 provas**, e a pasta é uma decisão documentada, com a regra escrita na primeira linha. Quarentenar o arquivo teria jogado fora um artefato escolhido para ser guardado. O conserto correto era **codificar a regra**: medido antes e depois, `pytest` na raiz e `pytest tools\synthetic_clouds\tests` coletam os **mesmos 880 testes**, mesmo `rootdir`, mesmo `configfile`. Um detalhe que fica registrado: se a fase de ingestão reativar o material, o import precisa apontar para `attic/product-coupled/coverage/`, que tem **hífen** no caminho e exige `importlib` |
+| 3 | **O `attic/` quebrando o `pytest` na raiz** | uma linha, decisão tomada | **FECHADO em 2026-10-15 por sua decisão: `conftest.py` na raiz com `collect_ignore_glob = ["attic/*"]`.** O enquadramento original (meu) era que o teste importava "um módulo que não existe mais" e que a pasta deveria ser **quarentenada**. Lendo o `attic/README.md`, as duas coisas estavam erradas: o pacote `coverage/` inteiro (~1.800 linhas) está lá, **arquivado junto com as suas 17 provas**, e a pasta é uma decisão documentada, com a regra escrita na primeira linha. Quarentenar o arquivo teria jogado fora um artefato escolhido para ser guardado. O conserto correto era **codificar a regra**: medido antes e depois, `pytest` na raiz e `pytest tools\synthetic_clouds\tests` coletam os **mesmos 880 testes**, mesmo `rootdir`, mesmo `configfile`. Um detalhe que fica registrado: se a fase de ingestão reativar o material, o import precisa apontar para `attic/product-coupled/coverage/`, que tem **hífen** no caminho e exige `importlib`. **Nota de 2026-10-29 — este registro vale para a árvore original; neste repositório ele está duplamente obsoleto:** (a) `attic/` **não existe** nesta árvore nem no histórico git (`git ls-tree HEAD attic` vazio), então o `collect_ignore_glob = ["attic/*"]` do `conftest.py` da raiz é **vestigial**; (b) `pytest` na raiz **hoje** coleta **1661 casos com 23 erros de coleção** — os testes dos emuladores exigem `boto3`/`botocore`, que não estão no `.venv` do gerador, e a coleta ainda entra em diretórios alheios (`uvcache/`, `pytest-of-*`) —, e a suíte canônica é `pytest tools\synthetic_clouds\tests`, medida em 2026-10-29 na revisão `9533b901` em **1126 casos coletados / 1106 passed / 20 skipped**. O "880 testes" é o número daquela árvore em 2026-10-15 e fica como evidência datada. |
 | 4 | **Vigiar o teto de disco de E3** | barato | A retenção de 30 dias com `medium` pede ~17 GB; `D:` tinha 12,10 GB de manhã e 26,67 GB às 17:54. Revisar quando a ocupação se aproximar do livre |
 | 5 | **Manter a documentação viva** | contínuo | `ESTADO.md`, `<doc-de-cobertura>.md` e este registro |
-| 6 | **Atacar o registro dos 295 não comprovados** | fila contínua, cada item é pequeno | [NAO-COMPROVADOS.md](NAO-COMPROVADOS.md) consolida o que o projeto **ainda não provou** (114 na AWS, 70 na Azure, 111 no GCP), com o motivo que cada spec já registrava e a distinção **campo** (nome que não pertence ao contrato) × **tema** (nome que existe e cuja prova falta). É a lista de onde saem os próximos trabalhos de evidência — e é gerada, não escrita à mão. *O total cai quando uma lacuna é fechada por evidência: 299 → 296 → **295** em 2026-10-15 (`severity_id` do export OCSF, `Severity.Label` e `Severity.Normalized` do ASFF, e as quatro enums do `scc-findings`). Correção de uma afirmação minha que saiu errada: eu havia escrito que "o registro conta cada entrada **duas** vezes, então fechar 1 item baixa 2 no total". Não é uma regra — a medição desmentiu. Uma entrada removida do `scc-findings` baixou o total em **1**, e o GCP foi de 112 para 111. A contagem é o que o gerador derivar das specs, e ela varia com a forma como a spec declara a entrada. O que vale é a contagem observada no momento da geração, nunca uma regra sobre ela.*
+| 6 | **Atacar o registro dos não comprovados** (295 em 2026-10-15; **293** em 2026-10-29) | fila contínua, cada item é pequeno | [NAO-COMPROVADOS.md](NAO-COMPROVADOS.md) consolida o que o projeto **ainda não provou** (114 na AWS, 70 na Azure, 111 no GCP), com o motivo que cada spec já registrava e a distinção **campo** (nome que não pertence ao contrato) × **tema** (nome que existe e cuja prova falta). É a lista de onde saem os próximos trabalhos de evidência — e é gerada, não escrita à mão. *O total cai quando uma lacuna é fechada por evidência: 299 → 296 → **295** em 2026-10-15 (`severity_id` do export OCSF, `Severity.Label` e `Severity.Normalized` do ASFF, e as quatro enums do `scc-findings`). Correção de uma afirmação minha que saiu errada: eu havia escrito que "o registro conta cada entrada **duas** vezes, então fechar 1 item baixa 2 no total". Não é uma regra — a medição desmentiu. Uma entrada removida do `scc-findings` baixou o total em **1**, e o GCP foi de 112 para 111. A contagem é o que o gerador derivar das specs, e ela varia com a forma como a spec declara a entrada. O que vale é a contagem observada no momento da geração, nunca uma regra sobre ela.* **Nota de 2026-10-29 — o registro atual tem outro número:** regenerado nesta data pelo gerador versionado (`specs/_tools/gerar-registro-nao-comprovados.py`), `docs/NAO-COMPROVADOS.md` tem **293 itens em 49 de 49 superfícies — AWS 88 · Azure 83 · GCP 122**; os números 295/114/70/111 desta linha são a contagem de 2026-10-15 e ficam como histórico. A diferença entre as duas contagens **não foi reexplicada nesta rodada** — o que vale, como a própria frase acima diz, é a contagem observada na geração de hoje. |
 
 **Triagem da fila (2026-10-15) — a informação que decide se vale atacar:** nem todo item do registro é trabalho de leitura. Dois classificadores foram escritos para separar *"a fonte não publica"* de *"a página existe e ninguém a leu"*: `.artifacts/inventario-nao-comprovados.py` (lista) e `.artifacts/auditar-classificador.py` (audita o classificador). Resultado corrigido:
 

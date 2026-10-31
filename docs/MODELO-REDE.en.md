@@ -13,6 +13,26 @@
 > do not project this data, so they remain faithful to the format and empty. It is the next
 > wave, and it is renderer work, not model work.
 
+> **Status on 2026-10-29: the data reached the four renderers.** The model described here is
+> implemented (`model/network.py` brings `NetworkSegment`, `NetworkInterface`, `NetworkFlow`,
+> `NetworkSecurityGroup`/`SecurityRule` and the AWS/GCP families) and the **four flow log
+> renderers project `NetworkFlow` today** — the surface stopped being "faithful and empty".
+> Measured on this date:
+>
+> | Surface | What the artifact delivers today |
+> |---|---|
+> | `aws/vpc-flow-logs-s3` | all 54 columns are emitted; **18 always populated** + optional `instance-id`; one record per model flow (`tests/test_aws_security_network_fidelity.py:407-429`) |
+> | `azure/nsg-flow-logs-v2` | the spec declares 39 names and **13 generatable**; `flowTuples` is a string with the positions in the documented order, flattened by the renderer; one record per flow window (`tests/test_azure_security_network_fidelity.py:986` and `:111`) |
+> | `azure/vnet-flow-logs` | 127 names, **7 generatable** (the dates) — the ceiling is the **spec**, not the model (`tests/test_azure_security_network_fidelity.py:111`) |
+> | `gcp/vpc-flow-logs-bigquery` | 181 paths, all generatable, **26 populated**; one record per GCP flow; the manifest records `records` = number of flows > 0 (`tests/test_gcp_security_network_fidelity.py:885-905`) |
+>
+> **Fixed on 2026-10-29.** The matrix note (`fidelity/matrix.py`) still said `format-only` and
+> *"the manifest records records=0"* — a note that predated the network model and that the code
+> (`render/gcp_flow_logs.py`) and the cited test already contradicted. In this round the entry was
+> corrected: the surface is no longer classified as `format-only`, and the note now describes the
+> **26 populated paths** and `records` > 0. The record stays here because the old note
+> contradicted the artifact for as long as it was published.
+
 Specification of what the simulator's model needs to carry so that the four flow log renderers
 have **real data** to project. Written on 2026-10-14, derived from the specifications already
 collected in `specs/` — no field here was invented; the "source" column says which spec each
@@ -22,14 +42,23 @@ It exists because column fidelity **is not** the same as data present: today the
 can come out faithful to the format with empty lists, since the canonical model has no type at
 all for flow records.
 
+*(The "today" of this sentence is 2026-10-14. Since then the model has the type and the four
+renderers project it — see the status box at the top.)*
+
 ## The four surfaces, as each cloud actually delivers
 
 | Surface | Documented delivery | Record shape | Fields |
 |---|---|---|---|
 | `aws/vpc-flow-logs-s3` | S3, gzip, text or Parquet | **named columns** | 54 |
 | `azure/nsg-flow-logs-v2` | Blob, JSON, `PT1H.json` | envelope + **positional tuple** of 13 positions | 26 + 13 |
-| `azure/vnet-flow-logs` | Blob, JSON | 23-field envelope + 13-position tuple, **plus** two analyzed-traffic tables (62 and 14) | 127 |
+| `azure/vnet-flow-logs` | Blob, JSON | 23-field envelope + 13-position tuple, **plus** two analyzed-traffic tables (62 and 14) and the `blob-envelope` set (15) — **five** sets in the spec, **127** names summed | 127 |
 | `gcp/vpc-flow-logs-bigquery` | Logging; BigQuery only as a **linked dataset** | named columns, many nested | 181 |
+
+*(Correction of 2026-10-29: the sum cited before — 23 + 13 + 62 + 14 = 112 — did not add up to
+the **127** in the "Fields" column. The spec declares **five** sets, and the fifth, `blob-envelope`,
+has the 15 envelope names (the same `records`/`records[].time`… paths that the `blob` set also
+names); 23 + 13 + 62 + 14 + 15 = **127**. Counted on this date in
+`specs/azure/vnet-flow-logs.schema.json`.)*
 
 Three consequences the model must respect:
 
@@ -64,6 +93,15 @@ record needs to have in order not to come out empty in any of them.
 | log resource | `interface-id` | `resourceId` | `targetResourceID` | `src_vpc.vpc_name` |
 | region | `region` | (in the `resourceId`) | (in the `targetResourceID`) | `src_location.region` |
 
+*(Corrections of 2026-10-29, measured against the two specs: (1) Azure publishes **one** timestamp
+per record — position 0 in both NSG v2 and VNet —, not a start/end pair; the model keeps the window
+and the renderer derives the documented value. (2) The **decision does not exist** in the VNet
+tuple: in the spec, NSG position 7 is `Traffic decision` while VNet position 7 is `Flow state`; the
+VNet has no decision field. (3) The "region" row is the 2026-10-14 reading and coexists with the
+correction in the next section: the ARM id does **not** carry the region — in NSG v2 there is no
+region column, and in VNet the region visible in the blob path is the Network Watcher's
+(`NETWORKWATCHER_{Region}`).)*
+
 ## Additional groups, by how many clouds carry them
 
 **Reverse counters** (Azure NSG and VNet, positions 11–13: packets and bytes
@@ -72,7 +110,8 @@ its own row, and GCP uses the `reporter` field (`SRC`/`DEST`) — the same flow 
 both ends. They are three modelings of the same fact, and the model needs to keep enough for any
 of them: who reported, and the counters of each direction.
 
-**Flow state** (NSG v2 position 8 on 0-based reading, and also in VNet): `B`
+**Flow state** (position **8** on the 0-based reading in NSG v2 and position **7** in VNet — the
+VNet one comes before encryption): `B`
 (begin), `C` (continued), `E` (end) — and **VNet adds `D`**. The spec numbers
 1..13, so be careful with the counting when implementing.
 
@@ -100,6 +139,11 @@ documented as a resource GUID. The same goes for the region: the ARM resource id
 carry the region; it comes from the resource's `location` — which the estate has for the
 resources it models and **does not** have for NSG and VNet, because it does not model them.
 
+*(Correction of 2026-10-29: the estate **started modelling** both. `NetworkSegment` carries
+`region_id`, `resource_group`, `network_security_group_id` and the `NetworkSecurityGroup` itself
+(`model/network.py`), and the VNet is the `NetworkSegment` whose `segment_id` is the VNet's ARM id.
+The sentence "does not model them" describes 2026-10-14.)*
+
 **TCP flags** (AWS `tcp-flags`), **address type** (AWS `type`: IPv4/IPv6),
 **sub-location** (AWS `sublocation-type`/`sublocation-id`).
 
@@ -124,16 +168,33 @@ id and resource group. Without it:
 In other words: **first the network inventory, then the flow**. The flow hangs on the
 inventory, just as the finding already hangs on the resource.
 
+**Status on 2026-10-29: implemented.** `model/network.py` has `NetworkSecurityGroup`
+(subscription, resource group and rules ordered by priority) and `NetworkSegment` carries
+`resource_group`, `network_security_group_id` and `network_security_group`;
+`NetworkInterface.mac_address` exists, and the Azure blob path is assembled with
+`RESOURCEGROUPS/{rg}`, `NETWORKSECURITYGROUPS/{nsg}` and `macAddress={mac}`
+(`render/azure_nsg_flow_logs.py:255-274`). The four points this section listed as blockers have a
+source today — the path segments stopped carrying the template token.
+
 ## Where the blockage is, per surface
 
 Important correction relative to the first version: the blockage is **not the same** everywhere.
+The table below was **re-measured on 2026-10-29**; the 2026-10-14 reading (which attributed a
+model blockage to all four surfaces) stays recorded in the sentence above and in the note at the
+end.
 
-| Surface | What blocks it |
+| Surface | What blocks it (2026-10-29) |
 |---|---|
-| `aws/vpc-flow-logs-s3` | the model: without network telemetry, 7 of the 54 columns have a value |
-| `azure/nsg-flow-logs-v2` | the model. The `record` unblocks with `NetworkFlow` **and** network inventory — including the `flowTuples`, which is a generatable column and the renderer flattens in the documented order |
-| `azure/vnet-flow-logs` | the **spec**, not the model. The ceiling is 7 date/time columns; the 120 blob fields are classified `example-only` and the lock refuses to derive a type for an undeclared field. Adding `NetworkFlow` does **not** unblock any new column here |
-| `gcp/vpc-flow-logs-bigquery` | the model — and the destination is Cloud Logging, not BigQuery |
+| `aws/vpc-flow-logs-s3` | **Nothing in the model.** All 54 columns come out in the artifact, **18 always populated** (`version`, `account-id`, `interface-id`, `srcaddr`/`dstaddr`, ports, `protocol`, `packets`, `bytes`, `start`/`end`, `action`, `log-status`, `vpc-id`, `subnet-id`, `region`, `flow-direction`) and optional `instance-id`; one record per model flow (`tests/test_aws_security_network_fidelity.py:407-429`). The other 36 (35 + the optional `instance-id`) remain empty because the model **does not carry the fact** (ECS, pre-NAT address, TCP flags, sub-location…), and empty is the correct answer. |
+| `azure/nsg-flow-logs-v2` | **Nothing in the model.** The spec declares 39 names and **13 generatable** (`tests/test_azure_security_network_fidelity.py:111`); the record carries the 13 `flowTuples` positions flattened into the string, in the documented order. The 26 columns without a published type are positions inside a string — they are not JSON fields, so they do not enter as a column. |
+| `azure/vnet-flow-logs` | **The spec**, not the model: 127 names, only **7 generatable** (the dates); the 120 blob fields are `example-only` and the lock refuses to derive a type for an undeclared field. Adding `NetworkFlow` does **not** unblock any new column here. |
+| `gcp/vpc-flow-logs-bigquery` | **Nothing in the model.** 181 paths, all generatable, **26 populated**; one record per GCP flow (`tests/test_gcp_security_network_fidelity.py:885-905`). What still holds is the documented reading: the destination is **Cloud Logging**, and BigQuery is a linked dataset — the renderer emits the format, not an "export to BigQuery". |
+
+*(The 36 AWS columns that are not always populated — 35 fixed + the optional `instance-id` — and
+the 155 GCP ones — 181 − 26 — are the ones that depend on facts the model does not carry: service
+metadata, RTT, `drop_reason`, GKE/PSC/load balancing. The closed list of what is populated is in the
+cited tests, and it is closed on purpose: everything the spec publishes that is not in it must come
+out empty.)*
 
 **Service metadata** — the most uneven group, and where it is easiest to invent:
 
@@ -204,6 +265,15 @@ Usage rule: **the renderer emits the column and leaves it empty when the model d
 the data**. What must not happen is filling it with a plausible value — that is exactly what this
 project exists to prevent.
 
+*(The **implemented** type differs from this proposal, and the difference is measured on
+2026-10-29 in `model/network.py:166`: the real `NetworkFlow` references the segment and the ends by
+uuid (`segment_uuid`, `src_interface_uuid`, `dst_interface_uuid`) instead of keeping
+`scope_id`/`region`/`interface_mac` in the flow; the MAC lives in `NetworkInterface`; and the flow
+carries `account_id` and `log_resource_id`. The proposed `tcp_flags`, `address_family`,
+`translated_*`, `reject_reason`, `acl_id`, `rule` and `log_status` fields **do not** exist in the
+implemented type — that is why the corresponding columns come out empty in the artifact. The
+proposal stays as the dated record of 2026-10-14.)*
+
 ## What still needs to be decided before implementing
 
 1. **Volume.** One record per flow per 5-minute window, for how many
@@ -216,3 +286,17 @@ project exists to prevent.
    bind to an existing resource identity. Flows must follow the same rule.
 4. **Determinism.** The flows need a randomness stream of their own, so as not to
    shift the numbers already stable in the other domains (there is a byte-to-byte stability test).
+
+**Status on 2026-10-29: the four decisions were taken together with the implementation**
+(`generate/estate_builder.py:2256-2381`):
+
+1. **Volume** — **12 windows of 5 minutes** (`FLOW_WINDOWS = 12`, `FLOW_WINDOW_MINUTES = 5`,
+   `:492-493`), one flow per interface per window; the time window comes from `_flow_windows`.
+2. **Address realism** — the IPs come from the estate's own `NetworkInterface` (`private_ip`), and
+   the end that does not exist becomes `FLOW_ABSENT_ADDRESS`, never a plausible invented address.
+3. **Relation to the gate** — the inventory → flow order is the code's
+   (`_build_network` calls `_flows_for_segment` after creating the segment and interfaces), and the
+   `model/network.py` docstring records the P2 gate rule (no orphans).
+4. **Determinism** — each flow draws its randomness from its own stream, indexed by
+   `(interface, window)`: `stream_rng(self.seed, f"flow/{interface_uuid}/{inicio}")`
+   (`:2330`), so adding a flow does not shift the others.

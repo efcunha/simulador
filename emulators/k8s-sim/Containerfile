@@ -1,0 +1,71 @@
+# k8s-sim OCI image (Podman) — the OpenCost allocation contract.
+#
+# Build context = emulators/k8s-sim (this package dir), NOT the worktree root. The
+# sibling sims bake tools/ and specs/ in because their Phase 1 generator is imported
+# as the namespace path ``tools.synthetic_clouds.*`` resolved via PYTHONPATH. The
+# k8s-sim has NO estate generator to consume: the synthetic workload is declared in
+# ``k8s_sim.projections.allocation`` and the estate's clusters are DATA (the versioned
+# fixture ``k8s_sim/fixtures/clusters.json``). The service reads the fixture, it never
+# imports the generator — so this image bakes only this package. Build with:
+#   podman build -t k8s-sim emulators/k8s-sim
+#
+# Multi-stage: the builder installs ONLY k8s-sim's third-party deps into a venv; the
+# runtime stage copies the venv + source and runs as a non-root user.
+#
+# ``httpx`` is deliberately NOT installed: it is a test-time dependency (Starlette's
+# TestClient transport). The service opens no outbound HTTP connection.
+
+# ---- builder ---------------------------------------------------------------
+FROM python:3.12-slim AS builder
+
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+# Mirrors emulators/k8s-sim/pyproject.toml [project.dependencies] and nothing else.
+# FinOps-synthetic-clouds is NOT a dependency: tools.synthetic_clouds resolves by
+# PYTHONPATH in the sibling sims because they import it; this service does not.
+RUN pip install \
+    "fastapi" \
+    "uvicorn"
+
+# ---- runtime ---------------------------------------------------------------
+FROM python:3.12-slim AS runtime
+
+# Non-root: the sim never needs root; the estate is data baked in at build time and
+# the service opens no connection.
+RUN useradd --create-home --uid 10001 k8ssim
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+
+# Bake the package in. The build context is the package dir, so these paths are
+# relative to it. The fixture travels with the package: allocation.FIXTURE_PATH is
+# resolved from the module's own __file__, so the catalog is found wherever the
+# package is unpacked.
+COPY k8s_sim /app/emulators/k8s-sim/k8s_sim
+COPY pyproject.toml /app/emulators/k8s-sim/pyproject.toml
+
+# k8s_sim lives at emulators/k8s-sim/k8s_sim and is importable with
+# /app/emulators/k8s-sim on PYTHONPATH. Unlike the sibling sims there is no /app
+# tree to resolve: nothing of tools/ or specs/ is baked in.
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app/emulators/k8s-sim" \
+    PYTHONUNBUFFERED=1 \
+    K8S_SIM_PORT=8089
+
+USER k8ssim
+
+EXPOSE 8089
+
+# Liveness probe hits GET /healthz. stdlib urllib so the slim image needs no
+# curl/wget — the GCP phase had to replace a wget probe for exactly this reason.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD ["python", "-c", "import os,urllib.request,sys; p=os.environ.get('K8S_SIM_PORT','8089'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/healthz', timeout=3).status==200 else 1)"]
+
+# Default: serve the OpenCost allocation contract (/allocation/compute,
+# /clusterInfo, /healthz). The app object is built by the create_app factory, so
+# uvicorn is pointed at the factory (--factory) instead of at an app instance.
+CMD ["python", "-m", "uvicorn", "k8s_sim.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8089"]

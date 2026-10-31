@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="880" height="370" viewBox="0 0 880 370" role="img" aria-label="How the data flows: specs are the source of truth, a deterministic generator renders them, three API emulators serve them, and a consumer ingests over its own production path.">
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="370" viewBox="0 0 880 370" role="img" aria-label="How the data flows: specs are the source of truth, a deterministic generator renders them, four API emulators serve them, and a consumer ingests over its own production path.">
   <rect x="0.5" y="0.5" width="879" height="369" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
 
   <text x="32" y="44" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="20" font-weight="700" fill="#0F172A">How the data flows</text>
-  <text x="32" y="68" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#64748B">One deterministic engine, three API emulators, zero calls to the real cloud.</text>
+  <text x="32" y="68" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#64748B">One deterministic engine, four API emulators, zero calls to the real cloud.</text>
 
   <g>
     <rect x="32" y="104" width="180" height="150" rx="12" fill="#F8FAFC" stroke="#E2E8F0"/>
@@ -10,8 +10,8 @@
     <text x="58" y="139" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">1</text>
     <text x="82" y="139" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14.5" font-weight="700" fill="#0F172A">Specs</text>
     <text x="48" y="176" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">The source of truth</text>
-    <text x="48" y="196" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">46 export surfaces</text>
-    <text x="48" y="216" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">AWS 15, GCP 21, Azure 10</text>
+    <text x="48" y="196" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">49 export surfaces</text>
+    <text x="48" y="216" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">AWS 15, GCP 23, Azure 11</text>
     <text x="48" y="236" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">Each field cites the docs</text>
   </g>
 
@@ -31,10 +31,10 @@
     <circle cx="482" cy="134" r="15" fill="#0891B2"/>
     <text x="482" y="139" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">3</text>
     <text x="506" y="139" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14.5" font-weight="700" fill="#0F172A">Emulators</text>
-    <text x="472" y="176" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">Real API surfaces</text>
-    <text x="472" y="196" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">AWS S3 + Query</text>
-    <text x="472" y="216" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">GCP REST + gRPC</text>
-    <text x="472" y="236" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">Azure ARM + exports</text>
+    <text x="472" y="176" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">AWS S3 + Query</text>
+    <text x="472" y="196" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">GCP REST + gRPC</text>
+    <text x="472" y="216" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">Azure ARM + TLS front</text>
+    <text x="472" y="236" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#475569">Kubernetes OpenCost</text>
   </g>
 
   <g>

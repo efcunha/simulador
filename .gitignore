@@ -47,5 +47,11 @@ desktop.ini
 .github/
 .playwright-mcp/
 
+# Artefatos de execucao local (pytest tmp, diretorio temporario do gerador, probes)
+pytest-of-*/
+tmp????????/
+evidence-tmp/
+py-q.xml
+
 # Git worktrees locais (criados por workflows; fora do controle de versao)
 .worktrees/

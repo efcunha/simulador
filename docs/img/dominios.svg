@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="880" height="420" viewBox="0 0 880 420" role="img" aria-label="What is emulated, by domain: cost, security, network and instances across AWS, GCP and Azure.">
-  <rect x="0.5" y="0.5" width="879" height="419" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="486" viewBox="0 0 880 486" role="img" aria-label="What is emulated, by domain: cost, security, network, instances and drift/what-if across AWS, GCP and Azure.">
+  <rect x="0.5" y="0.5" width="879" height="485" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/>
 
   <text x="32" y="44" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="20" font-weight="700" fill="#0F172A">What is emulated, by domain</text>
-  <text x="32" y="68" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#64748B">Four domains, three clouds, one faithful surface per domain and cloud.</text>
+  <text x="32" y="68" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#64748B">Five domains, three clouds - every surface cites its provider contract.</text>
 
   <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14.5" font-weight="700" fill="#0F172A" text-anchor="middle">
     <text x="370" y="122">AWS</text>
@@ -20,6 +20,7 @@
     <line x1="32" y1="206" x2="840" y2="206"/>
     <line x1="32" y1="272" x2="840" y2="272"/>
     <line x1="32" y1="338" x2="840" y2="338"/>
+    <line x1="32" y1="404" x2="840" y2="404"/>
   </g>
 
   <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#0F172A">
@@ -31,6 +32,8 @@
     <text x="48" y="306">Network</text>
     <rect x="32" y="350" width="4" height="32" rx="2" fill="#7C3AED"/>
     <text x="48" y="372">Instances</text>
+    <rect x="32" y="416" width="4" height="32" rx="2" fill="#D97706"/>
+    <text x="48" y="438">Drift / what-if</text>
   </g>
 
   <g fill="#FFFFFF" stroke="#E2E8F0">
@@ -46,6 +49,9 @@
     <rect x="280" y="348" width="180" height="48" rx="10"/>
     <rect x="470" y="348" width="180" height="48" rx="10"/>
     <rect x="660" y="348" width="180" height="48" rx="10"/>
+    <rect x="280" y="414" width="180" height="48" rx="10"/>
+    <rect x="470" y="414" width="180" height="48" rx="10"/>
+    <rect x="660" y="414" width="180" height="48" rx="10"/>
   </g>
 
   <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#334155" text-anchor="middle">
@@ -59,7 +65,7 @@
     <text x="370" y="236">Config, SG, S3, IAM</text>
     <text x="370" y="253">8 checks covered</text>
     <text x="560" y="236">SCC + Firewall</text>
-    <text x="560" y="253">findings and sources</text>
+    <text x="560" y="253">exports + live API</text>
     <text x="750" y="236">NSG + Defender</text>
     <text x="750" y="253">assessments</text>
 
@@ -76,5 +82,12 @@
     <text x="560" y="385">Inventory</text>
     <text x="750" y="368">Resource Graph</text>
     <text x="750" y="385">resource inventory</text>
+
+    <text x="370" y="434">not specified</text>
+    <text x="370" y="451">no export surface</text>
+    <text x="560" y="434">Infra Manager</text>
+    <text x="560" y="451">resourceDrifts</text>
+    <text x="750" y="434">Deployment Stacks</text>
+    <text x="750" y="451">what-if result</text>
   </g>
 </svg>

@@ -1,0 +1,100 @@
+# Config of record for the emulators/k8s-sim package (Phase S4a).
+#
+# Mirrors emulators/aws-sim/pyproject.toml and emulators/azure-sim/pyproject.toml: ruff
+# and mypy discover configuration by walking UP from the target file, and pyproject.toml
+# do consumidor is a SIBLING subtree, never an ancestor of emulators/k8s-sim/. Writing
+# this file INSIDE the permitted package path is allowed; a root config would not be.
+#
+# k8s-sim serves the OpenCost allocation contract for ONE synthetic AKS cluster. It
+# has no estate generator to consume: the synthetic workload is declared in
+# ``k8s_sim.projections.allocation``. The package therefore declares ONLY third-party
+# deps and MUST NOT declare the FinOps-synthetic-clouds generator as a dependency.
+#
+# ``fastapi`` is the server and ``httpx`` is the TestClient transport, so ``httpx`` is a
+# test-time dependency (Starlette's TestClient requires it) while ``fastapi`` is a
+# runtime one.
+[project]
+name = "FinOps-k8s-sim"
+version = "0.1.0"
+description = "FinOps Kubernetes synthetic-cloud simulator (Phase S4a): the OpenCost allocation contract."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+]
+
+[project.optional-dependencies]
+test = [
+  "httpx",
+  "pytest",
+]
+
+[tool.pytest.ini_options]
+# The sibling sims (aws-sim, azure-sim) make ``k8s_sim``/``aws_sim`` importable from a
+# test by shipping a ``<pkg>/tests/__init__.py``: pytest's "prepend" import mode then
+# walks up to the first directory WITHOUT ``__init__.py`` and puts THAT on sys.path.
+#
+# This package cannot do that: the Phase S4a allowlist permits exactly one file under
+# ``k8s_sim/tests/`` (``test_allocation.py``), so there is no ``__init__.py`` to add and
+# no ``conftest.py`` to hook. Without help, pytest would put ``k8s_sim/tests`` itself on
+# sys.path and ``import k8s_sim`` would fail.
+#
+# ``pythonpath`` is pytest's own (>= 7.0) mechanism for exactly this, and the entries
+# resolve against ROOTDIR. Because this file carries ``[tool.pytest.ini_options]``,
+# pytest picks IT as the configfile and ROOTDIR for a run rooted at
+# ``emulators/k8s-sim`` -- so "." is ``emulators/k8s-sim`` and the ``k8s_sim`` package
+# next to it becomes importable.
+#
+# It does NOT touch the canonical suite: ``pytest tools\synthetic_clouds\tests`` walks up
+# from ``tools/synthetic_clouds`` and finds ``tools/synthetic_clouds/pyproject.toml``
+# first, so that run keeps its own rootdir, configfile and collection rules.
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "S", "B", "ANN", "ASYNC"]
+ignore = [
+  "ANN401",  # Allow Any type when needed (complex generics)
+  "S101",
+  "E501",    # Line-too-long enforced by formatter, not linter
+  "B008",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests are intentionally loose: pytest decorators (@pytest.fixture, @pytest.mark.*) are
+# untyped (framework limitation), and fixture params / helper calls are left unannotated
+# on purpose. This is the same rule the sibling sims apply to their own test packages.
+"**/tests/*" = ["S", "ANN", "B017", "N805", "F841", "F821", "E402"]
+
+[tool.ruff.lint.isort]
+# ``k8s_sim`` is this package's own code and belongs to the first-party block, next to
+# the third-party imports rather than inside them.
+#
+# It has to be declared instead of inferred: ruff resolves ``src`` against its
+# PROJECT ROOT, and the project root depends on HOW the config was reached --
+# hierarchical discovery uses the config file's own directory (``emulators/k8s-sim``,
+# where ``k8s_sim`` lives), while an explicit ``--config`` uses the config file's PARENT
+# (``emulators/``, where ``k8s_sim`` does not). ``known-first-party`` gives the same
+# answer under both forms, which is the whole point of declaring it.
+known-first-party = ["k8s_sim"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+disable_error_code = ["type-arg", "unused-ignore"]
+# k8s-sim is imported as the top-level ``k8s_sim`` package and does NOT import the
+# Phase 1 generator. The official gate invocation, run from the worktree root:
+#   mypy --config-file emulators/k8s-sim/pyproject.toml -p k8s_sim
+explicit_package_bases = true
+mypy_path = ["emulators/k8s-sim"]
+namespace_packages = true
+
+[[tool.mypy.overrides]]
+# Tests are intentionally loose, matching the ruff ``ANN`` per-file-ignore above and the
+# same override in emulators/aws-sim/pyproject.toml.
+module = ["k8s_sim.tests.*"]
+disable_error_code = ["untyped-decorator", "no-untyped-def", "no-untyped-call"]

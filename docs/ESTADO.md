@@ -5,7 +5,7 @@
 Documento vivo. Registra o que existe, o que foi decidido e por quê, para que o
 trabalho continue sem depender de contexto de conversa.
 
-Última atualização: 2026-10-18.
+Última atualização: **2026-10-31** (revisão `8efcf020`, branch `feat/p76-security-posture-gcp-azure`).
 
 ## Entregas registradas
 
@@ -13,6 +13,21 @@ trabalho continue sem depender de contexto de conversa.
 |---|---|---|
 | `9848e1e` H-01…`0f7e174` H-09 | **Domínio de postura — FECHADO (2026-10-19)** | Os **8 checks** que os três `SecurityScanner` do FinOps rodam têm, cada um, a superfície do simulador que os produz, medida contra o consumidor real. Série de **15 commits** (9 feat, 5 docs, 1 fix), contados na época por `git rev-list --count 9848e1e^..0f7e174` (comando que hoje não roda — ver PROVENANCIA-HISTORICO.md §3.1). Commits-âncora: AWS `9848e1e` H-01 (Config by-rule), `5169404` H-02 (Security Groups), `c65faeb` H-03 (S3), `d38b325` H-04 (IAM), `a80bc1f` H-05 (resíduo de Config); GCP `69b721d` H-06 (SCC), `dead1b0` H-07 (Firewall); Azure `85951d9` H-08 (NSG), `0f7e174` H-09 (Defender). Evidência: 46 superfícies, suíte **1095 passed / 20 skipped**, `--matrix` `gerado=45 falta=0 bloqueado=1`. Detalhe do marco em [POSTURA-SEGURANCA.md](POSTURA-SEGURANCA.md#marco--o-domínio-de-postura-fechado-2026-10-19); débitos residuais em [A área de postura](#a-área-de-postura--completa-2026-10-19). |
 | `d38b325` H-04 | IAM — incremento 4 | A identidade da conta AWS: três regras de Config saíram de `INSUFFICIENT_DATA` (medido: 14/10/102 → 32/19/75). O commit **trouxe também, FORA do plano de postura AWS, três superfícies de categoria C** — `gcp/observability-partial`, o bloco regional do S3 e o diagnóstico `fidelity/review.py --state IAM`. Elas estão nomeadas em [o bloco C](#as-três-superfícies-que-entraram-fora-do-plano-categoria-c) porque são dívida de **granularidade de commit**, não parte da fase IAM — o próximo incremento não deve classificá-las como IAM. |
+| `a64b8414` | S4b1-E — o `k8s-sim` aceita o id nativo do cluster | O filtro do `k8s-sim` passa a aceitar **três aliases** da identidade do cluster — o **nome** (o que o contrato publica), o **uuid do estate** (`cluster_id`) e o **id nativo** que a descoberta publica (ARN do EKS, id ARM do AKS, `selfLink` do GKE). O fixture versionado `k8s_sim/fixtures/clusters.json` passa a carregar `native_id` por cluster (**309 clusters**: 75 EKS, 111 GKE, 123 AKS), gerado por `scripts/export_clusters.py`; `/allocation/compute` e `/clusterInfo` respondem o mesmo cluster pelos três. Medido: **91 passed** (78 anteriores + 13 novos). Detalhe em [regression/mapa-impacto-s4b1d.md](regression/mapa-impacto-s4b1d.md) e no [contrato do k8s-sim](k8s-sim-opencost-contract.md). |
+| `7fcbb7ca` | S4b2-C — o `k8s-sim` na rede do CloudPilot (alias, URL e docs) | O `k8s-sim` vivia só na rede dos simuladores; o backend do CloudPilot não resolvia o nome e `http://k8s-sim:8089` falhava com `Name or service not known`. O `ensure-cloudpilot.ps1` passa a ser o dono do plano Kubernetes: **cria** o container a partir de `compose.k8s.yaml` quando falta (`--no-deps --no-build`, sem rebuild), **anexa** o `synthetic-clouds-k8s-sim-1` à bridge `cloudpilot-deploy_cloudpilot_net` com o alias **`k8s-sim`** e **probeia** `/healthz` e `/clusterInfo` de dentro do `cloudpilot_backend` no `-Smoke`. O `cold-start.ps1` mantém um dono só do vínculo e lista o plano no resumo final. Medido: **antes** `URLError [Errno -2]`; **depois** `/healthz` e `/clusterInfo?filter=cluster:"TEMP-aks_cluster-0025"` → **200** do backend, e o container aparece no `network inspect` da bridge. Detalhe em [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) e no [contrato do k8s-sim](k8s-sim-opencost-contract.md) (§2.1 e §9). |
+| `41183517` | S4b2-D — o `aws-sim` no perfil `medium` e a checagem de conexão AWS | O plano AWS tem o **próprio namespace** de variáveis: `compose.aws.yaml` lê `AWS_SIM_SEED`/`AWS_SIM_PROFILE`, **não** os nomes genéricos `SEED`/`PROFILE` dos planos Azure/GCP — e, sem o par `AWS_SIM_*`, o `aws-sim` caía no default `small` e servia um estate **diferente** do resto da pilha. A causa raiz que a S4b2-C mediu estava **errada**: os ids de conta derivam de `(seed, índice)`, não do perfil (`small` e `medium` produzem os **mesmos** três ids), e o `InvalidClientTokenId` vinha do **AWS real** — a imagem do backend em execução era anterior ao override de endpoint por conta (`endpoint_overrides.py` ausente, `sts_endpoint_url` inexistente), então o `cur_config.endpoint_overrides.sts` guardado era inerte e o `botocore` resolvia `https://sts.us-east-1.amazonaws.com`. Medido: `aws-sim` recriado pelo compose oficial com `PROFILE=medium`/`SEED=123` healthy; imagem do backend do CloudPilot reconstruída do `HEAD` com `[PARITY] Code parity OK (742 .py files, host == 5 running container(s))`; credencial re-mintada na forma `ASIA<conta>SYNT` (a conta declarada `911368690069` volta, em vez da queda para a primeira conta do estate); `ensure-cloudpilot.ps1 -Smoke` → **exit 0**, `connection check aws = connected`, `summary: integration OK (0 problems)`. Detalhe em [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) §7 (revisão datada de 2026-10-30). |
+| `21cc0eaa` | S4b3-A — a árvore FOCUS/S3 do `aws-sim` no perfil `medium` | O `aws-sim` servia **dois volumes**: as APIs no `medium` e o export de faturamento no `small` — o uploader (`scripts/synthetic-clouds/aws-up.ps1`) resolvia o namespace do plano AWS **só do ambiente de processo**, com default `small`, e o `.env` da instalação (que fixa `AWS_SIM_PROFILE=medium`) nunca chegava ao gerador. O uploader agora lê o `.env` (ambiente de processo primeiro), usa o venv do repositório, **substitui** a árvore no volume em vez de mesclá-la, **não reconstrói** imagem por padrão (`-Build` é explícito) e **confere** a árvore pela superfície S3 do próprio emulador. Do lado do consumidor foram necessárias duas correções de configuração para a ingestão: `cur_config.export_name` (`cloudpilot-focus12-daily-full` → `synthetic-focus12-daily-full`, o nome que o renderer emite) e `external_account_id` (vazio → `911368690069`, exigido pelo guard *fail-closed* da promoção). Medido: `aws-up.ps1` → **exit 0** sem rebuild nem recreate; árvore = 6 objetos / 14.011.803 B, `"profile": "medium"`, **130.236 linhas**, **966** `ResourceId` — os 966 recursos AWS com faturamento do estate `medium` (1.110 recursos / 474.390 linhas); ingestão oficial → `status: ok`, `rows_promoted=58926`, **US$ 166.204,47** no `/costs/unified` (`by_account: aws · HOMOLOGATION AWS [sim]`) e no browser (`/costs` YTD → US$ 225.578, a conta AWS com 73,7%). Detalhe em [regression/mapa-impacto-s4b3a.md](regression/mapa-impacto-s4b3a.md). |
+| `a16aa7fb` | S4b3-B — a entrega diária publica no export que o consumidor lê | A entrega (FR-22) publicava em `cloudpilot-focus12-daily-full` — o nome do renderer **anterior** ao *standalone publish* —, enquanto o bucket (`AWS_SIM_BUCKET`) e o `cur_config` da conta de homologação usam `synthetic-focus12-daily-full`, o nome que o renderer emite: a entrega era a **única** peça do circuito fora do namespace, e a falha era **silenciosa** (`deliver_aws` faz `PUT` e conta objetos, sem validar nada — o mesmo `ok: true` para o bucket certo e para o bucket morto). O namespace virou fonte única (`DEFAULT_AWS_BUCKET` / `DEFAULT_AWS_EXPORT_NAME` em `deliver/core.py`), cobrindo os **dois** caminhos de entrega: o CLI (defaults das variáveis `DELIVERY_AWS_*`) e a tarefa do Windows (`schedule/__main__.py:227` chama `deliver_day()` **sem** namespace, logo usa os defaults do código) — o `.env` não resolvia e não resolveria, porque não tem nenhuma variável `DELIVERY_*`. Medido: entrega do dia `2026-10-26` → **exit 0** (`aws_objects: 1`), chave nova em `focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/...` (2.734.569 B = exatamente o parquet de origem) e **nenhum** bucket `cloudpilot-focus12-daily-full` criado; ingestão oficial → `rows_promoted=54096` e `cur_last_execution_id` = a execução da entrega; `/costs/unified` → `HOMOLOGATION AWS [sim] · 54.143,54` com `data_source: focus_cost_records` (antes: `cost: null`, `data_state: "unavailable"`), e o volume confere nos três lugares (parquet `EffectiveCost` 54.143,544220 = `focus_cost_records` do período 2026-10 = `/costs/unified`). Suíte: **1109 passed / 20 skipped**. Detalhe em [regression/mapa-impacto-s4b3b.md](regression/mapa-impacto-s4b3b.md). |
+| `77a6a03a` | S4b3-C — a entrega diária roda sozinha: tarefa registrada e ledger em dia | A tarefa `simulador-nuvem-daily` **existia**, mas o wrapper apontava para `D:\Simulador\...` — uma instalação anterior num drive inexistente —, então o último resultado era `1` e nada disparava sozinho; a S4b3-B tinha escrito que ela "não está registrada", e a leitura real corrigiu a premissa. A causa é mecânica: `install` resolve o caminho a partir da localização do pacote, então **mover a instalação** deixa um wrapper obsoleto — o mecanismo oficial (`schedule install`) reescreve o `run-daily.cmd` e o XML e refaz o registro (**exit 0**, comando `cmd.exe /c "C:\Projetos\Simulador\tools\synthetic_clouds\schedule\run-daily.cmd"`, disparo diário 12:00 + no logon, `StartWhenAvailable`), e disparada por `schtasks /run` às 13:06:47 devolveu **`Último Resultado: 0`**, com a linha do `tick` no `task.log`. **A suíte de testes apagava o wrapper** (`test_written_files_have_no_doubled_carriage_return` escrevia no caminho de produção e o apagava no `finally`, porque `windows.py` derivava o caminho do *pacote*): a tarefa de 13:02:33 deu `1` sem linha no log — o wrapper não existia; **corrigido** em `tools/synthetic_clouds/schedule/windows.py` (wrapper e XML agora vêm de `config_path.parent`; caminho de produção idêntico; `92 passed` e o wrapper sobrevive à suíte). No caminho houve um **incidente de ambiente**: o `podman` não subia porque um socket Unix obsoleto (`%LOCALAPPDATA%\Temp\podman\podman-machine-default-api.sock`, de 2026-10-30) bloqueava o `bind` do `gvproxy`, que morria antes de abrir o forward SSH (`accept tcp 127.0.0.1:61926: use of closed network connection` era consequência, não causa); removido o socket, `podman machine start` → *"started successfully"*. A queda da VM tinha levou o estado em memória dos dois planos (containers parados há ~15 h, **antes** da fase), restaurado **sem rebuild e sem recreate**: `podman start` nos containers existentes e o provisionador do BigQuery com a imagem já em disco (`--no-deps`, sem `--build` — o `gcp-up.ps1` faria `--build --force-recreate`). O backfill, pelo mecanismo oficial e em um comando (`schedule tick --deliver`) → **exit 0** (830,5 s): `gerados: 2026-10-27 … 2026-10-31` (**60.620 artefatos**), cinco entregas sem erro (`aws=1 objetos`, `gcp=2260/2260/2256/2272/2282 linhas`, `azure=304 dias`); ledger de **11** para **16 dias** (`2026-10-16` → `2026-10-31`), `target_day: 2026-10-31`. O alvo é `2026-10-31` e não `2026-10-30` porque, com `lag_days=0`, o alvo **é o dia corrente**. O dia `2026-10-27` — que estava **parcial** (render interrompido, sem `aws_focus`, fora do ledger) — foi reescrito inteiro (**45** superfícies, igual ao `2026-10-31`), então a lacuna condicional **não** se materializou. No CloudPilot (conta `HOMOLOGATION AWS [sim]`, workspace *Homologation's Workspace* `9ff4da5f…`, **não** o workspace padrão do usuário): ingestão oficial → `status: ok`, `total_billed_cost: 65575.879831`, log de promoção **`rows_promoted=29946`** (a resposta diz `cost_promotion_status: "skipped"` — **o campo mente**: são defaults do schema nunca atribuídos); `/costs/unified` → **`HOMOLOGATION AWS [sim] · 65.575,88`** com `data_source: focus_cost_records` (antes `54.143,54`), e o volume confere nos três lugares (parquet `EffectiveCost` 65.575,879831 = ledger = `/costs/unified`); o export do dia é snapshot **month-to-date** e o leitor CUR lê o execution mais recente (`files_read: 1`), por isso o valor cresce com o mês. **Em aberto:** `docs/AGENDAMENTO.en.md` (fora da allowlist), a contagem da tabela de CUD do BigQuery (`expected 3, got 9`, pré-existente) e a árvore do `aws-sim` no bucket (store em memória; repopular é `aws-up.ps1`, "restart dos planos", fora do escopo). Detalhe em [regression/mapa-impacto-s4b3c.md](regression/mapa-impacto-s4b3c.md). |
+| `a9633aa6` | S4b3-D — o fix ganha teste, o documento em inglês ganha a verdade, e a conta `[SYNTH]` passa a ler o export que o simulador publica | A correção da S4b3-C deu o wrapper gerado à sua configuração e deixou o **teste de regressão** como dívida declarada (o diretório de testes estava fora da allowlist daquela fase). Dois testes fixam isso agora: um plano com `config_path` num diretório temporário escreve o wrapper **lá**, e a suíte deixa o `schedule/run-daily.cmd` de produção **byte-idêntico** (mesmo `sha256`, mesmo `LastWriteTime`) — restaurando-o se alguma execução o tocar, para que uma rodada vermelha não leve o wrapper da tarefa diária. Provado em vermelho-verde (reverter o fix → os dois testes falham; restaurar → passam): a suíte do agendador vai de **92 → 94 passed**, com ruff e mypy nos baselines pré-existentes (4 e 10, nenhum nos testes novos). O `docs/AGENDAMENTO.en.md` foi corrigido — ainda dizia que a tarefa **não está registrada** e que o ledger para em `2026-10-26`; a tarefa **está** registrada (próxima execução `2026-11-01T12:00:00`, disparou sozinha em `2026-10-31` às 13:06:47 com `Último Resultado: 0`) e o ledger tem **16 dias** (`2026-10-16` → `2026-10-31`). Do lado do consumidor nenhuma linha de código mudou: a conta `[SYNTH] AWS acct-01` foi alinhada **pela API oficial** ao export que o renderer publica (`synthetic-focus12-daily-full`, era `cloudpilot-focus12-daily-full`), a ingestão oficial promoveu **29.946 linhas / US$ 65.575,88** no workspace `e757043f`, e o `/costs/unified` saiu de **8.333,66** para **65.575,88** — o mesmo valor da conta de homologação em `9ff4da5f`, que **não se moveu**. Detalhe em [regression/mapa-impacto-s4b3d.md](regression/mapa-impacto-s4b3d.md). |
+| `6765522b` | S4b3-E — a dívida documental que não existia é apagada e as URLs do `k8s-sim` passam a ser as do front TLS | A S4b3-D fechou a dívida que a S4b3-C deixou no `docs/AGENDAMENTO.en.md` e **escreveu, no mesmo fôlego, uma dívida que não existia**: a de que o `docs/AGENDAMENTO.md` (o gêmeo em português) continuava desatualizado — "11 dias", ledger até `2026-10-26`, tarefa não registrada. **Não continuava**: a S4b3-C (`77a6a03a`) já o tinha corrigido, e o git prova — `git diff 77a6a03a HEAD -- docs/AGENDAMENTO.md` sai **vazio** (exit 0) e o grep de "11 dias"/"não registrada" no arquivo não acha nada (exit 1). O arquivo diz **16 dias** (`2026-10-16` → `2026-10-31`), tarefa **registrada**, `Último Resultado: 0`. A dívida foi escrita por **dedução** (o gêmeo EN estava errado, então o PT também estaria) — e dedução não é leitura. Esta fase apaga o registro falso nos dois READMEs e no `mapa-impacto-s4b3d.md` (§7.1, §3 e cabeçalho), **preservando** os registros datados do que o documento EN dizia antes da S4b3-D e **sem** reescrever a mensagem de `dadba889`. Na mesma fase as **URLs do `k8s-sim`** foram alinhadas ao front TLS: a URL do consumidor é **`https://opencost.synthetic-clouds.test`** (nome próprio do front, com o SAN na folha, desde a S4b2-E) e o alias `k8s-sim:8089` passa a ser descrito pelo que ele é — o **upstream** do front na bridge. O `deploy/synthetic-clouds/README.md` perde o bloco "**Sem TLS.**" (falso desde a S4b2-E), o `.env.example` documenta o `K8S_SIM_URL` novo, e os dois `docs/DECISOES-PENDENTES*` deixam de afirmar que o `k8s-sim` "não tem Containerfile nem serviço de compose" — tem os dois desde a S4b2-B. **Documental de ponta a ponta**: nenhuma linha de código, container, tarefa agendada ou configuração do CloudPilot foi tocada. Detalhe em [regression/mapa-impacto-s4b3e.md](regression/mapa-impacto-s4b3e.md). |
+| `a03f949f` | S4b3-F — o `AGENTS.md` e os docs de integração passam a falar do `k8s-sim` real | O `AGENTS.md` é a bússola do repositório, e carregava **duas** afirmações falsas sobre o `k8s-sim`. A primeira **já tinha sido vista e nomeada** em 2026-10-30 — o `mapa-impacto-s4b2c.md` §6 registra que o arquivo dizia "o caso extremo: sem `Containerfile`", que a frase "ficou falsa na S4b2-B" e que o `AGENTS.md` estava "explicitamente proibido de edição nesta fase": um **débito nomeado** que ninguém pagou. A segunda **nunca** tinha sido vista: o arquivo declarava uma **lacuna aberta** sobre o id nativo do cluster, que a S4b1-E já tinha **fechado no mesmo dia** (`a64b8414`: `native_id` por cluster — **309 clusters** — aceito como alias do `filter` e **não** publicado; o próprio `mapa-impacto-s4b1d.md` §8 já o listava como "Fechados em S4b1-E"). As duas passagens agora dizem o que é verdade, e as **regras permanentes ficam intactas**: os testes dos emuladores continuam fora do `.venv` do gerador e o `pytest` do `k8s-sim` continua rodando a partir de `emulators/k8s-sim`, com o `pyproject.toml` dele. O `integration/README.md` deixa de dizer que "TLS para o plano Kubernetes é o restante da S4b2" e passa a dizer o que o `ensure-cloudpilot.ps1` faz (garantir o **caminho**: o alias, o SAN na folha e o front) e o que ele **não** faz (apontar o consumidor — que é configuração do CloudPilot — e escrever a rota, que está no `nginx.conf`); o contrato do `k8s-sim` **preserva** o bloco datado da S4b2-C como registro e ganha uma retificação datada; o `INTEGRACAO-CLOUDPILOT-TLS.md` L23 passa a trazer a URL do consumidor. A URL do consumidor é **`https://opencost.synthetic-clouds.test`** (o nome próprio do front, com o SAN na folha) e passa a estar nos **quatro** documentos; `k8s-sim:8089` é o **upstream** do front na bridge, em HTTP puro. **Documental de ponta a ponta**: nenhuma linha de código, container, tarefa agendada ou configuração do CloudPilot foi tocada. Detalhe em [regression/mapa-impacto-s4b3f.md](regression/mapa-impacto-s4b3f.md). |
+| `605458e2` | S4b2-G — a API do Kubernetes no `k8s-sim`: as três rotas que o consumidor chama | O §9 do contrato nomeava "API server do Kubernetes" como pendência **sem dizer qual** — o §9 é a lista do que a fase anterior não implementou, não uma especificação. Esta fase fecha **uma fatia**, e a superfície **foi medida**, não escolhida: lida no código do consumidor (somente-leitura) e aprovada no checkpoint. São **três** rotas — `GET /api/v1/namespaces` (o `ConnectionTester` que roda antes de salvar um kubeconfig, e os providers `gcp`/`azure`), `GET /api/v1/pods` (o provider `aws`, pelo client **oficial** `kubernetes`) e `GET /api/v1/namespaces/{ns}/pods` (os `gcp`/`azure`, uma vez por namespace) — respondendo no **mesmo nome HTTPS** que o contrato OpenCost já usava: o front já encaminha `location /` para o upstream `k8s-sim:8089`, e o `nginx.conf` do front está **fora da allowlist**, então um nome novo não era opção. O plano novo pede **`Authorization: Bearer <token>`** (o simulador não modela identidade nem RBAC: qualquer token não-vazio passa; sem token, **401** com o `Status` oficial) e o plano OpenCost **continua sem pedir** — cada plano no seu contrato. O que ele publica é **o mesmo estate que o contrato OpenCost precifica**: a namespace `payments`, o workload `api` e um pod, com `requests` = `cpu: "2"` e `memory: "4Gi"` — o consumidor soma os `requests` dos pods para obter o uso da namespace, e publicar outro número faria o simulador dizer duas verdades sobre o mesmo cluster. O que o estate **não** modela não é publicado (sem `limits`, sem `status`, sem `image`, sem `resourceVersion`, sem `uid` nos metadados) — **exceto** o `uid` da `ownerReference`, que o modelo oficial **exige** e que o client oficial **recusou** desserializar sem ele (`ValidationError: uid — Input should be a valid string`, medido no `kubernetes` 37.x). Medido: **122 passed** (91 anteriores + **31** novos), ruff e mypy limpos; o `k8s-sim` reconstruído e **recriado sozinho**; as três rotas com **200** de dentro do `cloudpilot_backend` pelo nome HTTPS; o client oficial parseando o payload em `V1PodList`; o `ConnectionTester` real respondendo `success` com **1 namespace**; o endpoint de teste de kubeconfig da conta de homologação respondendo `success`; e o contrato OpenCost continuando em **200** com os mesmos números (`payments/api`, 3.88 USD) pelo provider real. O **502** depois da recriação foi **duas** coisas, ambas medidas: o alias `k8s-sim` na bridge (que não está no compose) e o **IP** do upstream no nginx (que, sem `resolver`, resolve o nome **uma vez**, na carga da configuração) — corrigidas com `podman network connect` + `nginx -s reload`, **sem** recriar o front. Detalhe em [regression/mapa-impacto-s4b2g.md](regression/mapa-impacto-s4b2g.md). |
+| `8efcf020` | S4b2-H — o Prometheus no `k8s-sim`: a query que o consumidor lê a telemetria | O §9 do contrato nomeava "Prometheus" como pendência **sem dizer qual** — o §9 é a lista do que a fase anterior não implementou, não uma especificação. O **checkpoint** da fase levantou primeiro, no **código do consumidor**, se e como o Prometheus é lido — e a resposta foi: **ele lê**. O provider `opencost` do CloudPilot resolve um endpoint Prometheus (`opencost.py:56-57`: `config.prometheus_endpoint`, que o modelo `K8sFinOpsConfig` **não tem**, ou a variável `settings.K8S_PROMETHEUS_URL`), chama `GET {endpoint}/api/v1/query` **sem nenhum header de autenticação** (`opencost.py:112-132`) e lê `data.result[].metric.namespace` + `value[1]` (`opencost.py:134-148`); as **duas** queries que ele envia são o `rate(...[5m]) * 1000` de CPU e o `container_memory_working_set_bytes` de memória, com o **id nativo** do cluster no seletor (`opencost.py:155-170`). Sem essa leitura, o **rightsizing fecha**: `get_recommendations` devolve lista vazia sem telemetria (`opencost.py:375-457`) — o requisito "rightsizing DEVE exigir telemetria", medido no código. O `k8s-sim` passou a servir **`GET /api/v1/query`**, no **mesmo nome HTTPS** (`opencost.synthetic-clouds.test`), no **envelope do Prometheus** (`status` + `data{resultType,result}`; `status`/`errorType`/`error` no erro, **400**), **sem token** (o cliente do consumidor não carrega credencial) e publicando o **mesmo uso** dos outros dois planos — **2000 millicores** e **4294967296 bytes**, os mesmos 2 núcleos e 4 GiB que o allocation precifica, com a coerência dos **três** planos fixada por teste. O que o plano **não** faz é declarado: não é motor de PromQL (qualquer outra query responde **200 com vetor vazio**), não serve `/api/v1/query_range`, e **não publica métricas de Karpenter** — o estate não modela Karpenter. Medido: **138 passed** (122 + **16** novos), ruff e mypy limpos, vermelho-verde provado (mutar o multiplicador derruba 3 testes); `k8s-sim` reconstruído e **recriado sozinho** (os outros containers "Up 5 hours"); de dentro do `cloudpilot_backend`, as três rotas novas respondendo e o contrato OpenCost **sem regressão** (`/allocation/compute` → `payments/api`, **3.88 USD**, os mesmos números da S4b2-E); e o **provider real**, com a config salva da **conta de homologação**, lendo a telemetria: `NamespaceTelemetry(namespace='payments', cpu_usage_millicores=2000, memory_usage_bytes=4294967296)`. Do lado do consumidor, **nenhuma linha de código mudou**: só a chave `K8S_PROMETHEUS_URL` no `backend/.env.local` (**não rastreado**), e os containers do CloudPilot **não** foram recriados. **Em aberto:** o `clusters: []` da config de homologação (o sync não itera cluster nenhum), o `/savings/requestSizing` do OpenCost (o rightsizing completo continua fora de alcance do simulador), a Metrics API (declarada fora, com a razão medida), e a gêmea em inglês do contrato. Detalhe em [regression/mapa-impacto-s4b2h.md](regression/mapa-impacto-s4b2h.md). |
+
+
+
+| `1e5e1443` | S4b2-E — o `k8s-sim` por HTTPS: nome próprio, SAN e URL do consumidor | O plano Kubernetes era o único que falava **HTTP puro**: o backend do CloudPilot o alcançava por `http://k8s-sim:8089`, um alias de rede sem certificado e sem hostname de nuvem — e o OpenCost, sendo um contrato e não um serviço de nuvem, não tinha hostname real para imitar (inventar sequestraria o nome de alguém, como o `sts.*`). O **checkpoint** da fase aprovou o nome do **front**: `opencost.synthetic-clouds.test` (TLD reservada para testes, RFC 6761, que não resolve na internet pública). O nome entra como alias do `tls-front`, ganha `server` próprio com upstream `k8s-sim:8089` no `nginx.conf` e é **reassinado na folha** pela mesma CA (13 SANs; o bundle do CloudPilot intacto) — o alias `k8s-sim` continua, é o upstream do front. A URL do consumidor passou a `https://opencost.synthetic-clouds.test`: o provider `opencost` do CloudPilot (conta de homologação) aponta para ela e a leitura de custo devolve **5 linhas** para `TEMP-aks_cluster-0025`, pelo nome e pelo id nativo. Medido: front recriado pelo compose oficial (`health=healthy`, **só ele**), `/healthz` e `/clusterInfo?filter=cluster:"TEMP-aks_cluster-0025"` → **200** de dentro do `cloudpilot_backend` (TLS validado contra a CA local), o probe do `ensure` medindo as duas pontas (**4/4 = 200**, 0 problemas), `nginx -t` ok e os outros planos respondendo pelo front. **Em aberto:** o botão "Verificar Conexão" da UI, que morre num defeito **pré-existente do CloudPilot** (a factory passa `db=` a providers que não o aceitam: `opencost.py:47`, `kubecost.py:44`) — reproduzido também com a URL HTTP antiga, e a correção é do lado do CloudPilot, fora da allowlist. Detalhe em [regression/mapa-impacto-s4b2e.md](regression/mapa-impacto-s4b2e.md). |
 
 ## Princípio
 
@@ -24,7 +39,7 @@ esperado, não uma pendência a preencher com um palpite.
 
 ## Isolamento
 
-Este repositório é autônomo. Nada é criado ou alterado em `D:\synthetic-clouds`,
+Este repositório é autônomo. Nada é criado ou alterado em `C:\Projetos\Simulador`,
 em `<arvore-de-origem>` ou em qualquer banco/container do FinOps.
 
 O container `cp-sim-fix` — criado à mão, sem definição declarativa — rodava com
@@ -665,7 +680,7 @@ Acompanhado de:
 | contrato das specs | 21 superfícies, **2204 colunas**, 1579 geráveis, 173 não comprovadas, **0 problemas** |
 | domínio da evidência | **0 especificações com problema**; nenhuma coluna sem URL |
 | coluna inventada | **0** em todas as 20 superfícies |
-| isolamento | **nada** escrito em `D:\synthetic-clouds` nem em `<arvore-de-origem>` (conferido por data de modificação, no worktree e no `.git`) |
+| isolamento | **nada** escrito em `C:\Projetos\Simulador` nem em `<arvore-de-origem>` (conferido por data de modificação, no worktree e no `.git`) |
 
 As `obrig.vazias` que restam estão **todas** declaradas com grupo e motivo, ou sob
 ressalva de representação: `ProductArn` (o ARN exige ids de produto, e o modelo tem
@@ -1085,3 +1100,807 @@ porque os segmentos se agrupam em assinaturas. A unidade que a resposta entrega 
   achados](INGESTAO-D3-SEGURANCA.md#achados-para-o-time-do-consumidor).
 - **Não** entrega ao `azure-sim`.
 
+## S4b1-E — o `k8s-sim` aceita o id nativo do cluster (2026-10-29)
+
+**O resíduo era do lado do simulador, e ele fecha no commit `a64b8414`.** O consumidor
+(CloudPilot) passou a **keyar a descoberta pelo id nativo** (ARN do EKS, id ARM do AKS,
+`selfLink` do GKE) e a mandar `filter=cluster:"<id nativo>"`; o `k8s-sim` resolvia o filtro
+só pelo **nome** e pelo **uuid do estate**, e o fixture não expunha o id nativo por cluster.
+Com a configuração nova do consumidor, `/allocation/compute` respondia **200 com `data: []`** —
+o filtro não selecionava nada e nada era inventado.
+
+**O que o commit entrega.** O fixture versionado `k8s_sim/fixtures/clusters.json` passa a
+carregar **`native_id`** por cluster — **309 clusters** (75 EKS, 111 GKE, 123 AKS), gerado por
+`scripts/export_clusters.py` — e o filtro passa a aceitar **três aliases** da mesma identidade:
+
+| Alias | Forma | Quem o manda |
+|---|---|---|
+| **nome** | o nome do estate — é o que o contrato publica | o consumidor legado, keyed by name |
+| **uuid do estate** | o `cluster_id` do fixture | quem guardou o identificador canônico |
+| **id nativo** | ARN do EKS, id ARM do AKS, `selfLink` do GKE | a descoberta do consumidor (C-IDENT) |
+
+Os três são **aceitos, nunca publicados**: a resposta carrega o **nome**, então um pedido
+respondido por qualquer alias é indistinguível de um respondido pelo nome. É o id nativo que
+separa homônimos — os 309 clusters carregam **160 nomes distintos** (o nome é único dentro do
+escopo, não no estate), e os **309 ids nativos são distintos** entre si (309 ids para 309
+clusters). `/allocation/compute` e `/clusterInfo` aceitam os três e respondem o mesmo cluster.
+
+**Medido:** **91 passed** na suíte do `k8s-sim` — 78 anteriores ao commit + 13 novos — e o
+fixture é **idempotente**: regerado de um estate inalterado, sai byte a byte igual.
+
+**O que continua aberto:** alinhar o ARN do EKS no Resource Groups Tagging API e no AWS Config
+com o ARN oficial. Esse item **não** foi entregue pela S4b1-E e permanece aberto no
+[mapa de impacto](regression/mapa-impacto-s4b1d.md#8-gaps-para-fases-seguintes).
+
+## S4b2-C — o `k8s-sim` na rede do CloudPilot: alias, URL e docs (2026-10-30)
+
+**O resíduo era do lado da rede, e ele fecha no commit `7fcbb7ca`.** A S4b2-A/B entregaram o
+`Containerfile` e o `compose.k8s.yaml` do `k8s-sim`, e o container subia healthy em 8089 — mas
+ele vivia **só** na `synthetic-clouds_synthclouds_net` (a rede dos simuladores), enquanto o
+backend do CloudPilot vive na `cloudpilot-deploy_cloudpilot_net`. Duas redes, um nome, nenhum
+caminho: do backend, `http://k8s-sim:8089` não existia.
+
+**O que o commit entrega.** O `ensure-cloudpilot.ps1` passa a ser o dono do plano Kubernetes,
+com o mesmo mecanismo dos outros emuladores:
+
+| Peça | O que faz |
+|---|---|
+| `Ensure-K8sSimContainer` | cria o container a partir de `compose.k8s.yaml` com `--no-deps --no-build` (a imagem `localhost/k8s-sim:latest` é artefato da S4b2-B e **não** é reconstruída) quando ele não existe; se existe, só o inicia e espera o healthcheck |
+| `Ensure-NetworkAliases` | anexa o `synthetic-clouds-k8s-sim-1` à `cloudpilot-deploy_cloudpilot_net` com o alias **`k8s-sim`** — o mesmo `disconnect`/`connect` idempotente que já publica `gcp-sim`, `aws-sim`, `s3mock` e `bigquery-emulator` |
+| `Test-K8sSimFromBackend` | no `-Smoke`, probeia `/healthz` e `/clusterInfo` **de dentro do `cloudpilot_backend`**, porque é de lá que o alias importa |
+
+O `cold-start.ps1` **não** ganhou um passo novo: o `k8s-sim` sobe pelo `ensure`, que ele já
+encadeia por último — assim o container existe antes do alias, e o alias existe antes de o
+backend precisar dele. Um `k8s-up.ps1` separado duplicaria a lógica; por isso ele não foi
+criado. O `cold-start.ps1` ganhou o `k8s-sim` no resumo final de endpoints.
+
+**Medido neste host.** Antes: `urllib.error.URLError: <urlopen error [Errno -2] Name or
+service not known>` (exit 1). Depois: `/healthz` → **200** e
+`/clusterInfo?filter=cluster:"TEMP-aks_cluster-0025"` → **200**, ambos do backend, com o corpo
+`{"code":200,"data":{"version":"synthetic"}}`; e o `podman network inspect
+cloudpilot-deploy_cloudpilot_net` mostra o `synthetic-clouds-k8s-sim-1` na `10.89.0.20/24`,
+com o alias `k8s-sim`.
+
+**O contrato HTTP não mudou** — nem um arquivo de `emulators/**` foi tocado, e o
+`compose.k8s.yaml` (entregue pela S4b2-B) não foi editado. O que mudou foi o **caminho de
+rede** até ele, e a documentação que dizia "fora do compose".
+
+**O que continua aberto:**
+
+- **TLS para o plano Kubernetes** — a URL é HTTP puro na bridge, sem hostname real e sem
+  certificado. É o restante da S4b2, declarado no
+  [contrato do k8s-sim](k8s-sim-opencost-contract.md) (§2.1 e §9).
+- **`docs/DECISOES-PENDENTES.md`** ainda afirma que o `k8s-sim` "não tem Containerfile nem
+  serviço de compose" — frase falsa desde a S4b2-B, em arquivo **fora da allowlist** desta
+  fase, então o texto não foi corrigido aqui. O mesmo vale para o `AGENTS.md`.
+- **`scripts/synthetic-clouds/up.ps1` não sobe o plano Kubernetes** — ele é dono dos três
+  planos de nuvem e está fora da allowlist; a assimetria está escrita, não escondida.
+- **A checagem de conexão AWS do `-Smoke` falha neste host, e é pré-existente.** Medido: o
+  script **original** do `HEAD` anterior, rodado num worktree descartável, produz a mesma
+  linha. Causa raiz: o container `aws-sim` está no ar com `PROFILE=small`, enquanto o `.env`
+  documentado diz `PROFILE=medium` — as access keys do estate mudaram. A correção (recriar o
+  `aws-sim` com o `.env` e refazer a credencial) é **restart dos outros emuladores**, fora do
+  escopo desta fase. Detalhe em [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) §7.
+- **A tarefa agendada `CloudPilot-Simulator-Ensure` aponta para `D:\Simulador\...`**, drive que
+  não existe mais neste host: ela termina com `LastTaskResult=1` sem rodar nada. O wrapper
+  versionado já aponta para `C:\Projetos\Simulador\...`; o que está desatualizado é a **ação
+  registrada**, e a correção é re-registrar (`register-ensure-task.ps1 -RunNow`).
+
+## S4b2-D — o `aws-sim` no perfil `medium` e a checagem de conexão AWS (2026-10-30)
+
+**O resíduo era do namespace de variáveis — e a causa raiz que a S4b2-C mediu estava errada.**
+O `-Smoke` falhava na conta AWS com `InvalidClientTokenId`. A leitura original dizia que *"as
+access keys do estate derivam do perfil"*. **Não derivam**: o id de conta vem de
+`aws_account_id(seed, "acct-NN")` — seed e índice, **não** o perfil. Medido, com o mesmo
+seed 123: `small` e `medium` produzem os **mesmos três** ids (`911368690069`, `969191373337`,
+`995394606788`); o perfil muda o **volume** (237 → 1.110 recursos AWS; 37.922 → 474.390
+linhas de faturamento). E o `aws-sim` **não valida** a chave que chega: o `GetCallerIdentity`
+decodifica `ASIA<12 dígitos>SYNT` e, sem chave decodificável, cai na primeira conta do
+estate. O erro vinha do **AWS real** — o log do backend mostra o `botocore` resolvendo
+`https://sts.us-east-1.amazonaws.com`, e a mesma credencial decifrada responde **200** contra
+`http://aws-sim:8086` e `InvalidClientTokenId` contra a AWS real.
+
+**A causa raiz real: o override de endpoint por conta estava inerte.** A conta guarda
+`cur_config.endpoint_overrides.sts = http://aws-sim:8086` — o caminho que o front TLS
+deliberadamente não publica, porque um hijack de `sts.amazonaws.com` quebraria as contas AWS
+reais que o mesmo CloudPilot consome. Esse override só é lido por um backend que tenha
+`endpoint_overrides.py` e propague `sts_endpoint_url` ao validador. A imagem em execução
+**não tinha**: o container não tinha `app/services/providers/endpoint_overrides.py`, e
+`connection_check.py`/`connection_validator.py` vinham sem `sts_endpoint_url` — desvio de
+**3 arquivos ausentes + 15 diferentes** contra o `HEAD` (742 `.py`). A imagem era de
+**2026-10-27 17:11 UTC** (label `acd18722`), **antes** de `dbd66cca` (2026-10-28 20:29),
+que introduziu o feature e **é** ancestral do `HEAD`.
+
+**O que a fase entrega.**
+
+| Peça | O que faz |
+|---|---|
+| `deploy/synthetic-clouds/.env` (local, git-ignored) | fixa o **namespace do plano AWS**: `AWS_SIM_SEED=123` e `AWS_SIM_PROFILE=medium`. O `compose.aws.yaml` lê `${AWS_SIM_SEED:-123}`/`${AWS_SIM_PROFILE:-small}` — **não** os nomes genéricos `SEED`/`PROFILE` dos planos Azure/GCP. Sem o par `AWS_SIM_*`, o `aws-sim` cai no default `small` e serve um estate **diferente** do resto da pilha |
+| `deploy/synthetic-clouds/.env.example` | **documenta** o par `AWS_SIM_*` e o motivo do namespace separado; o valor do exemplo passa a `medium`, o perfil da instalação registrada em `docs/AGENDAMENTO.md` |
+| `deploy/synthetic-clouds/README.md` | nomeia o namespace do plano AWS, o default `small` do compose e o fato medido de que os **ids de conta são iguais** nos dois perfis (o perfil muda o volume) |
+| `README.md` / `README.en.md` | como o CloudPilot alcança o `aws-sim`: endpoint **por conta**, e não um hijack de hostname |
+
+**O que foi feito fora deste repo, e medido.**
+
+1. `aws-sim` recriado pelo compose oficial → `PROFILE=medium`, `SEED=123`, healthy. Nenhuma
+   imagem foi reconstruída, e os outros planos (Azure, GCP, Kubernetes, front TLS, s3mock,
+   bigquery) ficaram intactos — mesmos container ids.
+2. **Imagem do backend do CloudPilot reconstruída a partir do `HEAD`** (`3da29e76`) e os **5
+   containers Python recriados** (`backend`, `celery_worker`, `celery_worker_drift`,
+   `celery_beat`, `celery_worker_k8s`). `podman cp` não servia: `pyproject.toml`/`uv.lock`
+   também mudaram (597+/427−), então um patch de arquivos deixaria o `.venv` desalinhado.
+   Resultado: `[PARITY] Code parity OK (742 .py files, host == 5 running container(s))`.
+3. **Defeito colateral encontrado e corrigido na configuração local.** A reconstrução subiu um
+   backend em **crash-loop** (`ModuleNotFoundError: No module named 'psycopg'`): `1299fa0d`
+   afrouxou o pin do SQLAlchemy para `<2.2`, o lock resolveu **2.1.6**, e essa versão trocou o
+   driver default de `postgresql://` para o **psycopg3** — que o lock não entrega (só há
+   `psycopg2-binary`). Como `scripts/compose-local.ps1:339` monta `LOCAL_DATABASE_URL_SYNC`
+   **sem driver**, o container recebia a URL crua e o `alembic upgrade head` da entrypoint
+   morria. Corrigido **só** em `backend/.env.local` (git-ignored):
+   `LOCAL_DATABASE_URL_SYNC=postgresql+psycopg2://…`, o mesmo valor que o arquivo já
+   declarava em `DATABASE_URL_SYNC`. **Nenhum arquivo do repo do CloudPilot foi editado.**
+4. Credencial **re-mintada** pela UI, com a conta de homologação, na forma que o emulador
+   decodifica (`ASIA<conta>SYNT` / `synthetic-secret-<conta>`): assim o `GetCallerIdentity`
+   devolve **exatamente** a conta declarada (`911368690069`), sem depender da queda para a
+   primeira conta do estate. `Verificar Conexão` → **conectado**.
+
+**Medido neste host.** `ensure-cloudpilot.ps1 -Smoke` → `connection check aws = connected`,
+`connection check gcp = connected`, `connection check azure = connected`,
+`unified total 1042849 stale False`, `summary: integration OK (0 problems)`, **exit 0**.
+
+**O que continua aberto:**
+
+- **A árvore FOCUS/S3 servida pelo `aws-sim` foi renderizada para o perfil `small`** e **não**
+  foi re-renderizada: o uploader é `scripts/synthetic-clouds/aws-up.ps1`, e `scripts/**` está
+  fora da allowlist desta fase. O CUR que o CloudPilot ingere vem dessa árvore (small),
+  enquanto as superfícies de API do `aws-sim` já servem o estate `medium`. A diferença é de
+  **volume**, não de identidade (os ids de conta são os mesmos). A re-renderização é o
+  próximo passo natural e precisa de uma fase que inclua `scripts/**`.
+  **(Fechado pela S4b3-A — ver a seção abaixo.)**
+- **As 2 contas `org_member` do workspace `[SYNTH]`** (`AWS Account 1`, `AWS Account 2`)
+  aparecem como *"Credential resolution failed"* porque **não têm credencial** (colunas de
+  chave com tamanho 0). **Pré-existente** — a última checagem delas é de 2026-10-28 — e
+  **fora** do escopo desta fase, que trata da conta Payer (`[SYNTH] AWS acct-01`).
+- **O defeito de dependência do CloudPilot (SQLAlchemy 2.1 sem psycopg3) não foi corrigido
+  no repo dele** — o repo do CloudPilot é prohibited nesta fase. O contorno local está em
+  `backend/.env.local`, e o próximo `compose-local.ps1 -Build` **precisa** dele para não
+  repetir o crash-loop. O conserto estrutural (declarar `psycopg` no lock, ou fixar o driver
+  no `compose-local.ps1`) é do projeto CloudPilot.
+- **O default `small` do `compose.aws.yaml` continua lá** — `compose.aws.yaml` está fora da
+  allowlist desta fase. A proteção é o `.env` da instalação mais a documentação do
+  `.env.example`; endurecer o default (ou falhar o boot quando o perfil diverge) é fase
+  própria.
+- **A tarefa agendada `CloudPilot-Simulator-Ensure`** (drive `D:\Simulador\...`) continua
+  desatualizada — registro pré-existente, não tocado aqui.
+
+Detalhe em [regression/mapa-impacto-s4b2c.md](regression/mapa-impacto-s4b2c.md) §7 (revisão
+datada de 2026-10-30).
+
+## S4b3-A — a árvore FOCUS/S3 do `aws-sim` no perfil `medium` (2026-10-30)
+
+**O `aws-sim` servia dois volumes: as APIs no `medium`, o export de faturamento no `small`.**
+A S4b2-D deixou isso escrito como dívida — a árvore FOCUS/S3 tinha sido renderizada no perfil
+`small` porque o uploader (`scripts/synthetic-clouds/aws-up.ps1`) resolvia o namespace do plano
+AWS **só do ambiente de processo**, com default `small`. Esta fase re-renderiza a árvore no
+perfil `medium`, publica-a e fecha o circuito até o `/costs/unified`.
+
+**Três causas, todas medidas neste host.**
+
+1. **O uploader lia o namespace no lugar errado.** `compose.aws.yaml` lê
+   `${AWS_SIM_PROFILE:-small}` e o compose interpola o `.env` do diretório do compose — onde a
+   instalação fixa `AWS_SIM_PROFILE=medium`. O gerador, porém, roda **no host**: o script só
+   olhava o ambiente de processo, e um `aws-up.ps1` sem `export` renderizava `small`. Medido:
+   `tools/synthetic_clouds/out/aws-plane/123-small-USD` (mtime 2026-10-29 20:21).
+2. **O consumidor lia um nome de export que o renderer não emite.** O renderer fixa
+   `EXPORT_NAME = "synthetic-focus12-daily-full"`; a conta de homologação estava com
+   `export_name = cloudpilot-focus12-daily-full` (o nome do renderer **anterior** ao
+   *standalone publish*, o que escrevia `Manifest.json` no export). O leitor busca
+   `f"{s3_prefix}/{export_name}/"` — e media **0 chaves** no bucket do consumidor.
+3. **A promoção do CUR é *fail-closed* sem id de conta de 12 dígitos.** A conta
+   `HOMOLOGATION AWS [sim]` estava com `external_account_id` **vazio**; o erro ("CUR payer
+   account configuration must be a 12-digit AWS account ID") é engolido e a promoção devolve
+   `cost_promotion_status: "skipped"` com **zero linhas**. Pré-existente: a ingestão de
+   2026-10-28 também não promoveu nada.
+
+**O que o `aws-up.ps1` passou a fazer** (o arquivo que a fase autorizou): lê o `.env` da
+instalação (ambiente de processo primeiro, arquivo depois), usa o **venv** do repositório,
+**substitui** a árvore no volume em vez de mesclar, **não reconstrói** imagem por padrão
+(`-Build` é explícito) e **confere** a árvore pela superfície S3 do próprio `aws-sim`.
+
+**Medido.** `.\scripts\synthetic-clouds\aws-up.ps1` → **exit 0**, com os containers em
+execução reutilizados (nenhum rebuild, nenhum recreate). A árvore no volume
+(`synthetic-clouds_aws_sim_render`): **6 objetos / 14.011.803 B**, `_provenance.json` com
+`"profile": "medium"`, **130.236 linhas** em 5 parquet (2026-01 → 2026-04) e **966** `ResourceId`
+distintos — exatamente os **966** recursos AWS **com** linha de faturamento no estate canônico
+(`apply_all(build_estate(123, "medium", "USD"))`: **1.110** recursos AWS, **474.390** linhas de
+faturamento, **118.366** delas AWS). O `s3mock` publica as 6 chaves em
+`focus12-full/synthetic-focus12-daily-full/data/billing_period=...`.
+
+**No CloudPilot (conta de homologação).** Duas mudanças de **configuração**, nenhuma em
+arquivo do repo dele: `cur_config.export_name` → `synthetic-focus12-daily-full` (pelo
+`PUT /api/v1/cur-ingestion/accounts/{id}/config`) e `external_account_id` → `911368690069`
+(a conta payer do estate; bucket, prefixo e `endpoint_url` não mudaram). A ingestão pelo
+mecanismo oficial (`POST /api/v1/cur-ingestion/accounts/{id}/ingest`) → `status: ok`, 2
+períodos (2026-03, 2026-04), `total_billed_cost: 166204.470549`; o log de promoção registra
+`rows_promoted=58926`. No `/costs/unified` (janela 2026-01-01 → 2026-04-30):
+`total_cost: 166204.47`, `by_account: aws · HOMOLOGATION AWS [sim] · 166204.47`,
+`data_source: focus_cost_records`; no navegador, `/costs` com *Year to Date* → **US$ 225.578**
+e **HOMOLOGATION AWS [sim] · US$ 166.204,47 (73,7%)**.
+
+**O que continua aberto.** A entrega diária (FR-22) ainda publica no bucket
+`cloudpilot-focus12-daily-full` com o export `cloudpilot-focus12-daily-full` — namespace que o
+consumidor não lê (`tools/**` fora da allowlist) **(Fechado pela S4b3-B — ver a seção abaixo.)**;
+a árvore cobre a **janela do perfil**
+(2026-01-01 → 2026-04-30), não "até hoje"; o consumidor ingere os **2 períodos** mais novos
+(`CUR_INGEST_LOOKBACK_PERIODS`); a conta de homologação é **uma** para as **três** contas do
+estate; o default `PROFILE: small` do `compose.aws.yaml` continua lá (fora da allowlist), com
+a proteção agora dupla (`.env` + uploader); a imagem do `aws-sim` é mais antiga que os fontes
+do emulador (o script avisa; reconstruir é fase própria); e o store do `s3mock` é **em memória**
+(recriar o container esvazia o bucket).
+
+Detalhe em [regression/mapa-impacto-s4b3a.md](regression/mapa-impacto-s4b3a.md).
+
+## S4b3-B — a entrega diária publica no export que o consumidor lê (2026-10-30)
+
+**A entrega diária publicava num namespace que ninguém lê.** A S4b3-A fechou o lado do
+*produtor* (a árvore FOCUS/S3 do `aws-sim`) e deixou escrito, como dívida: *"A entrega diária
+(FR-22) ainda publica no bucket `cloudpilot-focus12-daily-full` com o export
+`cloudpilot-focus12-daily-full` — namespace que o consumidor não lê"*. Esta fase fecha o lado do
+**mecanismo de entrega**: o dia gerado precisa chegar ao consumidor, todo dia, no namespace que
+ele lê.
+
+**O namespace da entrega era decidido em três lugares, e só um estava certo.** O
+`compose.aws.yaml` (`AWS_SIM_BUCKET`) e o `cur_config` da conta de homologação usavam
+`synthetic-focus12-daily-full` — o mesmo nome que o renderer emite
+(`render/focus_aws.py`: `EXPORT_NAME = "synthetic-focus12-daily-full"`). Só a entrega usava
+`cloudpilot-focus12-daily-full`, em **dois** lugares: os defaults de `deliver_day`
+(`deliver/core.py`) e os defaults das variáveis de ambiente do CLI (`deliver/__main__.py`).
+Corrigir só o CLI não bastaria: a tarefa do Windows não passa pelo CLI —
+`schedule/__main__.py:227` chama `deliver_day(day, daily_root=DEFAULT_OUT)` **sem argumento de
+namespace**, então valem os defaults do código. O `.env` da instalação não resolvia (e não
+resolveria): o wrapper da tarefa (`schedule/windows.py:86-104`) escreve um `.cmd` que só faz
+`set PYTHONPATH` + `cd` antes do `tick`, e o `.env` não tem nenhuma variável `DELIVERY_*` —
+**o namespace da entrega nunca foi configurável por arquivo nesta instalação**.
+
+**O defeito era silencioso.** `deliver_aws` faz `PUT` das chaves e **não valida nada**: um `PUT`
+bem-sucedido num bucket que ninguém lê produz o mesmo log (`ok: true`, `aws_objects: 1`) que um
+`PUT` no bucket certo. O dia era gerado, o objeto subia, a ingestão reportava `status: ok` — e o
+`/costs/unified` continuava sem AWS.
+
+**A correção** (`tools/synthetic_clouds/deliver/**`, `+48 −9`, mais um teste de regressão de 47
+linhas): `DEFAULT_AWS_BUCKET` e `DEFAULT_AWS_EXPORT_NAME` passam a ser
+`synthetic-focus12-daily-full` — **uma** fonte de verdade, importada pelo CLI e re-exportada pelo
+pacote. O renderer **não** foi renomeado; o `.env`, o compose e o CloudPilot **não** foram
+tocados.
+
+**Medido.** A entrega do dia `2026-10-26` (o mais recente **completo** do ledger; `2026-10-27`
+está parcial, sem `aws_focus`) pelo mecanismo oficial → **exit 0**,
+`{"aws_objects": 1, "errors": [], "ok": true}`; o caminho do agendado (a chamada exata de
+`schedule/__main__.py:227`, com os três alvos) → **exit 0**,
+`DeliveryResult(day='2026-10-26', aws_objects=1, gcp_rows=2268, azure_days=303, errors=[])`. No
+S3: o bucket do consumidor passou de **6** para **7** chaves, com a chave nova
+`focus12-full/synthetic-focus12-daily-full/data/billing_period=2026-10/20261027T000000Z-eac552f3/synthetic-focus12-daily-full-00001.snappy.parquet`
+(**2.734.569 B**, exatamente o tamanho do parquet de origem) — e o bucket
+`cloudpilot-focus12-daily-full` **não existe**.
+
+**No CloudPilot (conta de homologação).** Ingestão pelo mecanismo oficial
+(`POST /api/v1/cur-ingestion/accounts/{id}/ingest`) → `status: ok`, 2 arquivos, 78 linhas
+lidas, `periods_ingested: [2026-04-01, 2026-10-01]`, `total_billed_cost: 140108.435868`; o log
+de promoção registra **`rows_promoted=54096`** (a resposta diz
+`cost_promotion_status: "skipped"` — o campo mente, o guard *fail-closed* do
+`external_account_id` só aparece no log). No `/costs/unified`: **antes** `total_cost: 59373.5`,
+`HOMOLOGATION AWS [sim] · cost: null · data_state: "unavailable"`,
+`provider_status.aws: "unavailable"`; **depois** `total_cost: 113517.05`,
+`HOMOLOGATION AWS [sim] · 54143.54 · data_state: "available"`,
+`provider_status.aws: "available"`, `source_by_provider.aws: "AWS Cost and Usage Report"`, e a
+resposta do caminho frio com **`data_source: "focus_cost_records"`. O volume confere nos três
+lugares: `EffectiveCost` do parquet entregue **54.143,544220** = `focus_cost_records` do período
+2026-10 **54.143,54** = `/costs/unified` **54.143,54**.
+
+**Efeito colateral declarado.** A prova do caminho do agendado rodou a entrega oficial com os
+**três** alvos (é a chamada do `tick --deliver`, que não filtra alvo): **2.268 linhas** no BigQuery
+emulado (1.134 por tabela, dia 2026-10-26) e a janela do `azure-sim` estendida até **303 dias**.
+A conta `HOMOLOGATION GCP [sim]` saiu de `0.0` para **14.613,94** e o `total_cost` do workspace
+saiu de **113.517,05** para **128.130,99** — o AWS ficou em **54.143,54** nas duas medições, e o
+`data_source: "focus_cost_records"` continua valendo. Nada foi revertido: é o comportamento
+correto da entrega diária, e a conta de homologação é o destino declarado para validação que
+escreve.
+
+**Um incidente na reingestão (não determinístico).** Na **segunda** execução da ingestão do
+mesmo dia, o worker do uvicorn do backend morreu no meio da promoção (`Child process [34]
+died`, sem traceback; o container **não** foi OOM-killed — `OOMKilled=false`,
+`RestartCount=0`, sem limite de memória) e o uvicorn reergueu o worker sozinho. O estado ficou
+**íntegro** (`focus_cost_records` com as mesmas 84.042 linhas / US$ 220.348,01,
+`cur_last_ingest_error` vazio) e a **terceira** execução passou (exit 0, 25,8 s,
+`rows_promoted=54096` de novo). É fragilidade do **lado do CloudPilot**, fora da allowlist
+desta fase, e **não** é efeito da mudança daqui.
+
+**O que continua aberto.** O nome do export continua em **dois** lugares independentes (o default
+da entrega e o `cur_config.export_name` do CloudPilot) e nada os amarra — a correção alinha os
+dois, mas **não** impede a divergência de voltar, e o guard que impediria isso é do lado do
+CloudPilot (fora da allowlist). A entrega AWS **não valida** o que publica: há um teste de
+regressão neste repositório que amarra o default ao nome do renderer, mas o guard que
+impediria a divergência de **voltar** é do lado do CloudPilot. A tarefa do Windows
+**não está registrada** (`simulador-nuvem-daily` não aparece no `schtasks`): a entrega está
+pronta, mas nada a dispara — o backfill continua dependendo de alguém rodar o `tick`. O ledger
+está **3 dias atrás** do alvo (11 dias completos, 2026-10-16 → 2026-10-26, e um diretório
+parcial em 2026-10-27). A conta `[SYNTH] AWS acct-01` continua com o `export_name` morto
+(`cloudpilot-focus12-daily-full`) — é a mesma dívida em outra conta, fora do alvo desta fase.
+
+Detalhe em [regression/mapa-impacto-s4b3b.md](regression/mapa-impacto-s4b3b.md).
+
+
+## S4b2-E — o `k8s-sim` por HTTPS: nome próprio, SAN e URL do consumidor (2026-10-30)
+
+**O plano Kubernetes era o único que falava HTTP puro.** Todo o resto da stack fala TLS com o
+CloudPilot pelos hostnames reais; o `k8s-sim` era alcançado por `http://k8s-sim:8089`, um alias
+de rede na bridge — sem certificado e **sem nome de nuvem**. O contratempo: o OpenCost não é um
+serviço de nuvem, é um contrato, e não há hostname real para imitar. Inventar um sequestraria o
+nome de alguém (o que a stack já descobriu ser perigoso com `sts.*`); omitir o TLS deixaria o
+plano como a única superfície HTTP da pilha. A saída foi o **checkpoint** da fase: o hostname é
+**do front**, não da nuvem.
+
+**O que foi aprovado.** `opencost.synthetic-clouds.test` — o contrato OpenCost nomeado, em TLD
+reservada para testes (RFC 6761), que **não resolve na internet pública**. URL do consumidor e
+valor do provider: **`https://opencost.synthetic-clouds.test`** (porta 443, a do front). O alias
+`k8s-sim` **continua** — ele é o upstream do front.
+
+**O que mudou.** O alias novo entra na `cloudpilot_net` do `compose.tls-front.yaml`; o
+`nginx.conf` ganha `upstream k8s_opencost { server k8s-sim:8089; }` e um `server` com
+`server_name opencost.synthetic-clouds.test`; o `ensure-cloudpilot.ps1` ganha o nome em
+`$FrontAliases` (é a lista que **reassina a folha** quando um alias roteado não está no SAN) e
+passa a medir as **duas** pontas — HTTPS (o caminho do consumidor) e HTTP (o upstream do front).
+A **CA não foi tocada**: a folha tem 13 SANs agora (12 + o novo), e o bundle do CloudPilot
+continua o mesmo.
+
+**Medido.** Folha reassinada (`missing SANs: opencost.synthetic-clouds.test`), front recriado
+pelo mecanismo oficial (`podman compose -f deploy/synthetic-clouds/compose.tls-front.yaml up -d`
+→ `Recreate`/`Recreated`/`Started`, ID `846747b7…` → `9a313a73ab7f`, `health=healthy`) e **só
+ele** — os outros containers mantiveram o ID. De dentro do `cloudpilot_backend`, com o contexto
+TLS padrão (que confia na CA local por `SSL_CERT_FILE`):
+`https://opencost.synthetic-clouds.test/healthz` → **200** `{"status":"ok","synthetic":true}`;
+`…/clusterInfo?filter=cluster:"TEMP-aks_cluster-0025"` → **200** `{"code":200,"data":{"version":"synthetic"}}`.
+O `nginx -t` → `syntax is ok`, e os outros planos continuam respondendo pelo front
+(`compute.googleapis.com` → 404 do gcp-sim, `bigquery.googleapis.com` → 200,
+`management.azure.com` → 404 do azure-sim).
+
+**No CloudPilot (conta de homologação, workspace `[SYNTH] synthetic-homologation`).** O
+provider `opencost` foi apontado para a URL HTTPS (`provider_endpoint =
+https://opencost.synthetic-clouds.test`, `has_token: false` — o token ficou vazio de propósito).
+Com a **config lida do banco** e o **provider real** do CloudPilot: `success: true`,
+`latency_ms: 29`; e a leitura de custo devolve **5 linhas** para `TEMP-aks_cluster-0025` —
+tanto pelo **nome** quanto pelo **id nativo**, ou seja, o alias do C-IDENT continua resolvendo
+pelo caminho novo.
+
+**Um defeito pré-existente do CloudPilot, encontrado no meio do caminho.** O botão "Verificar
+Conexão" da UI **não chega ao provider**: `TypeError: OpenCostProvider.__init__() got an
+unexpected keyword argument 'db'`. A causa raiz está no repo do CloudPilot — a factory passa
+`db=` para todo provider (`factory.py:132`), mas `opencost.py:47` e `kubecost.py:44` não aceitam
+`db` (ao contrário de `azure.py:285` e `gcp.py:242`). **Não é regressão desta fase:** o mesmo
+`TypeError` foi registrado com **duas** URLs diferentes — a HTTPS aprovada e, de propósito, o
+`http://k8s-sim:8089` antigo — e o código do container é idêntico, linha a linha, ao do repo
+(`IGUAIS=True`). A correção é do lado do CloudPilot (uma linha por provider, espelhando
+`azure.py`/`gcp.py`) e **esta fase não pode fazê-la**: `C:\Projetos\cloudpilot-deploy\**` está fora
+da allowlist e a correção exigiria recriar os containers do CloudPilot, o que a fase proíbe.
+
+**O que continua aberto.** O botão "Verificar Conexão" da UI (o defeito acima, do lado do
+CloudPilot) e o **sync** (nenhum snapshot novo foi gravado). Fora da allowlist desta fase, e
+portanto **não corrigidos**: o `deploy/synthetic-clouds/README.md` (ainda diz que o backend
+alcança o `k8s-sim` em `http://k8s-sim:8089` e que o TLS é o restante da S4b2) e o
+`deploy/synthetic-clouds/.env.example` (ainda documenta `K8S_SIM_URL=http://k8s-sim:8089` — o
+valor correto é `https://opencost.synthetic-clouds.test`); o `docs/DECISOES-PENDENTES.md`, que
+descreve o plano Kubernetes sem TLS; e o `AGENTS.md`, que descreve o `k8s-sim` como alcançado
+por HTTP puro. A folha TLS é local e git-ignored: o repositório guarda o *contrato* (o nome, a
+rota, o SAN via `$FrontAliases`), e uma instalação nova reassina a folha pelo
+`ensure-cloudpilot.ps1`.
+
+Detalhe em [regression/mapa-impacto-s4b2e.md](regression/mapa-impacto-s4b2e.md).
+
+
+## S4b3-C — a entrega diária roda sozinha: tarefa registrada e ledger em dia (2026-10-31)
+
+**A tarefa existia, mas apontava para uma instalação que não existe.** A S4b3-B entregou o
+namespace e fechou com esta dívida escrita: *"A tarefa do Windows **não está registrada**
+(`simulador-nuvem-daily` não aparece para o `schtasks`): a entrega está pronta, mas nada a
+dispara — o backfill continua dependendo de alguém rodar o `tick`"*. A leitura real de 2026-10-31
+corrige a premissa: a tarefa **existia**, com dois gatilhos (diário às 12:00 + no logon),
+`StartWhenAvailable` e `Último Resultado: 1` — mas o wrapper apontava para
+`D:\Simulador\tools\synthetic_clouds\schedule\run-daily.cmd`, de uma instalação anterior num drive
+que não existe nesta máquina (`Test-Path D:\Simulador` → `False`). Por isso o resultado era `1`:
+o wrapper nem existia para ser executado.
+
+**A causa é mecânica, e é a de uma árvore movida.** `install` resolve o caminho a partir da
+localização do pacote (`schedule/windows.py:276`), então mover a instalação deixa um wrapper
+obsoleto até alguém rodar `install` de novo. Não é bug do agendador, e o repositório não deve
+detectar isso: registrar é operação de instalação, não de código. O mecanismo oficial
+(`python -m tools.synthetic_clouds.schedule install`) **reescreve** o `run-daily.cmd` e o XML e
+refaz o `schtasks /Create /TN simulador-nuvem-daily /XML … /F` → **exit 0**, comando agora
+`cmd.exe /c "C:\Projetos\Simulador\tools\synthetic_clouds\schedule\run-daily.cmd"`, próximo disparo
+`2026-11-01T12:00:00`. Disparada por `schtasks /run`, devolveu **`Último Resultado: 0`**.
+
+**Houve um incidente de ambiente no caminho, e ele precisa ficar escrito.** O `podman ps` falhava
+com `dial tcp 127.0.0.1:61926: … recusou ativamente`; a VM HyperV estava `Running`, mas nada
+escutava na 61926. **ROOT CAUSE:** um socket Unix obsoleto — `%LOCALAPPDATA%\Temp\podman\podman-machine-default-api.sock`,
+datado de **2026-10-30 10:13**. Com `UserModeNetworking: true`, o `gvproxy` precisa fazer `bind`
+nesse caminho para abrir o forward da API; o `bind` falhou com *"Normalmente é permitida apenas
+uma utilização de cada endereço de soquete"*, o `gvproxy` morreu antes de criar o forward SSH, e o
+`podman machine start` passou a esperar por um socket que jamais abriria (a mensagem
+`accept tcp 127.0.0.1:61926: use of closed network connection` no log do `gvproxy` é a
+**consequência**, não a causa). Removido o socket obsoleto, `podman machine start` → *"started
+successfully"*.
+
+**A queda da VM tinha levado junto o estado em memória dos dois planos** — os containers estavam
+parados há ~15 h, **antes** desta fase (a queda não foi causada aqui). O store do `s3mock` é em
+memória e o `bigquery-emulator` roda DuckDB em memória (`Mounts: []`), então as tabelas de
+billing não existiam mais. Restaurados **sem rebuild e sem recreate**: `podman start` nos
+containers existentes (os aliases `s3mock`/`aws-sim` na bridge do CloudPilot sobreviveram no config
+do container — conferido de dentro do backend: `s3mock -> 10.89.0.15`, `aws-sim -> 10.89.0.18`) e
+o provisionador one-shot do BigQuery com a **imagem já em disco** (`--no-deps`, **sem** `--build` —
+o `gcp-up.ps1` faria `--build --force-recreate`, que está fora do escopo).
+
+**O backfill, pelo mecanismo oficial e em um comando só** (`schedule tick --deliver`, o mesmo que a
+tarefa executa): **exit 0**, 830,5 s, `alvo: 2026-10-31`, `gerados: 2026-10-27, 2026-10-28,
+2026-10-29, 2026-10-30, 2026-10-31` (**60.620 artefatos**), e as cinco entregas sem erro —
+`aws=1 objetos`, `gcp=2260/2260/2256/2272/2282 linhas`, `azure=304 dias` cada. O ledger passou de
+**11** para **16 dias** (`2026-10-16` → `2026-10-31`), com `target_day: 2026-10-31` e última
+execução `ok`.
+
+**O alvo é `2026-10-31`, não `2026-10-30`.** A fase foi escrita em 2026-10-30; a execução é de
+2026-10-31 e, com `lag_days=0` (decisão de 2026-10-26), o alvo **é o dia corrente**. Parar em
+`2026-10-30` seria truncar o backfill arbitrariamente.
+
+**O dia `2026-10-27` deixou de ser parcial.** A fase condicionava a entrega dele a deixar de ser
+parcial; a leitura de 2026-10-31 mostrava `render/` interrompido em `azure_arm_instances`, **sem**
+`aws_focus`, e o dia **fora do ledger**. O `tick` reescreveu o dia inteiro: **45** diretórios de
+render (45 renderers registrados = 45 diretórios), `aws_focus` presente, idêntico ao `2026-10-31`.
+A lacuna condicional **não** se materializou.
+
+**No CloudPilot (conta `HOMOLOGATION AWS [sim]`, `e6bc24c7…`, `external_account_id=911368690069`,
+workspace *CloudPilot - Homologation's Workspace* `9ff4da5f…` — **não** o workspace padrão do
+usuário, que é `[SYNTH] synthetic-homologation`).** Ingestão oficial → `status: ok`,
+`periods_ingested: ["2026-10-01"]`, `files_read: 1`, `invoice_records_upserted: 3`,
+`total_billed_cost: 65575.879831`; o log de promoção registra **`rows_promoted=29946`**
+(`cur_cost_promoted_resource`, grão *resource*, sobre 30.542 linhas de origem). A resposta diz
+`cost_rows_promoted: 0` e `cost_promotion_status: "skipped"` — **o campo mente**: no CloudPilot
+esses dois campos são *defaults* do schema (`schemas/cur_ingestion.py:224-226`) e **nunca** são
+atribuídos (zero ocorrências de atribuição em `backend/app`); o veredito real só existe no log.
+
+**O `/costs/unified`** → `total_cost: 139563.32`, `HOMOLOGATION AWS [sim] · 65575.88` com
+**`data_source: focus_cost_records`** (antes, na S4b3-B, `54.143,54`), `is_stale: true` — que é o
+**caminho frio** do endpoint (`costs.py:524`), não cache velho. **O volume confere nos três
+lugares**: `EffectiveCost` do parquet entregue **65.575,879831** = `focus_cost_records` do período
+2026-10 (29.946 linhas, `ChargePeriodStart` de `2026-10-01` a `2026-10-31`) **65.575,88** =
+`/costs/unified` **65.575,88**.
+
+**Por que o valor subiu** de 54.143,54 para 65.575,88: o export do dia é um **snapshot
+month-to-date**. O parquet do dia `2026-10-31` cobre `ChargePeriodStart` de `2026-10-01` a
+`2026-10-31` (o do dia `2026-10-26` cobria até `2026-10-26`), e o leitor de CUR lê o **execution
+mais recente** (`files_read: 1`) — ler os cinco e somar contaria o mês cinco vezes.
+
+**A suíte de testes apagava o wrapper — a segunda armadilha, e a mais silenciosa.** Depois do
+`install` das 12:21, a tarefa disparada às **13:02:33** respondeu **`Último resultado: 1`** sem
+nenhuma linha nova no `task.log`: o wrapper não existia mais. Causa raiz: `schedule/windows.py`
+derivava o caminho do wrapper da **localização do pacote**, e o teste
+`test_written_files_have_no_doubled_carriage_return`
+(`tools/synthetic_clouds/tests/test_schedule.py:647-673`) escreve os artefatos do plano **nesse
+caminho de produção** e os apaga no `finally` — **rodar a suíte desligava a tarefa agendada**.
+Correção (em `schedule/windows.py`, dentro da allowlist): wrapper e XML passam a ser derivados do
+**diretório da configuração** (`config_path.parent`), o que mantém o caminho de produção
+**idêntico** (`install` continua imprimindo `…\schedule\run-daily.cmd`) e impede que um teste
+apague o que a tarefa de produção executa. Medido: `pytest tools\synthetic_clouds\tests\test_schedule.py
+-q` → **92 passed**, e o `run-daily.cmd` **sobrevive** à suíte (mesmo `LastWriteTime` antes e
+depois). Re-disparada às **13:06:47** → **`Último resultado: 0`** e a linha do `tick` no
+`task.log` (`alvo: 2026-10-31 … nada a gerar: o ledger ja cobre o alvo`).
+
+**O que continua aberto.** O `docs/AGENDAMENTO.en.md` (gêmeo inglês do documento de agendamento)
+continua dizendo que a tarefa não está registrada e que o ledger para em `2026-10-26` — ele **não**
+está na allowlist desta fase, então o texto não foi corrigido aqui. O **teste de regressão** da
+correção acima mora em `tools/synthetic_clouds/tests/test_schedule.py`, também fora da allowlist:
+a correção é verificável por medição, mas a rede de proteção automática fica para a fase que mexer
+nos testes. A tabela de CUD do BigQuery não
+fecha a contagem (`expected 3, got 9`, inconsistência pré-existente do render de 2026-10-29, numa
+superfície que a entrega diária não toca). A resposta da ingestão não reporta a promoção (defaults
+do schema nunca atribuídos — dívida do CloudPilot, fora da allowlist). E a árvore FOCUS/S3 do
+`aws-sim` (2026-01 → 2026-04) **não** voltou ao bucket: o store do `s3mock` é em memória e
+repopulá-lo exige `aws-up.ps1`, que re-renderiza a árvore e substitui o volume — "restart dos
+planos", fora do escopo. Isso **não** altera a medição da janela corrente (o ledger é persistente
+em Postgres e a janela de outubro depende só do export de outubro).
+
+Detalhe em [regression/mapa-impacto-s4b3c.md](regression/mapa-impacto-s4b3c.md).
+
+## S4b3-E — a dívida que não existia é apagada, e as URLs do `k8s-sim` passam a ser as do front TLS
+
+**Data:** 2026-10-31 · **Revisão-base:** `aee05eb9` (branch `feat/p76-security-posture-gcp-azure`) ·
+**Escopo:** `README.md`, `README.en.md`, `docs/regression/mapa-impacto-s4b3d.md`,
+`docs/regression/mapa-impacto-s4b3e.md` (novo), `docs/DECISOES-PENDENTES.md`,
+`docs/DECISOES-PENDENTES.en.md`, `deploy/synthetic-clouds/README.md`,
+`deploy/synthetic-clouds/.env.example`, `docs/ESTADO.md`, `docs/ESTADO.en.md`.
+**Fora do escopo:** `AGENTS.md`, `emulators/**`, `deploy/synthetic-clouds/compose.*.yaml`,
+`deploy/synthetic-clouds/integration/**`, `deploy/synthetic-clouds/tls-front/**`, `specs/**`,
+`docs/NAO-COMPROVADOS*`, `docs/AGENDAMENTO.md`, `docs/AGENDAMENTO.en.md`, `tools/**`,
+`scripts/**` e o código do `C:\Projetos\cloudpilot-deploy`.
+
+**A dívida que não existia.** A S4b3-D corrigiu o `docs/AGENDAMENTO.en.md` e, no mesmo fôlego,
+escreveu que o `docs/AGENDAMENTO.md` (o gêmeo em português) continuava desatualizado — "11
+dias", ledger até `2026-10-26`, tarefa não registrada. Não continuava. A **S4b3-C** (`77a6a03a`)
+já o tinha corrigido, e a prova é o próprio histórico:
+
+```
+git diff 77a6a03a HEAD -- docs/AGENDAMENTO.md
+# -> vazio (exit 0)
+
+git grep -n "11 dias\|não registrada\|not registered" -- docs/AGENDAMENTO.md
+# -> nenhum match (exit 1)
+```
+
+O arquivo diz **16 dias** (`2026-10-16` → `2026-10-31`), tarefa **registrada**, alvo
+`2026-10-31`, `Último Resultado: 0`. A dívida foi escrita por **dedução** — o gêmeo EN estava
+errado, então o PT também estaria — e dedução não é leitura. A allowlist nunca foi o problema:
+a premissa é que era. O `docs/AGENDAMENTO.md` estava (e está) fora da allowlist desta fase e
+**mesmo assim não precisava de correção nenhuma**.
+
+**O que foi apagado e o que foi preservado.** O registro falso sai de `README.md`,
+`README.en.md` e `docs/regression/mapa-impacto-s4b3d.md` (§7.1, §3 e o cabeçalho), onde passa
+a dizer a verdade. Os **registros datados** do que o documento EN dizia antes da S4b3-D — as
+tabelas §1/§3 do mapa da S4b3-D e as seções das fases anteriores neste arquivo — são
+**preservados**: eles documentam a leitura de uma data, não uma afirmação vigente. A mensagem
+do commit `dadba889` (`docs(estado): record the S4b3-D delivery`) contém a afirmação falsa e
+**fica como está**: histórico não se reescreve, e o registro falso é corrigido nos arquivos
+vivos.
+
+**As URLs do `k8s-sim`.** A URL do consumidor é **`https://opencost.synthetic-clouds.test`** —
+o nome próprio do front TLS, com o SAN na folha, desde a S4b2-E. O alias `k8s-sim:8089` continua
+existindo e continua sendo o **upstream** do front na bridge (o nginx resolve upstreams no
+*startup*: sem o alias, o front nem sobe) — mas ele **não** é a URL do consumidor, e é assim
+que o `deploy/synthetic-clouds/README.md` e o `.env.example` passam a descrevê-lo. O bloco
+"**Sem TLS.**" (falso desde a S4b2-E) vira "**TLS desde a S4b2-E**", e os dois
+`docs/DECISOES-PENDENTES*` deixam de dizer que o `k8s-sim` "não tem Containerfile nem serviço de
+compose" — tem os dois desde a S4b2-B.
+
+**O que continua aberto.** O `AGENTS.md` ainda descreve o `k8s-sim` como "sem `Containerfile`"
+(seção "Armadilhas de ambiente") — está **proibido de edição** nesta fase e fica como **nota ao
+usuário**. Fora da allowlist, e ainda com texto pré-S4b2-E: o
+`deploy/synthetic-clouds/integration/README.md` ("TLS para o plano Kubernetes é o restante da
+S4b2"), o `docs/k8s-sim-opencost-contract.md` (bloco "Atualizado em 2026-10-30 pela S4b2-C") e
+o `docs/INTEGRACAO-CLOUDPILOT-TLS.md` (que não dá a URL do consumidor). As **dívidas reais** do
+plano Kubernetes **permanecem**: segue **sem** hostname de nuvem real para imitar, e o
+`scripts/synthetic-clouds/up.ps1` **não** sobe esse plano. Fora do escopo, e preservados: o
+botão "Verificar Conexão" da UI do CloudPilot (defeito pré-existente, `opencost.py:47` /
+`kubecost.py:44`), a árvore FOCUS/S3 do `aws-sim` ausente do bucket e a tabela CUD do BigQuery
+divergente (esperado 3, veio 9).
+
+**A fase não roda a suíte do gerador**: ela não toca uma linha de código — nem do gerador, nem
+dos emuladores, nem do CloudPilot. A última medição é a da revisão `aee05eb9` (**1111 passed ·
+20 skipped**).
+
+Detalhe em [regression/mapa-impacto-s4b3e.md](regression/mapa-impacto-s4b3e.md).
+
+## S4b3-F — o `AGENTS.md` e os docs de integração passam a falar do `k8s-sim` real (2026-10-31)
+
+**Revisão de conteúdo:** `a03f949f` (branch `feat/p76-security-posture-gcp-azure`).
+**Escopo:** `AGENTS.md`, `deploy/synthetic-clouds/integration/README.md`,
+`docs/k8s-sim-opencost-contract.md`, `docs/INTEGRACAO-CLOUDPILOT-TLS.md`, `docs/ESTADO.md`,
+`docs/ESTADO.en.md`, `docs/regression/mapa-impacto-s4b3f.md`.
+**Fora do escopo:** `emulators/**`, `deploy/synthetic-clouds/compose.*.yaml`,
+`deploy/synthetic-clouds/tls-front/**`, `specs/**`, `docs/NAO-COMPROVADOS*`, `tools/**`,
+`scripts/**` e o código do `C:\Projetos\cloudpilot-deploy`.
+
+**Esta fase paga a lista que a S4b3-E deixou escrita.** A seção da S4b3-E neste arquivo termina
+com "**O que continua aberto**" e nomeia, um por um, os quatro lugares que carregavam texto
+pré-S4b2-E: o `AGENTS.md` ("sem `Containerfile`"), o
+`deploy/synthetic-clouds/integration/README.md` ("TLS para o plano Kubernetes é o restante da
+S4b2"), o `docs/k8s-sim-opencost-contract.md` (bloco "Atualizado em 2026-10-30 pela S4b2-C") e o
+`docs/INTEGRACAO-CLOUDPILOT-TLS.md` (que não dava a URL do consumidor). A lista **está toda**
+corrigida aqui. A seção da S4b3-E **não** foi reescrita: ela é o registro datado do que aquela fase
+sabia.
+
+**A primeira dívida tinha dono desde 2026-10-30.** O `mapa-impacto-s4b2c.md` §6 já registrava
+que o `AGENTS.md` dizia "o caso extremo: sem `Containerfile`", que a frase "ficou falsa na
+S4b2-B" e que o arquivo estava "explicitamente proibido de edição nesta fase". Era um débito
+**nomeado**, à espera de alguém pagá-lo, e ninguém pagou em quatro fases. O `Containerfile`
+(`53a47ce9`) e o serviço no `compose.k8s.yaml` (`50245581`) chegaram na **S4b2-B**, e o front TLS
+publica o plano sob o nome próprio desde a **S4b2-E** (`1e5e1443`).
+
+**A segunda não tinha dono — e era uma lacuna que já não existia.** O `AGENTS.md` declarava uma
+"**Lacuna aberta em 2026-10-29 (S4b1-E)**": o `k8s-sim` só resolveria o nome e o uuid do estate,
+e a correção seria carregar o id nativo no fixture. A S4b1-E **fechou isso no mesmo dia**
+(`a64b8414`): o fixture versionado carrega `native_id` por cluster — **309 clusters** (75 EKS,
+111 GKE, 123 AKS) — e o `filter` o aceita como alias, **sem** publicá-lo (o contrato publica o
+**nome**). O `mapa-impacto-s4b1d.md` §8 já o listava sob "Fechados em S4b1-E (2026-10-29)". O
+`AGENTS.md` era o único lugar do repositório que ainda o descrevia como pendência — e é o lugar
+que todos leem primeiro. Esta correção vai **além** da passagem listada no enunciado (que
+apontava só para o `Containerfile`): ela entra porque o objetivo da fase é "corrigir as últimas
+afirmações obsoletas sobre o `k8s-sim` no `AGENTS.md`", o fato é **verificado por commit** (não
+por dedução) e a afirmação era do mesmo tipo da listada. Nenhuma regra permanente foi tocada.
+
+**As regras do `AGENTS.md` ficaram intactas.** O que muda ali é **fato**, não regra: os testes dos
+emuladores **continuam** fora do `.venv` do gerador (o `aws-sim` importa `boto3`/`botocore`, que
+não estão no venv da raiz — medido: `boto3` **ausente**), e o `pytest` do `k8s-sim` **continua**
+rodando a partir de `emulators/k8s-sim`, que tem `pyproject.toml` próprio. O que era falso — e
+que a bússola propagava como dedução — era o "caso extremo: sem `Containerfile`".
+
+**O que os docs de integração passaram a dizer.** O `integration/README.md` não afirmava mais que
+"o TLS para o plano Kubernetes é o restante da S4b2". A frase nova diz o que o
+`ensure-cloudpilot.ps1` **faz** (garantir o caminho: o alias `opencost.synthetic-clouds.test` na
+bridge, o SAN na folha do front e o front publicado pelo `compose.tls-front.yaml`; no `-Smoke`,
+as duas pontas — HTTPS pelo nome do front e HTTP pelo alias) e o que ele **não** faz (apontar o
+consumidor, que é configuração do CloudPilot, e escrever a rota, que está no `nginx.conf`). O
+`docs/k8s-sim-opencost-contract.md` **preserva** o bloco "Atualizado em 2026-10-30 pela S4b2-C" —
+é registro datado — e ganha uma retificação datada que aponta o TLS fechado na S4b2-E. O
+`docs/INTEGRACAO-CLOUDPILOT-TLS.md` L23 passa a trazer a URL do consumidor ao lado do upstream.
+
+**A URL do consumidor nos quatro documentos.** `https://opencost.synthetic-clouds.test` — o nome
+próprio do front, com o SAN na folha, desde a S4b2-E — agora aparece no `AGENTS.md`, no
+`integration/README.md`, no contrato do `k8s-sim` e no `INTEGRACAO-CLOUDPILOT-TLS.md`. O alias
+`k8s-sim:8089` é o **upstream** do front na bridge, em HTTP puro: é o que o `nginx` fala com o
+plano e o que o probe mede em HTTP, não a rota do consumidor.
+
+**O que continua aberto.** As **dívidas reais** do plano Kubernetes **permanecem**: ele segue
+**sem** hostname de nuvem real para imitar (o nome é do front, em `.test`), o
+`scripts/synthetic-clouds/up.ps1` **não** sobe esse plano, o restante da S4b2 (API server do
+Kubernetes, Prometheus, Kubecost, UI e migration) segue aberto, e a gêmea em inglês do contrato
+(`docs/k8s-sim-opencost-contract.en.md`) continua **não existindo** (pendência da S4b1, declarada
+no §9 do próprio contrato). Fora do escopo, e preservados: o botão "Verificar Conexão" da UI do
+CloudPilot (defeito pré-existente, `opencost.py:47` / `kubecost.py:44`), a árvore FOCUS/S3 do
+`aws-sim` ausente do bucket e a tabela CUD do BigQuery divergente (esperado 3, veio 9).
+
+**A fase não roda a suíte do gerador**: ela não toca uma linha de código — nem do gerador, nem dos
+emuladores, nem do CloudPilot. A última medição é a da revisão `aee05eb9` (**1111 passed · 20
+skipped**) — as revisões seguintes são documentais.
+
+Detalhe em [regression/mapa-impacto-s4b3f.md](regression/mapa-impacto-s4b3f.md).
+
+## S4b2-G — a API do Kubernetes no `k8s-sim`: as três rotas que o consumidor chama (2026-10-31)
+
+**A superfície foi medida, não escolhida.** O §9 do contrato nomeava "API server do Kubernetes"
+como pendência **sem dizer qual**: o §9 é a lista do que a fase anterior não implementou, não uma
+especificação. As três rotas saíram da leitura do **código do consumidor** (somente-leitura, em
+2026-10-31) e foram aprovadas no checkpoint da fase: `GET /api/v1/namespaces` (o `ConnectionTester`
+que roda **antes** de salvar um kubeconfig, e os providers `gcp`/`azure`), `GET /api/v1/pods` (o
+provider `aws`, pelo client **oficial** `kubernetes`) e `GET /api/v1/namespaces/{ns}/pods` (os
+`gcp`/`azure`, uma vez por namespace).
+
+**O mesmo nome, o mesmo caminho.** As rotas novas respondem em
+**`https://opencost.synthetic-clouds.test`** — o nome que o contrato OpenCost já usava. O front já
+encaminhava `location /` para o upstream `k8s-sim:8089`, e o `nginx.conf` do front está **fora da
+allowlist**: um nome novo exigiria mexer no front. Nenhum arquivo de `deploy/**` foi tocado — nem o
+`compose.k8s.yaml`, nem o TLS, nem a rede.
+
+**Cada plano no seu contrato.** O plano novo pede **`Authorization: Bearer <token>`**: o simulador
+não modela identidade nem RBAC, então **qualquer** token não-vazio é aceito — recusá-lo seria recusar
+um fato que o simulador não sabe conferir — e a **ausência** do token é recusada com **401** e o
+`Status` oficial. O plano OpenCost **continua sem pedir token**: ele nunca pediu. As formas também
+são diferentes por contrato: o plano novo usa `NamespaceList`, `PodList` e `Status`, e **não** o
+envelope `code`/`data` do OpenCost.
+
+**O que o plano publica é o mesmo estate que o contrato OpenCost precifica.** A namespace
+`payments`, o workload `api` e um pod, com `requests` = `cpu: "2"` e `memory: "4Gi"` — os 2 núcleos
+e os 4 GiB por dia da §6 do contrato. O consumidor constrói o custo de uma namespace **somando os
+`requests` dos pods** dela, então publicar outro número faria o simulador dizer **duas verdades**
+sobre o mesmo cluster; um teste fixa essa coerência entre os dois planos. O que o estate **não**
+modela não é publicado: sem `limits`, sem `status` do pod, sem `image`, sem `resourceVersion`, sem
+`uid` nos metadados.
+
+**O `uid` que o modelo oficial exige — e que só o client real denunciou.** A primeira versão do
+plano omitia o `uid` da `ownerReference`, e o client oficial do CloudPilot (`kubernetes` 37.0.1)
+**recusou** o payload: `ValidationError: uid — Input should be a valid string`. O `uid` é campo
+**obrigatório** do modelo `V1OwnerReference` — medido campo a campo (`model_fields` com
+`is_required()`): `V1OwnerReference` exige `apiVersion`, `kind`, `name` e **`uid`**; `V1Container`,
+`name`; `V1PodSpec`, `containers`; `V1PodList` e `V1NamespaceList`, `items`. A correção publica um
+**placeholder declarado e determinístico** (`synthetic-deployment-api`), que diz o que é em vez de
+vestir um UUID que não ganhou — e os testes fixam a lista inteira como literal, para que o
+próximo campo obrigatório que o modelo pedir não passe despercebido. Um teste que só conferisse o
+JSON "parece certo" teria aceitado o payload: o que o reprovou foi **o cliente real, no ar**.
+
+**O contratempo do 502, e a causa raiz.** Depois da recriação do container, **todas** as rotas do
+nome devolveram **502 Bad Gateway** — inclusive as que já funcionavam. Eram **duas** coisas, ambas
+medidas: o **alias** `k8s-sim` na bridge do CloudPilot (que **não** está no `compose.k8s.yaml`;
+quem a anexa é o `ensure-cloudpilot.ps1`) e o **IP** do upstream no nginx (que **não tem
+`resolver`**: o nome é resolvido **uma vez**, na carga da configuração, e o front ficou apontando
+para o IP antigo, `10.89.0.19`, enquanto o container novo já estava em `10.89.0.21`). A correção
+foi `podman network connect --alias k8s-sim …` + `nginx -s reload` — **sem** recriar o front, que
+continua com o mesmo PID, o mesmo uptime e os mesmos aliases. O `ensure-cloudpilot.ps1` reanexa o
+alias quando falta, mas **não** recarrega o nginx: isso está documentado no
+`INTEGRACAO-CLOUDPILOT-TLS.md` e é a dívida operacional que a fase deixa.
+
+**Medido.** Suíte do `k8s-sim`: **122 passed** (91 antes + **31** novos), ruff e mypy limpos. O
+`k8s-sim` reconstruído e **recriado sozinho** (`podman compose … up -d --build k8s-sim`), com os
+outros planos e os containers do CloudPilot intactos (`podman ps` bruto: todos "Up 4 hours", só o
+`k8s-sim` novo). As três rotas responderam **200** de dentro do `cloudpilot_backend` pelo nome
+HTTPS; sem token, **401**; namespace inexistente, **404** com `reason: "NotFound"`. O client
+**oficial** `kubernetes` parseou o payload em `V1PodList` (1 pod, `payments/api`,
+`owner=Deployment/api`, `requests={"cpu": "2", "memory": "4Gi"}`) e `list_namespace()` devolveu
+`["payments"]`. O **`ConnectionTester` real** do CloudPilot respondeu `success: true`,
+`namespace_count: 1`. Na **conta de homologação**, o endpoint de teste de kubeconfig respondeu
+`{"success": true, "namespace_count": 1, "server_url": "https://opencost.synthetic-clouds.test"}`.
+E o contrato OpenCost **não regrediu**: pelo **provider real** com a config salva da homologação,
+`success: true` e o custo de `TEMP-aks_cluster-0025` pelo **nome** e pelo **id nativo** —
+`payments/api`, **3.88 USD**, `2026-10-01`, os mesmos números da S4b2-E.
+
+**O que continua aberto.** O §9 do contrato fecha a pendência "API server do Kubernetes" — e a
+seção da S4b3-F acima, que a cita como aberta, é **registro datado** de 2026-10-31, anterior a
+esta fase. Continuam **abertos**, e são o resto da S4b2: **Prometheus**, **Kubecost**, a **UI** do
+plano Kubernetes e a **migration**. E continuam declaradas: o plano novo **não** é um API server
+(sem `/version`, sem `apis/apps/v1`, sem a Metrics API, sem `nodes`, sem RBAC — tudo na §2.2.6 do
+contrato); o botão "Verificar Conexão" da UI do CloudPilot continua quebrado (defeito
+**pré-existente**, `opencost.py:47` / `kubecost.py:44`, **fora** da allowlist); o
+`/finops/kubernetes/clusters` da homologação responde `no_data` ("First sync has not completed
+yet") — estado **pré-existente** do CloudPilot, a pendência "rodar sync" que a S4b2-E já tinha
+declarado; e a gêmea em inglês do contrato (`docs/k8s-sim-opencost-contract.en.md`) continua **sem
+existir** (pendência da S4b1).
+
+Detalhe em [regression/mapa-impacto-s4b2g.md](regression/mapa-impacto-s4b2g.md).
+
+## S4b2-H — o Prometheus no `k8s-sim`: a query que o consumidor lê a telemetria (2026-10-31)
+
+**A superfície foi medida, não escolhida.** O §9 do contrato nomeava "Prometheus" como pendência
+**sem dizer qual**: o §9 é a lista do que a fase anterior não implementou, não uma especificação. O
+checkpoint da fase levantou primeiro, no **código do CloudPilot** (somente-leitura), se e como o
+Prometheus é lido — **endpoint, formato, labels, auth** — e a resposta foi: **ele lê**. O provider
+`opencost` resolve um endpoint Prometheus (`opencost.py:56-57`: `config.prometheus_endpoint`, que o
+modelo `K8sFinOpsConfig` **não tem**, ou a variável `settings.K8S_PROMETHEUS_URL`), chama
+`GET {endpoint}/api/v1/query` **sem nenhum header de autenticação** (`opencost.py:112-132`) e lê
+`data.result[].metric.namespace` + `value[1]` (`opencost.py:134-148`). As **duas** queries que ele
+envia são o `rate(...[5m]) * 1000` de CPU e o `container_memory_working_set_bytes` de memória, com
+o **id nativo** do cluster no seletor (`opencost.py:155-170`).
+
+**O que a leitura mostra é que a superfície é obrigatória.** A telemetria vira
+`cpu_usage_current_millicores` e `memory_usage_current_bytes` do snapshot
+(`k8s_finops_sync.py:466-508`), e o **rightsizing falha fechado** sem ela:
+`get_recommendations` devolve **lista vazia** quando não há telemetria de CPU e memória
+(`opencost.py:375-457`) — o requisito "rightsizing DEVE exigir telemetria", medido no código, e
+não deduzido.
+
+**O plano novo não pede token** — o cliente do provider não carrega credencial, então exigir bearer
+devolveria 401 e derrubaria a telemetria. O contrato OpenCost continua sem token, como sempre.
+
+**O que o plano publica é o mesmo estate dos outros dois.** A query de CPU é um `rate` de 5 minutos
+sobre uma série constante, então a resposta é `2 × 1000` = **2000 millicores**; a de memória é
+**4294967296 bytes** — os mesmos 2 núcleos e 4 GiB que o allocation precifica e que o pod declara
+nos `requests`. A coerência dos **três** planos deixou de ser uma coincidência mantida à mão: a
+projeção do Kubernetes passou a **derivar** as strings de quantity dos números, e a projeção do
+Prometheus lê os números.
+
+**O que o plano não faz está declarado.** Não é motor de PromQL: só as duas queries do consumidor
+são lidas, e qualquer outra responde **200 com vetor vazio** — como um Prometheus responde uma
+query que não seleciona série nenhuma. Não serve `/api/v1/query_range`. E **não publica métricas
+do Karpenter**: o estate não modela Karpenter, e inventar um fato sobre um estate que não existe
+seria pior do que responder "não há série".
+
+**Medido.** Suíte do `k8s-sim`: **138 passed** (122 antes + **16** novos), ruff e mypy limpos, e
+**provado em vermelho-verde** (mutar o multiplicador da CPU derruba exatamente 3 testes: o da query
+de CPU, o da forma que o consumidor lê e o de coerência entre os planos; restaurado, a suíte volta
+a 138). O `k8s-sim` reconstruído e **recriado sozinho** — `podman ps` final: o `k8s-sim` "Up 3
+minutes" e **todos** os outros containers "Up 5 hours", o front TLS incluído. A dívida operacional
+da S4b2-G voltou a aparecer (o alias na bridge e o IP do upstream no nginx, que não tem `resolver`)
+e foi resolvida do mesmo jeito: `podman network connect` + `nginx -s reload`, **sem** recriar o
+front. De dentro do `cloudpilot_backend`, pelo nome HTTPS: a query de CPU e a de memória → **200**
+com `metric.namespace = "payments"`, `cluster` = o **nome** (o `native_id` é aceito como alias, o
+nome é publicado) e os valores `"2000"` / `"4294967296"`; cluster desconhecido e query sem série →
+**200 com vetor vazio**; pedido sem query → **400** com o envelope de erro do Prometheus. E o
+**contrato OpenCost não regrediu**: `/healthz` → 200, `/allocation/compute` → `payments/api`,
+`cpuCores: 2.0`, `ramBytes: 4294967296.0`, **3.88 USD** — os mesmos números da S4b2-E.
+
+**O consumidor, de verdade.** O **provider real** do CloudPilot, rodando dentro do container do
+backend, contra a **config salva da conta de homologação** (`provider_endpoint =
+https://opencost.synthetic-clouds.test`), leu a telemetria:
+`NamespaceTelemetry(namespace='payments', cpu_usage_millicores=2000, memory_usage_bytes=4294967296)`
+— e o custo continuou **3.88 USD** em `payments/api`, 2026-10-01. Do lado do CloudPilot,
+**nenhuma linha de código mudou**: a chave `K8S_PROMETHEUS_URL=https://opencost.synthetic-clouds.test`
+foi escrita no `backend/.env.local` (**não rastreado**), e os containers do CloudPilot **não** foram
+recriados — a variável entra em vigor na próxima recriação, porque o `settings` é lido na
+importação do processo; a medição acima rodou com a mesma chave injetada no processo.
+
+**O que continua aberto.** A **config da homologação tem `clusters: []`** — a tarefa de sync itera
+essa lista, então o **sync agendado não chama o Prometheus hoje**, mesmo com a variável
+configurada: a pendência "rodar sync" da S4b2-E continua aberta. O **`/savings/requestSizing`** do
+OpenCost **não é servido**, e o `get_recommendations` do provider o chama — o rightsizing
+completo continua fora de alcance do simulador, mesmo com a telemetria disponível: é uma fatia do
+contrato OpenCost, não do plano Prometheus. A **Metrics API** continua **não servida**, por uma
+razão **medida**: o provider `opencost` — o que aponta para este plano — tira a telemetria do
+Prometheus, e não da Metrics API; a Metrics API é lida pelos providers EKS e Azure, pelo
+kubeconfig, e a ausência dela é tratada com elegância. O mapa da S4b2-G dizia que a Metrics API
+"vai com o Prometheus"; a medição mostra que **não vai**. E continuam **abertos**, e são o resto
+da S4b2: **Kubecost**, a **UI** do plano Kubernetes e a **migration**.
+
+Detalhe em [regression/mapa-impacto-s4b2h.md](regression/mapa-impacto-s4b2h.md).

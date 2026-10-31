@@ -3,7 +3,7 @@
 Two import concerns are handled here:
 
 1. The package is imported as ``tools.synthetic_clouds.*`` — the repo root
-   (``D:\\synthetic-clouds``) must be on ``sys.path`` so that namespace resolves
+   (``C:\\Projetos\\Simulador``) must be on ``sys.path`` so that namespace resolves
    when pytest runs from the package directory.
 2. The FOCUS fidelity tests (AC-11) feed renderer output to the REAL
    ``parser.py (modulo do consumidor)``. That module depends only on

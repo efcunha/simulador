@@ -27,6 +27,7 @@ from azure_sim.api import (
     containerservice,
     cost_management,
     defender,
+    deployment_stacks,
     graph,
     monitor,
     network,
@@ -129,6 +130,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     # Register every router. Routers match on official Azure path shapes.
     app.include_router(token.router)
+    app.include_router(deployment_stacks.router)
     app.include_router(cost_management.router)
     app.include_router(resource_graph.router)
     app.include_router(defender.router)

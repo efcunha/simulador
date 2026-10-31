@@ -1,0 +1,61 @@
+{
+  "surface": "gcp/infrastructure-manager-resource-drift",
+  "provider": "gcp",
+  "reference": {
+    "title": "Infrastructure Manager — REST Resource: projects.locations.previews.resourceDrifts (ResourceDrift, ResourceDriftTerraformInfo, PropertyDrift)",
+    "url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts",
+    "consulted_at": "2026-10-27",
+    "secondary_urls": [
+      "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts/list",
+      "https://docs.cloud.google.com/infrastructure-manager/docs/export-view-preview-results"
+    ]
+  },
+  "delivery": {
+    "kind": "rest-api",
+    "path_template": "https://config.googleapis.com/v1/projects/{project}/locations/{location}/previews/{preview}/resourceDrifts",
+    "format": "json",
+    "compression": "none",
+    "note": "This is a control-plane REST response, not a push export. A ResourceDrift exists only inside a preview: the preview must be SUCCEEDED or STALE before it can be exported. There is no blob path, partition or compression to document."
+  },
+  "notes": [
+    "The JSON representation of ResourceDrift is published verbatim by Google: name, terraformInfo and propertyDrifts[].",
+    "ResourceDriftTerraformInfo publishes address, type, resourceName and provider, all output-only.",
+    "PropertyDrift publishes path, beforeSensitivePaths[], before, afterSensitivePaths[] and after; before/after are a Value (arbitrary JSON value), not a fixed scalar type.",
+    "The list method returns {resourceDrifts[], nextPageToken, unreachable[]}; the envelope is a separate contract from the item and is not mixed into this schema.",
+    "The path is a Terraform state path (e.g. machine_type), not the Compute API field machineType. The two vocabularies must not be normalized into one another."
+  ],
+  "columns": [
+    { "name": "name", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#ResourceDrift", "status": "verified" },
+    { "name": "terraformInfo.address", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#ResourceDriftTerraformInfo", "status": "verified" },
+    { "name": "terraformInfo.type", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#ResourceDriftTerraformInfo", "status": "verified" },
+    { "name": "terraformInfo.resourceName", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#ResourceDriftTerraformInfo", "status": "verified" },
+    { "name": "terraformInfo.provider", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#ResourceDriftTerraformInfo", "status": "verified" },
+    { "name": "propertyDrifts[].path", "type": "string", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#PropertyDrift", "status": "verified" },
+    { "name": "propertyDrifts[].beforeSensitivePaths[]", "type": "array", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#PropertyDrift", "status": "verified" },
+    { "name": "propertyDrifts[].before", "type": "value (Value format)", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#PropertyDrift", "status": "verified", "evidence": "declared", "type_source": "documented", "type_note": "The field table publishes 'value (Value format)' for before/after; no scalar type is fixed." },
+    { "name": "propertyDrifts[].afterSensitivePaths[]", "type": "array", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#PropertyDrift", "status": "verified" },
+    { "name": "propertyDrifts[].after", "type": "value (Value format)", "required": false, "unit": null, "source_url": "https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.previews.resourceDrifts#PropertyDrift", "status": "verified", "evidence": "declared", "type_source": "documented", "type_note": "The field table publishes 'value (Value format)' for before/after; no scalar type is fixed." }
+  ],
+  "unverified": [
+    {
+      "name": "concrete shape of before/after for a given Terraform type",
+      "reason": "The REST reference publishes before/after as a Value (arbitrary JSON). It does not publish a per-resource-type schema, so the simulator may emit only values derived from the estate's own model and must not infer a nested shape from a provider example.",
+      "status": "unverified"
+    },
+    {
+      "name": "semantics of before/after relative to desired state",
+      "reason": "The page describes the values as 'before/after the actions' without stating which side is the desired state for a drift preview. The direction must be measured on a real preview before a consumer maps it to expected/actual.",
+      "status": "unverified"
+    },
+    {
+      "item": "the resourceDrifts[]/nextPageToken/unreachable[] envelope",
+      "reason": "The envelope belongs to the list method, not to the ResourceDrift item; it is documented at the list method page and is intentionally outside this item schema.",
+      "status": "unverified"
+    },
+    {
+      "item": "the grammar of propertyDrifts[].path for a map key",
+      "reason": "The REST reference publishes `path` as the path of the property drift, but does not publish the path grammar for maps. The simulator emits `labels.<key>` as a scenario path derived from the estate; that spelling is not asserted by the GCP documentation and must not be read as a published contract.",
+      "status": "unverified"
+    }
+  ]
+}

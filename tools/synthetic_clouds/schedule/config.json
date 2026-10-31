@@ -2,7 +2,7 @@
   "backfill_max_days": 31,
   "currency": "USD",
   "enabled": true,
-  "lag_days": 1,
+  "lag_days": 0,
   "profile": "medium",
   "renderers": null,
   "retention_days": 30,

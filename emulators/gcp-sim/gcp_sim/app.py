@@ -30,7 +30,9 @@ from gcp_sim.routers import (
     catalog,
     cloudresourcemanager,
     compute,
+    container,
     functions,
+    infra_manager,
     monitoring,
     oauth,
     recommender,
@@ -91,6 +93,7 @@ def create_app() -> FastAPI:
     app.include_router(catalog.router)
     app.include_router(cloudresourcemanager.router)
     app.include_router(compute.router)
+    app.include_router(container.router)
     app.include_router(functions.router)
     app.include_router(servicehealth.router)
     app.include_router(storage.router)
@@ -98,6 +101,8 @@ def create_app() -> FastAPI:
     app.include_router(recommender.router)
     app.include_router(monitoring.router)
     app.include_router(scc.router)
+    # Infrastructure Manager: concrete prefix, mounted before the greedy CAI router.
+    app.include_router(infra_manager.router)
     # Greedy {scope:path}:verb routes last.
     app.include_router(cai.router)
     return app
