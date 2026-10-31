@@ -1,4 +1,4 @@
-# Contrato OpenCost do `k8s-sim` (Fases S4a, S4b1, S4b1-C, S4b1-E e S4b2-C)
+# Contrato OpenCost do `k8s-sim` (Fases S4a, S4b1, S4b1-C, S4b1-E, S4b2-C, S4b2-E e S4b3-F)
 
 > Idioma: **Português**. Sem gêmea `.en.md`: a allowlist permite **apenas** este arquivo em
 > `docs/`. A gêmea em inglês fica como pendência (§9).
@@ -41,6 +41,11 @@ resolver **de dentro do backend do CloudPilot**. O §9 ("sem Dockerfile, compose
 corrigido: o que ainda falta é **TLS**, API server do Kubernetes, Prometheus, Kubecost, UI e
 migration — o restante da S4b2. Detalhe no
 [mapa de impacto](regression/mapa-impacto-s4b2c.md).
+
+**Retificado em 2026-10-31 pela S4b3-F:** o bloco acima descreve o estado **naquela** data
+(2026-10-30, S4b2-C) e é preservado como registro datado. O **TLS fechou na S4b2-E** — bloco
+seguinte —: a URL que o **consumidor** usa é **`https://opencost.synthetic-clouds.test`**, e
+`http://k8s-sim:8089` é o **upstream** do front na bridge (§2.1), não a rota do consumidor.
 
 **Atualizado em 2026-10-30 pela S4b2-E**: o **TLS também fechou**. O contrato HTTP continua
 igual — o que mudou é que agora ele chega ao consumidor por **HTTPS**, num nome do front

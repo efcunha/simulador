@@ -145,15 +145,17 @@ emuladores servem é maior do que esse gate, e há duas categorias para não con
   a conferir contra uma spec; o contrato está nos documentos específicos e nos testes do emulador
   (`docs/k8s-sim-opencost-contract.md`, `docs/INTEGRACAO-CLOUDPILOT-TLS.md`, `docs/regression/`).
 
-**Lacuna aberta em 2026-10-29 (S4b1-E).** O consumidor passou a keyar a descoberta pelo **id
-nativo** do cluster (EKS ARN / AKS ARM id / GKE selfLink) e a enviar `filter=cluster:"<id nativo>"`
-ao OpenCost, mas o `k8s-sim` só resolve o **nome** e o **uuid do estate** (o fixture
-`clusters.json` não carrega o id nativo) — com a config nova o allocation responde `200` com
-`data: []`. O addendum datado está em `docs/k8s-sim-opencost-contract.md` e em
-`docs/regression/mapa-impacto-s4b1d.md`; a correção é carregar o id nativo no fixture e aceitá-lo
-como alias, sem publicá-lo.
+**Fechado em 2026-10-29 pela S4b1-E** (o registro aqui é que atrasou; o commit é `a64b8414`). O
+consumidor passou a keyar a descoberta pelo **id nativo** do cluster (EKS ARN / AKS ARM id / GKE
+selfLink) e a enviar `filter=cluster:"<id nativo>"` ao OpenCost, mas o `k8s-sim` só resolvia o
+**nome** e o **uuid do estate** (o fixture `clusters.json` não carregava o id nativo) — com a config
+nova o allocation respondia `200` com `data: []`. A correção foi carregar o id nativo no fixture
+(`native_id` por cluster — **309 clusters**: 75 EKS, 111 GKE, 123 AKS) e aceitá-lo como alias,
+**sem publicá-lo**: o que o contrato publica continua sendo o **nome**. O addendum datado está em
+`docs/k8s-sim-opencost-contract.md` e em `docs/regression/mapa-impacto-s4b1d.md` (§8 e o addendum
+S4b1-E).
 
-## Armadilhas de ambiente (medidas em 2026-10-15 e 2026-10-29)
+## Armadilhas de ambiente (medidas em 2026-10-15, 2026-10-29 e 2026-10-31)
 
 **A documentação do GCP mudou de slug.** O padrão antigo
 `cloud.google.com/<produto>/docs/reference/rest/v1/...` devolve **404 numa página HTML** — uma
@@ -185,5 +187,8 @@ inventário, o inventário tem furo — corrija o inventário, nunca o auditor.
 **Testes dos emuladores não rodam no `.venv` do gerador.** Cada emulador fixa o próprio ambiente no
 `Containerfile`; os testes do `aws-sim`, por exemplo, importam `boto3`/`botocore`, que não estão
 instalados no venv da raiz. Rodaram lá, eles falham na coleção — não é defeito do teste. O
-`k8s-sim` é o caso extremo: sem `Containerfile`, com `fastapi`/`uvicorn` e um `pyproject.toml`
-próprio (`pytest` roda a partir de `emulators/k8s-sim`).
+`k8s-sim` deixou de ser a exceção: tem `Containerfile` e serviço no `compose.k8s.yaml` desde a
+**S4b2-B**, e desde a **S4b2-E** é publicado por TLS no front, sob
+**`https://opencost.synthetic-clouds.test`** — `k8s-sim:8089` é o **upstream** do front na bridge,
+em HTTP puro. Os testes dele rodam a partir de `emulators/k8s-sim`, que tem `pyproject.toml` próprio
+(`fastapi`/`uvicorn`), e não do venv da raiz.

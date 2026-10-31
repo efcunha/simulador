@@ -1,6 +1,6 @@
 # Integração CloudPilot ↔ simulador sem código de simulador no CloudPilot
 
-> Última atualização: **2026-10-30** (S4b2-E; revisão-base `397bd96b`). A decisão de 2026-10-28 que
+> Última atualização: **2026-10-31** (S4b3-F; revisão-base `e47c5fb8`). A decisão de 2026-10-28 que
 > removeu o sequestro do `sts.*` continua valendo.
 
 Este documento registra a configuração que faz o CloudPilot falar com o
@@ -20,7 +20,7 @@ hostname de produção. Quem se adapta é esta stack.
 | Simulador | `deploy/synthetic-clouds/compose.aws.yaml` | `s3mock` (9090) e `aws-sim` (8086) |
 | Simulador | `deploy/synthetic-clouds/compose.tls-front.yaml` | front nginx para os **oito** hostnames servidos ao CloudPilot (os sete `*.googleapis.com` + o nome do plano Kubernetes) |
 | Simulador | `deploy/synthetic-clouds/tls-front/nginx.conf` | roteia cada hostname para o emulador certo |
-| Simulador | `deploy/synthetic-clouds/compose.k8s.yaml` | `k8s-sim` — contrato **OpenCost** em `http://k8s-sim:8089` (HTTP puro, atrás do front TLS) |
+| Simulador | `deploy/synthetic-clouds/compose.k8s.yaml` | `k8s-sim` — contrato **OpenCost** em `http://k8s-sim:8089` (o **upstream** do front, HTTP puro); o **consumidor** usa **`https://opencost.synthetic-clouds.test`** |
 
 Os cinco composes e a ordem de subida estão no quick-start
 [`deploy/synthetic-clouds/README.md`](../deploy/synthetic-clouds/README.md). O front TLS

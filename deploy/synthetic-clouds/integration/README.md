@@ -1,6 +1,6 @@
 # Automação da integração CloudPilot ↔ simulador
 
-> Última atualização: **2026-10-30** (revisão `9ccbc71c`).
+> Última atualização: **2026-10-31** (revisão `e47c5fb8`).
 
 Esta pasta contém os scripts que reaplicam, de forma idempotente, o que **não**
 sobrevive a restart/recriação de container.
@@ -138,9 +138,13 @@ Para remover: `schtasks /Delete /TN CloudPilot-Simulator-Ensure /F`.
   (`localhost/k8s-sim:latest`) é reaproveitada, **nunca** reconstruída.
 - Não recria o `k8s-sim` se ele estiver parado mas existir: nesse caso ele só o inicia e
   espera o healthcheck. A criação a partir do compose é só quando o container **não existe**.
-- Não publica o `k8s-sim` por hostname real nem por TLS: o alcance é o alias de rede
-  `k8s-sim` na bridge, em `http://k8s-sim:8089` (HTTP puro). TLS para o plano Kubernetes é o
-  restante da S4b2.
+- Não aponta o **consumidor** do CloudPilot para o plano Kubernetes, nem escreve a rota do
+  front: a URL do contrato é configuração do CloudPilot
+  (`https://opencost.synthetic-clouds.test`, provider `opencost`) e a rota está no
+  `tls-front/nginx.conf`. O que este script garante é o **caminho** até ela — o alias
+  `opencost.synthetic-clouds.test` na bridge, o SAN na folha do front e o front publicado pelo
+  `compose.tls-front.yaml` — e, no `-Smoke`, as **duas pontas**: HTTPS pelo nome do front e HTTP
+  pelo alias `k8s-sim:8089`, que é o **upstream** do front, não a URL do consumidor.
 
 ## Limite do gatilho “ao logon”
 
