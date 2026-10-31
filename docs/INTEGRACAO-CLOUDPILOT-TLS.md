@@ -254,6 +254,13 @@ do consumidor) e **pelo alias HTTP** (`http://k8s-sim:8089`, o upstream do front
 falta um alias, só reconstrói o estate quando a janela está vencida e só cria o container do
 `k8s-sim` (a partir de `compose.k8s.yaml`, sem rebuild) quando ele não existe.
 
+**Desde a S4b3-G (2026-10-31)** o script também **recarrega o nginx** do front
+(`nginx -s reload`, no container vivo — o front **não** é recriado) depois de reanexar o alias
+`k8s-sim`, e **mede** os **quatro** planos do contrato Kubernetes pelo nome HTTPS
+(`/allocation/compute`, `/api/v1/namespaces`, `/api/v1/query`, `/model/allocation`), de dentro
+do `cloudpilot_backend`. É o que fecha o 502 pós-recriação sem passo manual: o reload resolve
+o upstream de novo e a medição diz que ele voltou a responder.
+
 A tarefa `CloudPilot-Simulator-Ensure` (logon + a cada 30 min) é registrada por
 `register-ensure-task.ps1` com XML **por usuário** (`LogonTrigger` com `UserId`), que é o
 que dispensa elevação. **Na leitura de 2026-10-29 ela não está registrada nesta máquina**
@@ -277,5 +284,19 @@ IP antigo. O `nginx -s reload` re-lê a configuração e resolve o upstream de n
 o container do front (mesmo PID, mesmo uptime, mesmos aliases). Um `podman restart` do front
 resolveria também, mas derruba o container e é desnecessário.
 
-O `ensure-cloudpilot.ps1` reanexa o alias quando falta, mas **não** recarrega o nginx: o front
-precisa do reload depois de qualquer recriação do `k8s-sim`.
+**Fechado na S4b3-G (2026-10-31): os dois passos são do script.** O `ensure-cloudpilot.ps1`
+recarrega o nginx logo depois de reanexar o alias (`Sync-FrontUpstream`) e **mede** o resultado
+(`Test-K8sSimPlanes`): os **quatro** planos do contrato — `/allocation/compute` (OpenCost),
+`/api/v1/namespaces` (API do Kubernetes), `/api/v1/query` (Prometheus) e `/model/allocation`
+(Model API do Kubecost) — probed de dentro do `cloudpilot_backend`, pelo nome HTTPS
+`https://opencost.synthetic-clouds.test`. Medido: **antes** da correção, `502 Bad Gateway` nos
+quatro (o log do front nomeando o endereço morto: `upstream: "http://10.89.0.24:8089/…"`);
+**depois** do script, `200` nos quatro, `summary: integration OK (0 problems)`, exit 0 — com o
+**mesmo** container do front (`9a313a73ab7f…`, mesmo `StartedAt`) e o `k8s-sim` novo em um
+**endereço diferente** (`10.89.0.25`), o que mostra que o reload não foi decorativo. Detalhe em
+[regression/mapa-impacto-s4b3g.md](regression/mapa-impacto-s4b3g.md) §2.1.
+
+O `ensure-cloudpilot.ps1` reanexa o alias quando falta e **recarrega o nginx** desde a
+**S4b3-G** (2026-10-31): o reload passou a ser parte do caminho idempotente do script, e não um
+passo manual depois de uma recriação. Ver
+["O que mais não sobrevive a um `up -d --build k8s-sim`"](#o-que-mais-não-sobrevive-a-um-up-d--build-k8s-sim-medido-em-2026-10-31-s4b2-g).
