@@ -1,4 +1,4 @@
-# Contrato do `k8s-sim` — o OpenCost, a API do Kubernetes e o Prometheus (Fases S4a, S4b1, S4b1-C, S4b1-E, S4b2-C, S4b2-E, S4b2-G, S4b2-H e S4b3-F)
+# Contrato do `k8s-sim` — o OpenCost, a API do Kubernetes, o Prometheus e o Kubecost (Fases S4a, S4b1, S4b1-C, S4b1-E, S4b2-C, S4b2-E, S4b2-G, S4b2-H, S4b2-I e S4b3-F)
 
 > Idioma: **Português**. Sem gêmea `.en.md`: a allowlist permite **apenas** este arquivo em
 > `docs/`. A gêmea em inglês fica como pendência (§9).
@@ -116,6 +116,24 @@ repositório na data da leitura), por `gh api` — a fonte de máquina, lida loc
 > **F14 não é fonte oficial do OpenCost** — é o **consumidor**. Ela fica registrada à parte
 > de propósito: o que o OpenCost publica é uma coisa (F1–F13); o que o CloudPilot envia é outra,
 > e é a segunda que define o escopo desta fase.
+
+### 1.0 As fontes do plano Kubecost (S4b2-I, 2026-10-31)
+
+Lidas em **2026-10-31**, o mesmo dia da fase. A spec da Model API (F15) é a fonte de máquina:
+39.957 bytes de OpenAPI, lidos localmente (o `web_fetch` trunca o meio de um arquivo desse
+tamanho — a liitura foi feita com o arquivo em disco).
+
+| # | Fonte | URL / caminho | O que devolveu |
+|---|---|---|---|
+| F15 | **Kubecost — a Model API publicada (OpenAPI)** | `https://artifacts.apis.io/kubecost/openapi/kubecost-model-api-openapi.yml` | HTTP 200, 39.957 bytes. `openapi: 3.2.0`, `info.title: Kubecost Model API`, `info.version: 2.0.0`. O `info.description` declara a montagem: *"Operations tagged Model across 6 of this provider's published API definitions: kubecost-allocation-openapi.yml, kubecost-assets-openapi.yml, kubecost-budget-openapi.yml, kubecost-cloud-cost-openapi.yml, kubecost-forecast-openapi.yml, kubecost-savings-openapi.yml"*. **As 15 rotas**: `/model/allocation`, `/model/allocation/totals`, `/model/assets`, `/model/assets/totals`, `/model/budget`, `/model/budget/{id}`, `/model/cloudCost`, `/model/cloudCost/view`, `/model/cloudCost/top`, `/model/forecast/allocation`, `/model/savings/clusterSizingETL`, `/model/savings/requestSizingV2`, `/model/savings/abandonedWorkloads`, `/model/savings/orphanedDisks`, `/model/savings/orphanedIPs`. **A operação `/model/allocation`** (`operationId: getAllocation`): parâmetros `window` (obrigatório), `aggregate`, `step`, `accumulate` (boolean, default `false`), `idle` (boolean, default `true`), `external` (boolean, default `false`), `filterClusters`, `filterNamespaces`, `filterControllerKinds`, `filterControllers`, `filterLabels`, `filterAnnotations`, `filterServices`, `shareIdle`, `splitIdle`, `idleByNode`, `format` (`json`/`csv`, default `json`); resposta `200` = objeto com `code` (integer) e `data` (**array** de objetos cujo `additionalProperties` é `Allocation`); `400` = *"Invalid request parameters."*; `servers` = `http://{kubecost-address}` (default `localhost:9090`). O **schema `Allocation`**: `name`, `properties`{`cluster`,`node`,`namespace`,`controller`,`controllerKind`,`pod`,`container`,`labels`,`annotations`,`services`}, `window`{`start`,`end`}, `start`, `end`, `cpuCores`, `cpuCoreRequestAverage`, `cpuCoreUsageAverage`, `cpuCoreHours`, `cpuCost`, `cpuCostAdjustment`, `cpuEfficiency`, `gpuCount`, `gpuHours`, `gpuCost`, `gpuCostAdjustment`, `networkTransferBytes`, `networkReceiveBytes`, `networkCost`, `networkCostAdjustment`, `loadBalancerCost`, `loadBalancerCostAdjustment`, `pvBytes`, `pvByteHours`, `pvCost`, `pvCostAdjustment`, `ramBytes`, `ramByteRequestAverage`, `ramByteUsageAverage`, `ramByteHours`, `ramCost`, `ramCostAdjustment`, `ramEfficiency`, `externalCost`, `sharedCost`, `totalCost`, `totalEfficiency`. **Não há `memCost` nem `minutes`.** A spec **não declara `securitySchemes`** — nenhuma das 6 definições publicadas declara um esquema de segurança. |
+| F16 | Kubecost — o modelo `Allocation` do produto | `https://raw.githubusercontent.com/kubecost/cost-model/v1.93.2/pkg/kubecost/allocation.go` | HTTP 200, 73.241 bytes. A struct `Allocation` com as tags JSON: `RAMCost float64 \`json:"ramCost"\``, `CPUCost`, `NetworkCost`, `PVCostAdjustment`, `SharedCost`, `ExternalCost`, `CPUCoreRequestAverage`, `CPUCoreUsageAverage`, `RAMBytesRequestAverage`, `RAMBytesUsageAverage`, `CPUCoreHours`, `RAMByteHours`, `NetworkTransferBytes`… **`memCost` não aparece nenhuma vez no arquivo** (grep: zero ocorrências). `TotalCost()` (`:352`) e `PVCost()` (`:430`) são **métodos**, não campos — logo não vão para o wire. |
+| F17 | Kubecost — as rotas do motor | `https://raw.githubusercontent.com/kubecost/cost-model/v1.93.2/pkg/costmodel/router.go` | HTTP 200, 52.046 bytes. As 39 rotas GET do motor: `/allocation/compute`, `/allocation/compute/summary`, `/clusterInfo`, `/clusterInfoMap`, `/clusterCosts`, `/clusterCostsFromCache`, `/clusterCostsOverTime`, `/aggregatedCostModel`, `/costDataModel`… **Não há prefixo `/model/`** (ele é da Model API do produto, F15) e **não há rota `/savings/…`** neste motor. |
+| F18 | **O consumidor** — provider `kubecost` do CloudPilot | `backend/app/services/k8s_finops/providers/kubecost.py` (leitura somente-leitura em `C:\Projetos\cloudpilot-deploy`, 2026-10-31) | O que o consumidor **realmente envia**: `get_cluster_costs` (`:305-323`) → `GET /model/allocation` com `window`, `aggregate=namespace`, `filterClusters`, `accumulate=false`; `get_namespace_costs` (`:326-343`) → o mesmo com `aggregate=controller` e `filterNamespaces`; `get_resource_labels` (`:404-424`) → o mesmo com `filterControllers`; `get_cluster_health` (`:378-402`) → `GET /model/clusterInfo?filterClusters=…`; `test_connection` (`:544-559`) → `GET /model/clusterInfo`; `get_recommendations` (`:364-376`) → `GET /savings/requestSizing?filterClusters=…`. O **parser** (`:176-197`) lê `raw_data["data"]` → `period_data.items()` → o allocation, e do allocation lê `properties.cluster/namespace/controller`, `start`, `cpuCost`, **`memCost`** (`:216`), `pvCost`, `networkCost`, `totalCost`, `ramByteRequestAverage`, `ramByteUsageAverage`, `cpuCoreRequestAverage`, `cpuCoreUsageAverage`. Auth: `Authorization: Bearer <token>` (`:49-95`); sem token o provider **não envia** nada. |
+| F19 | URLs do Kubecost consultadas que **não** devolveram a spec | `https://docs.kubecost.com/apis/monitoring-apis/api-allocation` (**403 Forbidden** — a borda IBM bloqueia o acesso automatizado, com e sem *user-agent* de browser); `https://api.docs.kubecost.com/` (**DNS**: o host não resolve); `https://raw.githubusercontent.com/api-evangelist/kubecost/refs/heads/main/openapi/kubecost-model-api-openapi.yml` (**404** — o espelho não tem mais a spec: o repositório tem só `README.md`); `https://web.archive.org/web/2024id_/https://api.docs.kubecost.com/` (**429**, duas vezes) | Nada foi obtido por elas. Registrado porque a ausência é evidência: a spec veio do **artefato** (F15), que é a mesma definição publicada pelo Kubecost, distribuída pelo catálogo da apis.io. O preâmbulo da spec declara as 6 definições de origem. |
+
+> **F18 não é fonte oficial do Kubecost** — é o **consumidor**, pelo mesmo motivo que F14
+> não é fonte oficial do OpenCost: o que o Kubecost publica é uma coisa (F15–F17); o que o
+> CloudPilot envia é outra, e é a segunda que define o escopo do plano.
 
 ### 1.1 Onde as fontes oficiais discordam entre si
 
@@ -434,6 +452,103 @@ O `K8S_PROMETHEUS_URL` é a **URL base** — o provider **acrescenta** `/api/v1/
 homologação ele vale `https://opencost.synthetic-clouds.test`, o mesmo nome do contrato OpenCost. A
 chave foi escrita no `backend/.env.local` do CloudPilot (arquivo **não rastreado**), e nenhum código
 do CloudPilot foi tocado. A medição do consumidor está no §10.2.
+
+---
+
+### 2.4 O quarto plano: a superfície Kubecost (S4b2-I, 2026-10-31)
+
+O `k8s-sim` serve agora **quatro** planos e **oito** rotas. O quarto é o **Kubecost**: a
+Model API do produto (F15), que o provider `kubecost` do CloudPilot (F18) lê.
+
+O checkpoint da fase foi **medido**, não presumido: o provider real do consumidor foi
+instanciado **dentro do container `cloudpilot_backend`**, contra este serviço, e os
+pedidos que ele emissiu foram lidos no log de acesso do `k8s-sim`. **Três** deles são
+`GET /model/allocation` (com `aggregate=namespace`, com `aggregate=controller` e com
+`filterNamespaces`/`filterControllers`); os outros dois são `GET /model/clusterInfo` e
+`GET /savings/requestSizing`. Antes da fase, **todos** respondiam **404**. A medição
+bruta está no §10.3 e no `docs/regression/mapa-impacto-s4b2i.md`.
+
+O provedor do consumidor é **uma opção de primeira classe** na UI dele: o endpoint
+`GET /api/v1/finops/kubernetes/config/providers` lista `kubecost_enterprise` ao lado de
+`aws`, `azure`, `gcp` e `opencost` (medido na conta de homologação, §10.3).
+
+#### 2.4.1 A rota que este plano serve — e as duas que ele não serve
+
+A Model API publica **quinze** rotas (F15). O consumidor lê **três** caminhos:
+
+| Caminho pedido pelo consumidor | A Model API publica? | O que este plano faz |
+|---|---|---|
+| `/model/allocation` | **Sim** (F15) | **Servida.** É a superfície desta fase. |
+| `/model/clusterInfo` | **Não.** As 15 rotas de F15 não a contêm; o motor do produto tem `/clusterInfo` (F17), **sem** o prefixo `/model/`. | **Não servida** → **404**. Um plano que não serve o que a fonte não publica não inventa uma rota para tapar um 404. |
+| `/savings/requestSizing` | **Não** sob esse nome. A Model API publica `/model/savings/requestSizingV2` (F15) — outro prefixo, outra versão. | **Não servida** → **404**, e **fora de escopo por decisão da fase** (o `/savings/requestSizing` do OpenCost já era). |
+
+O efeito no consumidor, medido: `get_cluster_costs` e `get_namespace_costs` passam a
+devolver linhas; `get_cluster_health` devolve `status="unknown"` com a mensagem
+*"Cluster health endpoint not available"* (o provider engole o `ProviderDataError` do
+404 — `kubecost.py:384-390`); `get_recommendations` e `test_connection` levantam
+`ProviderDataError` com o 404. São **lacunas declaradas**, não regressões: as duas rotas
+não são publicadas pela fonte.
+
+#### 2.4.2 O envelope e o allocation
+
+O envelope é o publicado: `{"code": 200, "data": [ … ]}`, com `data` um **array** de sets,
+cada set um mapa chave→allocation (F15). É o mesmo envelope do plano OpenCost, e o parser
+do consumidor (`kubecost.py:176-197`) o lê do mesmo jeito.
+
+O allocation carrega os campos que o estate tem figura para e que o schema publica
+(F15): `name`, `properties`{`cluster`,`namespace`,`controller`}, `window`{`start`,`end`},
+`start`, `end`, `cpuCores`, `cpuCoreHours`, `ramBytes`, `ramByteHours`, `pvBytes`,
+`pvByteHours`, `networkTransferBytes`, `cpuCost`, `ramCost`, `pvCost`, `networkCost`,
+`totalCost` — **e as quatro médias** que só a Model API publica:
+`cpuCoreRequestAverage`, `cpuCoreUsageAverage`, `ramByteRequestAverage`,
+`ramByteUsageAverage`. As médias valem a figura do estate: o pod pede dois cores e
+4 GiB e o estate declara que **a requisição é o uso** (§2.3.3), então requisição e uso
+têm o mesmo número.
+
+**Dois campos do plano OpenCost que este plano não emite**, porque o schema da Model API
+não os tem: `minutes` (o OpenCost publica; o Kubecost não) e `memCost` (que **nenhum
+dos dois** publica — o Kubecost publica `ramCost`, F16). Ver §9.
+
+**Dois campos que o Kubecost publica e este plano não emite**, porque o estate não tem
+figura para eles: `gpuCost`, `gpuCount`, `gpuHours`, `sharedCost`, `externalCost`,
+`loadBalancerCost`, os `*CostAdjustment` e as `*Efficiency`. A mesma regra do plano
+OpenCost (§5.2): um `0` ali seria uma afirmação sobre um fato que o estate não tem —
+o estate não modela GPU, custo compartilhado, custo externo nem balanceador.
+
+#### 2.4.3 Os parâmetros
+
+A Model API publica **dezessete** parâmetros para `/model/allocation` (F15). Este plano
+lê **dez** e **recusa** sete:
+
+| Parâmetro | O que a fonte publica (F15) | O que este plano faz |
+|---|---|---|
+| `window` | Obrigatório. Aceita durações (`3d`, `24h`, `7d`), tempo relativo (`yesterday`, `lastweek`, `lastmonth`) ou pares RFC 3339. | **Lê só** `YYYY-MM-DD,YYYY-MM-DD`, a grafia que o consumidor envia (F18). As outras são **recusadas** (400), nunca adivinhadas — como no plano OpenCost (§3). |
+| `aggregate` | `cluster`, `namespace`, `controllerKind`, `controller`, `service`, `deployment`, `statefulset`, `daemonset`, `job`, `label`, `annotation`, `pod`, `container`; multi-agregação por vírgula. | **Lê** as quatro que o estate responde: `namespace`, `namespace,controller`, `controller`, `cluster`. Qualquer outra → **400**. |
+| `step` | *"Duration of a single allocation set. If unspecified, this defaults to the window, so that you receive exactly one set for the entire window."* | **Lê** `1d` e a ausência — **e a ausência significa a janela toda**, como F15 publica: a resposta é **um** set com os custos somados. Outro passo → **400**. |
+| `accumulate` | Boolean, default `false`. *"If true, sum the entire range of sets into a single set."* | **Lido** como no plano OpenCost (§3.2). |
+| `filterClusters` | *"Filter results by cluster name (comma-separated)."* | **Lê um** valor. A lista separada por vírgula → **400**. O cluster é lido com os **três aliases** do estate (§6.1) e a resposta publica o **nome**. |
+| `filterNamespaces` | Lista separada por vírgula. | **Lê um** valor; lista → **400**. Namespace que o estate não tem → **200 com `data: []`**. |
+| `filterControllers` | Lista separada por vírgula. | **Lê um** valor; lista → **400**. Controller que o estate não tem → **200 com `data: []`**. |
+| `idle` | Boolean, default `true`. *"If true, idle allocations are returned."* | **Aceito e ignorado**: o estate não modela recurso ocioso, então não há `__idle__` a acrescentar e a resposta não muda — o que o payload diz sobre ocioso é verdade de qualquer jeito. |
+| `external` | Boolean, default `false`. *"Whether to include external (out-of-cluster) costs."* | **Aceito e ignorado**, pelo mesmo motivo: o estate não tem custo externo. |
+| `format` | `json` ou `csv`, default `json`. | **Lê só** `json`. `csv` → **400**: servir CSV seria um segundo contrato para manter coerente com o primeiro. |
+| `filterControllerKinds`, `filterLabels`, `filterAnnotations`, `filterServices`, `shareIdle`, `splitIdle`, `idleByNode` | Publicados pela Model API. | **Recusados com 400**, nunca ignorados: responder a um pedido filtrado com a resposta sem filtro seria mentir sobre o que foi servido. |
+
+A autenticação: a spec **não declara `securitySchemes`** (F15) — nenhuma das 6 definições
+publicadas declara um esquema de segurança. Então este plano **não exige** token, e
+**aceita** o `Authorization: Bearer` que o consumidor envia (F18), sem usá-lo. Exigir um
+esquema que a fonte não publica seria inventar um contrato de segurança.
+
+#### 2.4.4 O wiring no consumidor
+
+O consumidor fala com o **mesmo nome** do contrato OpenCost:
+`https://opencost.synthetic-clouds.test` — o provider `kubecost` usa
+`config.provider_endpoint`, que é a mesma URL que o provider `opencost` usa (a mesma
+coluna, a mesma linha de configuração). O front TLS encaminha `location /` para o mesmo
+upstream (`k8s-sim:8089`), então **nenhum hostname novo, nenhum certificado novo e
+nenhuma mudança no `nginx.conf`** (que está fora da allowlist da fase) foram
+necessários: a rota nova mora **dentro** do encaminhamento que já existia. A medição do
+deploy está no §10.3.
 
 ---
 
@@ -944,6 +1059,26 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   e não da Metrics API; a Metrics API é lida pelos providers **EKS** e **Azure**, pelo kubeconfig, e
   a ausência dela é tratada pelo consumidor com elegância (404 → `metrics_error` →
   `collection_method = "k8s_api_requests_only"`).
+  **Atualizado em 2026-10-31 (S4b2-I):** o **Kubecost também está fechado** — no mesmo sentido de
+  "o subconjunto que o consumidor chama": a rota `GET /model/allocation` da Model API do Kubecost
+  (§2.4), sob o mesmo nome HTTPS, sem mexer no contrato OpenCost. As **duas** rotas que o provider
+  `kubecost` do consumidor pede e que a Model API **não** publica — `/model/clusterInfo` e
+  `/savings/requestSizing` — continuam **não servidas**, e a lacuna está declarada abaixo.
+  Continuam **abertos**, e são o restante da S4b2: **UI** e **migration**.
+- **As duas rotas que o consumidor pede e a fonte do Kubecost não publica** (§2.4.1). Medido em
+  2026-10-31: o provider `kubecost` pede `GET /model/clusterInfo` (com e sem `filterClusters`) e
+  `GET /savings/requestSizing`; a Model API publica **quinze** rotas (F15) e **nenhuma** é uma
+  dessas duas. O efeito no consumidor: `get_cluster_health` devolve `status="unknown"` /
+  *"Cluster health endpoint not available"* (o provider engole o 404), e `get_recommendations` e
+  `test_connection` levantam `ProviderDataError`. **Lacuna declarada, não regressão** — e é uma
+  lacuna **do contrato do consumidor**, não do simulador: servir `/model/clusterInfo` seria
+  inventar uma rota que a fonte não publica.
+- **O custo de memória que o consumidor lê como `memCost`** (§2.4.2). Medido: o parser do
+  consumidor (`kubecost.py:216`) lê `alloc.get("memCost", 0)`, e o campo que o Kubecost publica é
+  **`ramCost`** (F15, F16 — `memCost` não aparece no modelo do Kubecost). O plano publica `ramCost`
+  e **não** publica `memCost`; o efeito medido é `memory_cost_usd = 0` na linha que o consumidor
+  monta, com `cpuCost`, `pvCost`, `networkCost` e `totalCost` corretos. **Lacuna do lado do
+  consumidor**: corrigi-la é mexer no CloudPilot, que está fora da allowlist desta fase.
 - **Sem spec de máquina** em `specs/` e **sem entrada na matriz de fidelidade**.
 - **Sem** wiring no provider do CloudPilot, **sem** rodar sync, **sem** validar tela. O CloudPilot
   não foi tocado **por esta fase**; ele evoluiu depois por conta própria (C-IDENT, §1.2).
@@ -983,13 +1118,14 @@ a gêmea `.en.md`.
 
 O contrato OpenCost está em `emulators/k8s-sim/k8s_sim/tests/test_allocation.py`; o contrato da
 API do Kubernetes, em `emulators/k8s-sim/k8s_sim/tests/test_kubernetes_api.py`; o contrato do
-Prometheus, em `emulators/k8s-sim/k8s_sim/tests/test_prometheus.py`. Todos via
+Prometheus, em `emulators/k8s-sim/k8s_sim/tests/test_prometheus.py`; o contrato do Kubecost, em
+`emulators/k8s-sim/k8s_sim/tests/test_kubecost.py`. Todos via
 `fastapi.testclient.TestClient`.
 
-Medido em **2026-10-31** (após a S4b2-H): `pytest emulators\k8s-sim\k8s_sim\tests -q -p no:cacheprovider`
-→ **138 passed** em 13,1 s (1 aviso de depreciação do `TestClient` com `httpx`) — os **122** da
-S4b2-G mais **16** da S4b2-H. Antes desta fase, a mesma suíte dava **122 passed** em 14,9 s: a
-contagem subiu, nenhuma medição antiga mudou.
+Medido em **2026-10-31** (após a S4b2-I): `pytest emulators\k8s-sim\k8s_sim\tests -q -p no:cacheprovider`
+→ **164 passed** em 17,2 s (1 aviso de depreciação do `TestClient` com `httpx`) — os **138** da
+S4b2-H mais **26** da S4b2-I. Antes da S4b2-H, a mesma suíte dava **138 passed** em 13,1 s; antes
+da S4b2-G, **122 passed** em 14,9 s: a contagem subiu, nenhuma medição antiga mudou.
 
 | O que o teste fixa |
 |---|
@@ -1094,3 +1230,35 @@ Em `emulators/k8s-sim/k8s_sim/tests/test_prometheus.py` — **16** testes. O que
 | o **valor** é o mesmo entre duas chamadas — só o carimbo da avaliação muda |
 | **`/healthz` e `/allocation/compute` continuam respondendo** (não-regressão do contrato OpenCost) |
 | a **API do Kubernetes continua pedindo token**: 401 sem, 200 com |
+
+### 10.3 O contrato do Kubecost (S4b2-I)
+
+Em `emulators/k8s-sim/k8s_sim/tests/test_kubecost.py` — **26** testes. O que eles fixam:
+
+| O que o teste fixa |
+|---|
+| o pedido que o consumidor envia (F18) — `window`, `aggregate=namespace`, `filterClusters=<id nativo>`, `accumulate=false` — é **respondido** |
+| o envelope é o publicado: `code == 200` e `data` é **lista** de sets |
+| a allocation carrega os nomes de campo do Kubecost: `cpuCost`, `ramCost`, `pvCost`, `networkCost`, `totalCost` |
+| **`memCost` NÃO é publicado** — é o campo que o consumidor lê e que o Kubecost não publica (F15, F16) |
+| **`minutes` NÃO é publicado** — não existe no schema da Model API (F15) |
+| as **quatro médias** que só a Model API publica estão lá: `cpuCoreRequestAverage`, `cpuCoreUsageAverage`, `ramByteRequestAverage`, `ramByteUsageAverage` |
+| o alias pelo `native_id` é aceito e a resposta publica o **NOME** do cluster |
+| a allocation nomeia o workload do estate (`properties.namespace`, `properties.controller`) |
+| `aggregate=namespace` chaveia pela namespace; `aggregate=controller` chaveia pelo controller |
+| um cluster que o estate não tem → **200 com `data: []`** |
+| uma namespace que o estate não tem → **200 com `data: []`** |
+| **uma lista de filtros → 400** (a Model API publica listas; esta fase lê um valor) |
+| `window` ausente ou malformado → 400 |
+| `aggregate` fora das quatro suportadas → 400 |
+| `step` fora de `1d` → 400 |
+| **um parâmetro que esta fase não lê (`filterLabels`, …) → 400**, nunca ignorado |
+| `format=csv` → 400 (esta fase serve o JSON) |
+| **sem `step`, a resposta é UM set para a janela**, com os custos somados — é o padrão publicado (F15) |
+| com `step=1d`, a janela de três dias devolve **três** sets, um por dia |
+| `accumulate=true` soma a janela em um set |
+| o header `Authorization` é **aceito e não é exigido** — a spec não declara `securitySchemes` (F15) |
+| **os dois planos cobram o mesmo estate**: `totalCost`, `cpuCost`, `ramCost`, `pvCost` e `networkCost` do plano Kubecost são os mesmos do plano OpenCost |
+| **as médias concordam com o plano Prometheus**: `cpuCoreUsageAverage` == `CPU_CORES` e `ramByteUsageAverage` == `MEMORY_BYTES` |
+| **`/model/clusterInfo` e `/savings/requestSizing` respondem 404** — a Model API não os publica (§2.4.1) |
+| `/healthz` continua respondendo (não-regressão) |

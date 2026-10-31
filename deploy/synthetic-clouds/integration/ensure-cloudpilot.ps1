@@ -11,6 +11,9 @@
          GCP/AWS hostnames AND the Kubernetes plane's own name on the TLS
          front, emulator names for the front, and `k8s-sim` -- the front's
          upstream for the Kubernetes plane)
+      2c. the front resolves its upstreams again (nginx reload, in place: the
+         front is not recreated) and the four planes of the Kubernetes contract
+         answer 200 by the name the consumer dials
       3. CA trust present in the CloudPilot containers (env + /certs mount)
       4. azure-sim estate window reaches the current UTC day
       5. optional end-to-end smoke: the k8s-sim reached from the
@@ -218,11 +221,21 @@ function Ensure-K8sSimContainer {
 }
 
 function Ensure-NetworkAliases {
+    <#
+      .SYNOPSIS
+        Attaches a container to a network with the aliases it is addressed by.
+
+      .DESCRIPTION
+        Returns $true when the attachment was CHANGED (the container was not
+        on the network, or it was on it without the requested aliases and had
+        to be reconnected) and $false when it was already correct. The caller
+        uses that to know whether the upstream of a proxy may have moved.
+    #>
     param([string]$Container, [string]$Network, [string[]]$Aliases)
     $raw = (& podman inspect $Container --format '{{json .NetworkSettings.Networks}}' 2>$null)
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($raw)) {
         Add-Problem "cannot inspect networks of $Container"
-        return
+        return $false
     }
     $networks = $raw | ConvertFrom-Json
     $attached = $networks.PSObject.Properties.Name -contains $Network
@@ -233,15 +246,18 @@ function Ensure-NetworkAliases {
         foreach ($alias in $Aliases) { $args.Add('--alias'); $args.Add($alias) }
         $args.Add($Network); $args.Add($Container)
         & podman @args *> $null
-        if ($LASTEXITCODE -ne 0) { Add-Problem "podman network connect failed for $Container" }
-        return
+        if ($LASTEXITCODE -ne 0) {
+            Add-Problem "podman network connect failed for $Container"
+            return $false
+        }
+        return $true
     }
 
     $current = @($networks.$Network.Aliases)
     $missing = @($Aliases | Where-Object { $_ -notin $current })
     if ($missing.Count -eq 0) {
         Write-Log 'INFO' "$Container aliases OK on $Network"
-        return
+        return $false
     }
 
     Write-Log 'INFO' "$Container missing aliases ($($missing -join ', ')); reconnecting"
@@ -253,8 +269,138 @@ function Ensure-NetworkAliases {
     & podman @args *> $null
     if ($LASTEXITCODE -ne 0) {
         Add-Problem "podman network reconnect failed for $Container"
-    } else {
-        Write-Log 'INFO' "$Container reconnected with aliases"
+        return $false
+    }
+    Write-Log 'INFO' "$Container reconnected with aliases"
+    return $true
+}
+
+function Sync-FrontUpstream {
+    <#
+      .SYNOPSIS
+        Makes the TLS front resolve its upstreams again, in place.
+
+      .DESCRIPTION
+        The front's nginx carries NO `resolver` directive: every upstream name
+        is resolved ONCE, when the configuration is loaded, and the address it
+        got is kept by the worker processes. An upstream container that is
+        RECREATED keeps its alias -- compose declares the alias, so the new
+        container comes up with it -- but gets a NEW address. The front then
+        keeps dialling the address of a container that no longer exists, and
+        every route of that upstream answers 502.
+
+        `nginx -s reload` re-reads the configuration inside the RUNNING
+        container: the master process, the listening sockets and the address
+        of the front are kept, the workers are recycled and the upstreams are
+        resolved again. The front is NOT recreated, so nothing that depends on
+        it -- the certificate it serves, the name it answers to, the routes it
+        proxies -- moves.
+
+        The reload is idempotent: a run where nothing moved re-reads the same
+        names and ends in the same state, and a reload whose configuration
+        does not load leaves the previous workers in place (nginx only swaps
+        the configuration when the new one is valid).
+    #>
+    if (-not (Test-ContainerRunning $TlsFront)) {
+        Write-Log 'WARN' 'tls-front is not running; upstream re-resolution skipped'
+        return $false
+    }
+
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $raw = (& podman exec $TlsFront nginx -s reload 2>&1 | Out-String)
+        $code = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $previousPreference }
+
+    if ($code -ne 0) {
+        Add-Problem "nginx reload failed in $TlsFront (exit $code): $($raw.Trim())"
+        return $false
+    }
+    Write-Log 'INFO' 'tls-front: nginx reloaded; upstreams resolved again'
+    return $true
+}
+
+function Test-K8sSimPlanes {
+    <#
+      .SYNOPSIS
+        Proves the four planes of the Kubernetes contract answer 200 by the front's name.
+
+      .DESCRIPTION
+        The probe runs INSIDE cloudpilot_backend -- the only place where the
+        bridge names matter -- and dials https://opencost.synthetic-clouds.test,
+        the name the CloudPilot consumer uses. One route of each plane of the
+        contract is measured:
+
+          * OpenCost     /allocation/compute  (the cost route the provider reads)
+          * Kubernetes   /api/v1/namespaces    (the API plane; it demands a bearer token)
+          * Prometheus   /api/v1/query         (the telemetry plane)
+          * Kubecost     /model/allocation     (the Model API plane)
+
+        The routes are served by the k8s-sim, so a 200 here means the front is
+        forwarding to the CURRENT upstream: a front still holding a stale
+        address answers 502, and the probe reports it.
+    #>
+    if (-not (Test-ContainerRunning 'cloudpilot_backend')) {
+        Write-Log 'WARN' 'cloudpilot_backend is not running; the four planes were not probed'
+        return
+    }
+
+    $probe = @'
+import json
+import os
+import ssl
+import urllib.request
+
+BASE = "https://opencost.synthetic-clouds.test"
+CLUSTER = "TEMP-aks_cluster-0025"
+BEARER = {"Authorization": "Bearer ensure-cloudpilot-probe"}
+ROUTES = {
+    "opencost": (
+        "/allocation/compute?window=2026-10-01,2026-10-01&aggregate=namespace,controller"
+        "&step=1d&accumulate=false&filter=cluster%3A%22" + CLUSTER + "%22",
+        {},
+    ),
+    "kubernetes": ("/api/v1/namespaces", BEARER),
+    "prometheus": ("/api/v1/query?query=up", {}),
+    "kubecost": (
+        "/model/allocation?window=2026-10-01,2026-10-01&aggregate=namespace"
+        "&accumulate=false&filterClusters=" + CLUSTER,
+        BEARER,
+    ),
+}
+
+ca_file = os.environ.get("SSL_CERT_FILE")
+context = ssl.create_default_context(cafile=ca_file) if ca_file else ssl.create_default_context()
+
+out = {}
+for plane, (path, headers) in ROUTES.items():
+    request = urllib.request.Request(BASE + path, headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=10, context=context) as response:
+            out[plane] = {"status": response.status, "body": response.read().decode("utf-8", "replace")[:120]}
+    except Exception as exc:  # noqa: BLE001 -- the failure IS the measurement
+        out[plane] = {"status": None, "error": repr(exc)}
+print("PLANES:" + json.dumps(out))
+'@
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $raw = ($probe | & podman exec -i cloudpilot_backend python - 2>&1)
+    } finally { $ErrorActionPreference = $previousPreference }
+    $line = $raw | Where-Object { "$_".StartsWith('PLANES:') } | Select-Object -Last 1
+    if (-not $line) {
+        Add-Problem "the four-plane probe did not return a result: $($raw | Select-Object -Last 3)"
+        return
+    }
+    $result = ($line.Substring(7) | ConvertFrom-Json)
+    foreach ($plane in @('opencost', 'kubernetes', 'prometheus', 'kubecost')) {
+        $status = $result.$plane.status
+        if ($status -eq 200) {
+            Write-Log 'INFO' "k8s-sim plane $plane = 200 by HTTPS name ($K8sSimUrl)"
+        } else {
+            Add-Problem "k8s-sim plane $plane = $status by HTTPS name ($($result.$plane.error))"
+        }
     }
 }
 
@@ -642,22 +788,40 @@ foreach ($name in @($GcpSim, $AwsSim, $S3Mock, $BqEmu)) {
 Ensure-K8sSimContainer
 
 # 2. DNS aliases
-Ensure-NetworkAliases -Container $AzureSim -Network $CpNet -Aliases $AzureHostAliases
-Ensure-NetworkAliases -Container $TlsFront -Network $CpNet -Aliases $FrontAliases
-Ensure-NetworkAliases -Container $GcpSim -Network $CpNet -Aliases @('gcp-sim')
-Ensure-NetworkAliases -Container $AwsSim -Network $CpNet -Aliases @('aws-sim')
-Ensure-NetworkAliases -Container $S3Mock -Network $CpNet -Aliases @('s3mock')
-Ensure-NetworkAliases -Container $BqEmu -Network $CpNet -Aliases @('bigquery-emulator')
+Ensure-NetworkAliases -Container $AzureSim -Network $CpNet -Aliases $AzureHostAliases | Out-Null
+Ensure-NetworkAliases -Container $TlsFront -Network $CpNet -Aliases $FrontAliases | Out-Null
+Ensure-NetworkAliases -Container $GcpSim -Network $CpNet -Aliases @('gcp-sim') | Out-Null
+Ensure-NetworkAliases -Container $AwsSim -Network $CpNet -Aliases @('aws-sim') | Out-Null
+Ensure-NetworkAliases -Container $S3Mock -Network $CpNet -Aliases @('s3mock') | Out-Null
+Ensure-NetworkAliases -Container $BqEmu -Network $CpNet -Aliases @('bigquery-emulator') | Out-Null
 # The k8s-sim plane is addressed by the alias `k8s-sim` on the bridge: that
 # is the address the TLS front forwards to (its upstream), so the alias has to
 # be there before the front starts. The CloudPilot consumer itself reaches
 # the plane through the front's own name, over TLS ($K8sSimUrl).
-Ensure-NetworkAliases -Container $K8sSim -Network $CpNet -Aliases @('k8s-sim')
+# The answer says whether the attachment had to be made (or remade): a
+# recreated container comes up WITHOUT the bridge, because the compose file
+# declares the alias on the simulators' own network, not on the CloudPilot one.
+$k8sSimReattached = Ensure-NetworkAliases -Container $K8sSim -Network $CpNet -Aliases @('k8s-sim')
 
 # 2b. Now that the upstreams answer by name, the front can start.
 if (Test-ContainerExists $TlsFront) {
     if (-not (Start-Container $TlsFront)) { Add-Problem 'tls-front did not become healthy' }
 }
+
+# 2c. The front resolves its upstreams when it loads the configuration and
+# keeps that address. An upstream container that was recreated keeps its alias
+# but changes address, so the front has to resolve the names again -- without
+# being recreated itself, which would move the address and the certificate it
+# serves. The reload is idempotent and runs on every pass.
+if ($k8sSimReattached) {
+    Write-Log 'INFO' 'k8s-sim attachment changed; the front upstream has to be resolved again'
+}
+Sync-FrontUpstream | Out-Null
+
+# 2d. The four planes of the Kubernetes contract, by the name the CloudPilot
+# consumer dials. This is the measurement that says whether the front really
+# forwards to the current upstream.
+Test-K8sSimPlanes
 
 # 3. CA trust
 Repair-CaBundle | Out-Null
