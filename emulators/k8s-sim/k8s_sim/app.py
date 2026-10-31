@@ -1,6 +1,10 @@
-"""FastAPI app for k8s-sim: the OpenCost allocation contract for the estate's clusters.
+"""FastAPI app for k8s-sim: the OpenCost allocation contract for the estate's clusters,
+and the Kubernetes API the CloudPilot consumer reads the estate's namespaces and pods
+from.
 
-Three routes, and nothing else:
+Two planes, six routes:
+
+**The OpenCost plane** (the contract this service was born with):
 
 ``/healthz``
     The liveness probe the sibling sims (aws-sim, gcp-sim, azure-sim) expose, with the
@@ -13,6 +17,29 @@ Three routes, and nothing else:
 
 ``/clusterInfo``
     The cluster the request asks about, described by the ``filter`` it carries.
+
+**The Kubernetes API plane** (the subset the CloudPilot consumer calls):
+
+``/api/v1/namespaces``
+    The namespaces of the synthetic cluster. The CloudPilot ``ConnectionTester`` reads
+    this route to decide whether a kubeconfig connects at all, and the GCP and Azure
+    providers read it to learn the estate's namespaces.
+
+``/api/v1/pods``
+    Every pod of the cluster. The EKS provider reads it with the official ``kubernetes``
+    client (``CoreV1Api.list_pod_for_all_namespaces``).
+
+``/api/v1/namespaces/{namespace}/pods``
+    The pods of one namespace. The GCP and Azure providers read it after listing the
+    namespaces.
+
+The two planes describe ONE estate, so their constants agree by construction (see
+:mod:`k8s_sim.projections.kubernetes`). They answer with different envelopes on
+purpose: the OpenCost plane with the OpenCost envelope, the Kubernetes plane with the
+official Kubernetes shapes (``NamespaceList``, ``PodList`` and, on a failure, a
+``Status``). The Kubernetes plane asks for a bearer token -- the consumer always sends
+one -- and the OpenCost plane does not, so the contract that already existed is
+untouched.
 
 The app is stateless. There is no estate to build, no clock to read, no price list to
 fetch and no connection to open: every answer is a pure function of the query string.
@@ -28,10 +55,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
 
-from k8s_sim.projections import allocation
+from k8s_sim.projections import allocation, kubernetes
 
 
 def _error(status: int, message: str) -> JSONResponse:
@@ -41,6 +68,50 @@ def _error(status: int, message: str) -> JSONResponse:
     this shape with the HTTP status as the code.
     """
     return JSONResponse(status_code=status, content={"code": status, "message": message})
+
+
+def _kubernetes_status(code: int, reason: str, message: str) -> JSONResponse:
+    """The Kubernetes ``Status`` object the API plane answers a failure with.
+
+    The shape is the official one: ``status`` says the request failed, ``reason``
+    is the machine-readable cause, ``message`` is for a person, and ``code`` is
+    the HTTP status repeated inside the body.
+    """
+    return JSONResponse(
+        status_code=code,
+        content={
+            "kind": "Status",
+            "apiVersion": "v1",
+            "metadata": {},
+            "status": "Failure",
+            "message": message,
+            "reason": reason,
+            "code": code,
+        },
+    )
+
+
+def _authorized(authorization: str | None) -> bool:
+    """Whether the request carries a bearer token the API plane accepts.
+
+    The simulator models no identity and no RBAC: the estate keeps no list of
+    valid tokens, so **any** non-empty bearer token is accepted -- the token is
+    the operator's own, and refusing it would be refusing a fact the simulator
+    cannot check. A request without a usable token is refused with a 401, the
+    shape the CloudPilot ``ConnectionTester`` categorizes as ``auth_rejected``.
+
+    The scheme is matched case-insensitively, as HTTP requires.
+    """
+    if not authorization:
+        return False
+
+    scheme, _, token = authorization.partition(" ")
+    return scheme.lower() == "bearer" and bool(token.strip())
+
+
+def _unauthorized() -> JSONResponse:
+    """The 401 the API plane answers a request without a bearer token with."""
+    return _kubernetes_status(401, "Unauthorized", "Unauthorized")
 
 
 def create_app() -> FastAPI:
@@ -178,5 +249,65 @@ def create_app() -> FastAPI:
             )
 
         return JSONResponse(status_code=200, content={"code": 200, "data": {"version": "synthetic"}})
+
+    @app.get("/api/v1/namespaces")
+    async def list_namespaces(authorization: str | None = Header(default=None)) -> JSONResponse:
+        """The namespaces of the synthetic cluster.
+
+        The CloudPilot ``ConnectionTester`` reads this route to decide whether a
+        kubeconfig connects at all: it counts the ``items`` and **fails when the
+        list is empty**. The GCP and Azure providers read it to learn the
+        estate's namespaces, and use each name to ask for that namespace's pods.
+
+        The payload is the official ``NamespaceList``: ``kind``, ``apiVersion``,
+        ``metadata`` and ``items``. It is NOT the OpenCost envelope -- the two
+        planes answer in their own contracts.
+        """
+        if not _authorized(authorization):
+            return _unauthorized()
+
+        return JSONResponse(status_code=200, content=kubernetes.namespace_list())
+
+    @app.get("/api/v1/pods")
+    async def list_pods(authorization: str | None = Header(default=None)) -> JSONResponse:
+        """Every pod of the synthetic cluster, across every namespace.
+
+        This is the route the official ``kubernetes`` client reaches through
+        ``CoreV1Api.list_pod_for_all_namespaces`` (``GET /api/v1/pods``), which
+        the CloudPilot EKS provider calls when the cluster is reached through a
+        kubeconfig. The client deserializes the answer into a ``V1PodList``.
+        """
+        if not _authorized(authorization):
+            return _unauthorized()
+
+        return JSONResponse(status_code=200, content=kubernetes.pod_list())
+
+    @app.get("/api/v1/namespaces/{namespace}/pods")
+    async def list_namespaced_pods(
+        namespace: str,
+        authorization: str | None = Header(default=None),
+    ) -> JSONResponse:
+        """The pods of one namespace.
+
+        The GCP and Azure providers read it right after listing the namespaces:
+        one request per namespace, and the sum of the pods' requests is that
+        namespace's usage.
+
+        A namespace the estate does not have is a **404** with the official
+        ``Status`` object -- the resource is not there, and nothing is invented
+        to fill the gap. The consumer treats anything above 399 as "no pods
+        here" and moves on.
+        """
+        if not _authorized(authorization):
+            return _unauthorized()
+
+        if not kubernetes.has_namespace(namespace):
+            return _kubernetes_status(
+                404,
+                "NotFound",
+                f'namespaces "{namespace}" not found',
+            )
+
+        return JSONResponse(status_code=200, content=kubernetes.pod_list())
 
     return app

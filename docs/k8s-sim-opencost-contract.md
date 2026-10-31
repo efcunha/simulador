@@ -1,4 +1,4 @@
-# Contrato OpenCost do `k8s-sim` (Fases S4a, S4b1, S4b1-C, S4b1-E, S4b2-C, S4b2-E e S4b3-F)
+# Contrato do `k8s-sim` — o OpenCost e a API do Kubernetes (Fases S4a, S4b1, S4b1-C, S4b1-E, S4b2-C, S4b2-E, S4b2-G e S4b3-F)
 
 > Idioma: **Português**. Sem gêmea `.en.md`: a allowlist permite **apenas** este arquivo em
 > `docs/`. A gêmea em inglês fica como pendência (§9).
@@ -60,6 +60,15 @@ qualquer endpoint — detalhado no
 
 Os números do §6.1 e os testes do §10 foram reconferidos nesta data contra o código e o fixture;
 F1–F14 permanecem como foram lidas em 2026-10-28.
+
+**Atualizado em 2026-10-31 pela S4b2-G: o contrato ganhou um segundo plano.** O `k8s-sim` passou a
+servir também um **subconjunto da API do Kubernetes** — as três rotas `core/v1` que o consumidor
+realmente chama — sob o **mesmo nome HTTPS** (`opencost.synthetic-clouds.test`), com o **mesmo
+caminho de rede** da §2.1 e **sem tocar no contrato OpenCost**, que continua igual (§2.2). A
+superfície não foi inventada: ela foi medida no código do consumidor (§2.2.1), e o que o `k8s-sim`
+publica é a mesma namespace e o mesmo workload que o contrato OpenCost precifica. A pendência
+"API server do Kubernetes" saiu do §9. Detalhe e medição:
+[mapa de impacto](regression/mapa-impacto-s4b2g.md).
 
 **O que este documento NÃO é:** uma reconciliação de billing. **Os valores desta fase são
 SINTÉTICOS.** O `k8s-sim` não lê billing, não lê preço de nuvem e não lê o cluster AKS real; a
@@ -217,6 +226,120 @@ continua existindo: é o **upstream** do front e o que o probe do `ensure-cloudp
 mede em HTTP para provar que ele continua de pé.
 
 Detalhe da decisão e da medição: [mapa de impacto](regression/mapa-impacto-s4b2e.md).
+
+### 2.2 O segundo plano: a API do Kubernetes (S4b2-G, 2026-10-31)
+
+O `k8s-sim` serve, no **mesmo container e na mesma porta**, três rotas da API do Kubernetes:
+
+```
+GET /api/v1/namespaces
+GET /api/v1/pods
+GET /api/v1/namespaces/{namespace}/pods
+```
+
+Elas respondem no **mesmo nome HTTPS** da §2.1 — `https://opencost.synthetic-clouds.test` — porque
+o front já encaminha `location /` para o upstream `k8s-sim:8089` e o `nginx.conf` do front está
+**fora da allowlist** desta fase: um nome novo exigiria mexer no front. Nenhuma configuração de
+rede, de TLS ou de compose foi preciso para esta fase: o plano novo mora **dentro** do contrato
+de deploy que já existia.
+
+#### 2.2.1 A superfície foi medida, não escolhida
+
+As três rotas são exatamente as que o consumidor do CloudPilot chama. A leitura foi **somente-leitura**
+no repo do CloudPilot, em 2026-10-31, e é a base do checkpoint da fase:
+
+| Rota | Quem chama | O que o consumidor lê |
+|---|---|---|
+| `/api/v1/namespaces` | `ConnectionTester` — o teste que roda **antes** de salvar um kubeconfig — e os providers `gcp`/`azure` (`list_namespace_usage`) | `items[].metadata.name`; o `ConnectionTester` **falha** se a lista vier vazia |
+| `/api/v1/pods` | o provider `aws`, pelo client **oficial** `kubernetes` (`CoreV1Api.list_pod_for_all_namespaces` — `providers/aws.py:350` e `:380`) | `items[]`: `metadata.namespace`, `metadata.ownerReferences[]`, `spec.containers[].resources` |
+| `/api/v1/namespaces/{ns}/pods` | os providers `gcp`/`azure`, uma vez por namespace | idem |
+
+O provider `aws` é o único que fala com o API server pelo client oficial; os outros dois falam por
+`httpx` (`providers/gcp.py:125`, `providers/azure.py:182`).
+
+#### 2.2.2 A autenticação
+
+As três rotas pedem **`Authorization: Bearer <token>`**. O simulador **não modela identidade nem
+RBAC**: o estate não guarda lista de tokens válidos, então **qualquer** token não-vazio é aceito —
+recusá-lo seria recusar um fato que o simulador não sabe conferir. O que o plano recusa é a
+**ausência** do token, com **401** e o corpo oficial de `Status`.
+
+O plano OpenCost **não** pede token: ele nunca pediu, e continua não pedindo. As duas pontas do
+serviço têm contratos de auth diferentes, e isso é declarado aqui para que ninguém leia o 401 do
+plano Kubernetes como regressão do OpenCost.
+
+#### 2.2.3 As formas de resposta
+
+São as oficiais do Kubernetes, e não o envelope `code`/`data` do §4 — cada plano responde no seu
+contrato:
+
+- `NamespaceList` — `kind`, `apiVersion`, `metadata`, `items`;
+- `PodList` — o mesmo, com `items` sendo a lista de pods;
+- `Status` — nas falhas: `status: "Failure"`, `reason`, `message`, `code`.
+
+Um **namespace que o estate não tem** é **404** com o `Status` oficial: o recurso não existe, e
+nada é inventado para tapar o buraco. O consumidor trata qualquer status acima de 399 como "não há
+pods aqui" e segue em frente.
+
+O `metadata` das listas é **vazio** e as listas **não** publicam `resourceVersion`: o estate não
+modela revisão de recurso, e um número ali seria um fato que o simulador não tem — a mesma razão
+que impede o `/clusterInfo` de publicar `nodeCount` (§2).
+
+#### 2.2.4 O que o plano publica
+
+Uma **namespace** (`payments`), um **workload** (`api`) e **um pod** (`api`), que é o mesmo objeto
+que o contrato OpenCost precifica. A coerência é **por construção**, não por convenção: a
+namespace publicada é a `NAMESPACE` da projeção de allocation e o workload é o `CONTROLLER` dela.
+
+O pod **declara em `requests` o uso que o contrato OpenCost precifica**: `cpu: "2"` e
+`memory: "4Gi"`, contra os 2 núcleos e os 4 GiB de RAM por dia da §6. O consumidor constrói o custo
+de uma namespace somando os `requests` dos pods (`_namespace_usage_from_pods`), então publicar
+outro número aqui faria o simulador dizer duas verdades sobre o mesmo cluster.
+
+O que **não** é publicado, e por quê: **sem `limits`** (o estate não modela um limite distinto do
+pedido, e um limite é uma promessa que o simulador não pode cumprir), **sem `status`** (o estate não
+modela ciclo de vida), **sem `image`** (o estate não modela registro), **sem `resourceVersion`** e
+**sem `uid` nos metadados** (o estate não modela identidade de objeto).
+
+A **exceção** é o `uid` da `ownerReference`: o modelo oficial **exige** esse campo, e sem ele o
+client oficial não desserializa (§2.2.5). O plano publica, então, um **placeholder declarado e
+determinístico** (`synthetic-deployment-api`), que diz o que é em vez de vestir um UUID que não
+ganhou.
+
+#### 2.2.5 O que o client oficial exige — e o que ele cobra
+
+Medido no container do backend do CloudPilot, com o `kubernetes` **37.0.1** instalado, contra o
+`k8s-sim` no ar: o client desserializa a resposta em `V1PodList` e lê o pod sem erro. O que ele
+**cobra** é o seguinte — e a lista vem dos próprios modelos (`model_fields` com `is_required()`):
+
+| Modelo | Campos obrigatórios |
+|---|---|
+| `V1OwnerReference` | `apiVersion`, `kind`, `name`, **`uid`** |
+| `V1Container` | **`name`** |
+| `V1PodSpec` | **`containers`** |
+| `V1PodList` | **`items`** |
+| `V1NamespaceList` | **`items`** |
+| `V1ObjectMeta`, `V1Namespace`, `V1ResourceRequirements`, `V1ListMeta` | nenhum |
+
+O `uid` da referência é o que **falta** se o payload é escrito "pelo que o estate modela": a
+primeira versão do plano o omitiu, e o client oficial levantou
+`pydantic_core.ValidationError: uid — Input should be a valid string` **antes** de o payload ser
+lido. Os testes da fase fixam a lista inteira como literal, para que o próximo campo obrigatório
+que o modelo exigir não passe despercebido.
+
+#### 2.2.6 O que este plano **não** serve (declarado)
+
+Não é um API server: é o **subconjunto** que o consumidor chama.
+
+- **Sem `/version`, `/api`, `/apis`** — as rotas de descoberta do API server oficial.
+- **Sem `apis/apps/v1/.../{workload}`** — as labels do workload. O consumidor as lê em
+  `get_workload_labels` e trata falta como `{}` (best-effort), então a ausência não quebra
+  ninguém.
+- **Sem `apis/metrics.k8s.io/v1beta1/pods`** — a Metrics API. O consumidor degrada com elegância
+  quando ela falta; e o Prometheus é o **S4b2-H**.
+- **Sem `nodes`, sem `pods` de outra namespace** — a namespace que não é do estate é 404.
+- **Sem RBAC, sem `SelfSubjectAccessReview`**, sem `watch`, sem `resourceVersion` — o plano é de
+  leitura pontual, e o `watch` que o client oficial manda (`?watch=False`) é aceito e ignorado.
 
 ---
 
@@ -712,6 +835,12 @@ Nada abaixo foi implementado, e nada abaixo é um bug desta fase:
   **`https://opencost.synthetic-clouds.test`** (§2.1 e o
   [mapa de impacto](regression/mapa-impacto-s4b2e.md)). Continuam **abertos**, e são o restante
   da S4b2: API server do Kubernetes, Prometheus, Kubecost, UI e migration.
+  **Atualizado em 2026-10-31 (S4b2-G):** a **API server do Kubernetes também está fechada** — no
+  sentido que importa aqui: o `k8s-sim` serve o **subconjunto** que o consumidor chama (as três
+  rotas `core/v1` da §2.2), sob o mesmo nome HTTPS e sem mexer no contrato OpenCost. O que
+  continua **não** servido está declarado na §2.2.6: as rotas de descoberta, as labels do workload
+  (`apis/apps/v1`), a Metrics API (`apis/metrics.k8s.io`), os `nodes` e o RBAC. Continuam
+  **abertos**, e são o restante da S4b2: Prometheus, Kubecost, UI e migration.
 - **Sem spec de máquina** em `specs/` e **sem entrada na matriz de fidelidade**.
 - **Sem** wiring no provider do CloudPilot, **sem** rodar sync, **sem** validar tela. O CloudPilot
   não foi tocado **por esta fase**; ele evoluiu depois por conta própria (C-IDENT, §1.2).
@@ -739,10 +868,14 @@ a gêmea `.en.md`.
 
 ## 10. Onde o contrato é testado
 
-`emulators/k8s-sim/k8s_sim/tests/test_allocation.py`, via `fastapi.testclient.TestClient`.
-Medido em **2026-10-29** (após a S4b1-E): `pytest emulators\k8s-sim\k8s_sim\tests -q -p no:cacheprovider` →
-**91 passed** em 11,2 s (1 aviso de depreciação do `TestClient` com `httpx`) — os 78 testes da
-S4b1-C mais **13** da S4b1-E.
+O contrato OpenCost está em `emulators/k8s-sim/k8s_sim/tests/test_allocation.py`; o contrato da
+API do Kubernetes, em `emulators/k8s-sim/k8s_sim/tests/test_kubernetes_api.py`. Ambos via
+`fastapi.testclient.TestClient`.
+
+Medido em **2026-10-31** (após a S4b2-G): `pytest emulators\k8s-sim\k8s_sim\tests -q -p no:cacheprovider`
+→ **122 passed** em 12,8 s (1 aviso de depreciação do `TestClient` com `httpx`) — os **91** da
+S4b1-E mais **31** da S4b2-G. Antes desta fase, a mesma suíte dava **91 passed** em 12,7 s: a
+contagem subiu, nenhuma medição antiga mudou.
 
 | O que o teste fixa |
 |---|
@@ -795,3 +928,32 @@ S4b1-C mais **13** da S4b1-E.
 | `/clusterInfo?filter=cluster:"<cluster_id>"` (alias) → 200 com a mesma resposta |
 | `/clusterInfo` sem `filter`, ou com cluster que o estate não tem → 400 |
 | **o fixture é idempotente: duas execuções do exportador contra o mesmo estate produzem o mesmo arquivo, byte a byte — e esse arquivo é o fixture commitado** (teste pulado quando o checkout não tem o parquet do estate, que não é versionado) |
+
+### 10.1 O contrato da API do Kubernetes (S4b2-G)
+
+Em `emulators/k8s-sim/k8s_sim/tests/test_kubernetes_api.py` — **31** testes. O que eles fixam:
+
+| O que o teste fixa |
+|---|
+| `/api/v1/namespaces` sem token → **401** |
+| o 401 é o `Status` oficial (`kind`, `status: "Failure"`, `reason`, `code`, `message`) |
+| um header que não é um bearer token utilizável (vazio, `Bearer`, `Bearer `, `Basic …`, sem espaço) → **401** |
+| o esquema `bearer` é aceito em minúsculas, como o HTTP manda |
+| `/api/v1/namespaces` com token → **200** com `NamespaceList` (`kind`, `apiVersion`, `metadata`, `items`) |
+| **a lista de namespaces tem ao menos um item** — é a condição de sucesso do `ConnectionTester` |
+| o item traz `metadata.name` == `payments` |
+| o plano da API **não** usa o envelope OpenCost: nem `code` nem `data` |
+| `/api/v1/pods` → **200** com `PodList` e um pod |
+| o pod traz `metadata.namespace` e `metadata.name` |
+| o pod é dono do workload: `ownerReferences[0]` = `Deployment`/`api`, com `controller: true` |
+| **todo `ownerReference` carrega os campos que o modelo oficial exige** (`apiVersion`, `kind`, `name`, `uid`) |
+| **todo container tem `name`** — campo obrigatório do `V1Container` |
+| **toda lista carrega `items`** — é o que o consumidor itera |
+| os `requests` do container são `cpu: "2"` e `memory: "4Gi"` |
+| `/api/v1/namespaces/{ns}/pods` → **200** com o `PodList` da namespace |
+| `/api/v1/namespaces/{ns}/pods` sem token → **401** |
+| uma namespace que o estate não tem → **404** com o `Status` oficial (`reason: "NotFound"`) |
+| duas chamadas iguais devolvem o mesmo payload (o serviço é função pura da requisição) |
+| **o plano OpenCost continua respondendo sem token**: `/healthz`, `/allocation/compute` e `/clusterInfo` |
+| **os dois planos descrevem o mesmo estate**: a namespace da API é a `NAMESPACE` da projeção de allocation, e o workload é o `CONTROLLER` dela |
+| **os `requests` do pod nomeiam o uso que o allocation precifica**: `cpu` == `cpuCores` e `memory` == `ramBytes` |

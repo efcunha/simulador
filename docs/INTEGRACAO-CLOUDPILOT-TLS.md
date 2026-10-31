@@ -44,6 +44,21 @@ https://opencost.synthetic-clouds.test/clusterInfo?filter=cluster:"<id nativo>"
 https://opencost.synthetic-clouds.test/allocation/compute?window=...
 ```
 
+**Desde a S4b2-G (2026-10-31) o mesmo nome fala também a API do Kubernetes** — o subconjunto que o
+consumidor chama, e que vive no mesmo container e na mesma porta:
+
+```
+https://opencost.synthetic-clouds.test/api/v1/namespaces
+https://opencost.synthetic-clouds.test/api/v1/pods
+https://opencost.synthetic-clouds.test/api/v1/namespaces/<namespace>/pods
+```
+
+Não foi preciso nenhum hostname novo, nem certificado novo, nem mudança no `nginx.conf` (que está
+**fora** da allowlist da fase): o front já encaminha `location /` para o upstream `k8s-sim:8089`, e
+as rotas novas moram **dentro** desse encaminhamento. As rotas do plano Kubernetes pedem
+`Authorization: Bearer <token>`; as do contrato OpenCost **não** pedem token — cada plano tem seu
+contrato, e nenhum dos dois mudou.
+
 A porta é a do front (**443**); o `k8s-sim` continua em `8089`, **atrás** do front. O alias de
 rede `k8s-sim` continua existindo na bridge `cloudpilot-deploy_cloudpilot_net` — é ele que o
 front usa como *upstream* (`upstream k8s_opencost { server k8s-sim:8089; }`) e é ele que o
@@ -70,7 +85,7 @@ próprio do plano Kubernetes.
 | `config.googleapis.com` | `gcp-sim:8085` | front nginx | `resourceDrifts.list` do Infrastructure Manager |
 | `container.googleapis.com` | `gcp-sim:8085` | front nginx | `projects.locations.clusters.list` (GKE) |
 | `securitycenter.googleapis.com` | `gcp-sim:8088` | front nginx com `grpc_pass` (TLS + HTTP/2) | `SecurityCenter/ListFindings` por gRPC |
-| `opencost.synthetic-clouds.test` | `k8s-sim:8089` | front nginx (TLS) | contrato OpenCost: `/healthz`, `/clusterInfo`, `/allocation/compute` |
+| `opencost.synthetic-clouds.test` | `k8s-sim:8089` | front nginx (TLS) | contrato OpenCost: `/healthz`, `/clusterInfo`, `/allocation/compute` — e, desde a S4b2-G, a API do Kubernetes: `/api/v1/namespaces`, `/api/v1/pods`, `/api/v1/namespaces/{ns}/pods` |
 
 Quatro detalhes que a tabela esconde:
 
@@ -219,3 +234,22 @@ que dispensa elevação. **Na leitura de 2026-10-29 ela não está registrada ne
 (`schtasks /Query /TN CloudPilot-Simulator-Ensure` → "O sistema não pode encontrar o
 caminho especificado"); registre com `.\register-ensure-task.ps1 -RunNow`. Ver
 [`deploy/synthetic-clouds/integration/README.md`](../deploy/synthetic-clouds/integration/README.md).
+
+### O que mais não sobrevive a um `up -d --build k8s-sim` (medido em 2026-10-31, S4b2-G)
+
+O `up -d --build k8s-sim` **recria o container**, e a recriação quebra **duas** coisas que o
+frontend do CloudPilot usava. As duas são medidas, e as duas têm correção **sem** recriar o front:
+
+| O que se perde | Por quê | Como voltar |
+|---|---|---|
+| o alias `k8s-sim` na bridge `cloudpilot-deploy_cloudpilot_net` | a bridge **não** está no `compose.k8s.yaml`; quem a anexa é o `ensure-cloudpilot.ps1` | `podman network connect --alias k8s-sim cloudpilot-deploy_cloudpilot_net synthetic-clouds-k8s-sim-1` |
+| o **IP** do upstream no nginx | o `nginx.conf` **não tem `resolver`**: o nome do upstream é resolvido **uma vez**, na carga da configuração (`nginx.conf:44-46`) | `podman exec synthetic-clouds-tls-front nginx -s reload` |
+
+O sintoma do segundo item é **502 Bad Gateway** em **todas** as rotas do nome — inclusive nas que
+já funcionavam antes da recriação — e a causa **não** é o serviço novo: é o nginx apontando para o
+IP antigo. O `nginx -s reload` re-lê a configuração e resolve o upstream de novo, **sem** reiniciar
+o container do front (mesmo PID, mesmo uptime, mesmos aliases). Um `podman restart` do front
+resolveria também, mas derruba o container e é desnecessário.
+
+O `ensure-cloudpilot.ps1` reanexa o alias quando falta, mas **não** recarrega o nginx: o front
+precisa do reload depois de qualquer recriação do `k8s-sim`.
