@@ -203,16 +203,29 @@ do *pacote*, e um teste da suite do agendador escrevia nesse caminho de producao
 `tools/synthetic_clouds/schedule/windows.py` e mantem o caminho de producao identico. Detalhe em
 [regression/mapa-impacto-s4b3c.md](docs/regression/mapa-impacto-s4b3c.md) §3.3.
 
+**E agora isso tem teste (S4b3-D).** O teste de regressao que faltava foi escrito em
+`tools/synthetic_clouds/tests/test_schedule.py`: um plano com `config_path` temporario gera o
+wrapper **ali**, e a suite deixa o `schedule/run-daily.cmd` de producao **byte-identico** (mesmo
+`sha256`, mesmo `LastWriteTime`) — a prova e vermelho-verde (com o fix revertido, os dois testes
+falham; com o fix, passam), e a suite subiu de 92 para **94 passed**. O `docs/AGENDAMENTO.en.md`
+foi corrigido (ledger de 16 dias ate `2026-10-31`, tarefa **registrada**, disparo proprio em
+`2026-10-31 13:06:47`). No lado do consumidor, a conta `[SYNTH] AWS acct-01` foi alinhada pelo
+mecanismo oficial ao export que o simulador publica (`synthetic-focus12-daily-full`): a leitura
+de custo do workspace padrao saiu de `8.333,66` para **`65.575,88`** — o mesmo valor da conta de
+homologacao, que **nao se moveu**. Detalhe em
+[regression/mapa-impacto-s4b3d.md](docs/regression/mapa-impacto-s4b3d.md).
+
 **Debitos desta frente.** O plano Kubernetes **já tem** TLS desde a S4b2-E (nome próprio
 `opencost.synthetic-clouds.test`, com SAN na folha do front), mas segue **sem** hostname de
 nuvem real para imitar; `scripts/synthetic-clouds/up.ps1` **nao** sobe esse
 plano (ele sobe pela integracao, que e o dono do vinco); e
 `docs/DECISOES-PENDENTES.md` ainda afirma que o `k8s-sim` "nao tem Containerfile nem
 servico de compose" — frase que ficou falsa na S4b2-B e que este arquivo esta fora da
-allowlist da fase, entao o texto nao foi corrigido aqui. A S4b3-C deixa um debito da mesma
-especie: `docs/AGENDAMENTO.en.md` (o gemeo ingles do documento de agendamento) continua
-afirmando que a tarefa nao esta registrada e que o ledger para em `2026-10-26` — ele **nao** esta
-na allowlist da fase, entao o texto nao foi corrigido aqui.
+allowlist da fase, entao o texto nao foi corrigido aqui. A S4b3-D fecha o debito da S4b3-C
+sobre o `docs/AGENDAMENTO.en.md` (corrigido nesta fase) e **deixa um da mesma especie**: o
+`docs/AGENDAMENTO.md` (o gemeo em portugues) continua afirmando que a tarefa nao esta
+registrada e que o ledger para em `2026-10-26` — ele **nao** esta na allowlist desta fase,
+entao o texto nao foi corrigido aqui.
 
 ## Ambiente
 

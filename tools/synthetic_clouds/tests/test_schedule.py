@@ -672,6 +672,81 @@ class TestWindowsRegistration:
             wrapper.unlink(missing_ok=True)
             xml.unlink(missing_ok=True)
 
+    def test_the_plan_writes_the_wrapper_next_to_its_own_configuration(self, scratch: Path) -> None:
+        """O wrapper pertence à configuração que o originou, não ao pacote.
+
+        Foi o defeito real da S4b3-C: o plano derivava o caminho do wrapper da
+        localização do PACOTE, e não da configuração. A suíte escrevia então o
+        `run-daily.cmd` de produção e, na limpeza, apagava o arquivo — a tarefa
+        agendada voltava a falhar sem nenhum rastro no `task.log`. Um teste não pode
+        apagar o que a tarefa de produção executa.
+        """
+        config_path = scratch / "config.json"
+        plan = windows.build_plan(
+            _config(),
+            now=_NOW,
+            python_exe=Path("python.exe"),
+            repo_root=_REPO_ROOT,
+            config_path=config_path,
+            task_name="teste-dono-da-config",
+            user_id="DESKTOP-X\\tester",
+        )
+        # O diretório do wrapper é o da configuração; e o do XML, o mesmo.
+        assert plan.wrapper_path.parent == scratch.resolve()
+        assert plan.xml_path.parent == scratch.resolve()
+        assert plan.wrapper_path.name == "run-daily.cmd"
+        # E o caminho NÃO é o do pacote, que é onde a instalação de produção mora.
+        assert plan.wrapper_path != windows.wrapper_path()
+
+    def test_the_suite_does_not_touch_the_production_wrapper(self, scratch: Path) -> None:
+        """A suíte escreve e limpa no scratch: o wrapper de produção fica como está.
+
+        A segunda metade do defeito acima: o `test_written_files_have_no_doubled_carriage_return`
+        apaga no `finally` o arquivo que acabou de escrever. Se esse arquivo for o
+        de produção, a limpeza apaga a tarefa. Aqui o arquivo de produção é medido
+        ANTES e comparado DEPOIS — e restaurado se alguma vez for tocado, para que
+        uma rodada vermelha não destrua a tarefa real.
+        """
+        production = _PACKAGE_ROOT / "schedule" / "run-daily.cmd"
+        existed = production.exists()
+        before = production.read_bytes() if existed else b""
+        before_mtime = production.stat().st_mtime_ns if existed else 0
+        before_atime = production.stat().st_atime_ns if existed else 0
+        try:
+            plan = windows.build_plan(
+                _config(),
+                now=_NOW,
+                python_exe=Path("python.exe"),
+                repo_root=_REPO_ROOT,
+                config_path=scratch / "config.json",
+                task_name="teste-bytes",
+                user_id="DESKTOP-X\\tester",
+            )
+            wrapper, xml = windows.write_plan_files(plan)
+            try:
+                # O conteúdo é o do scratch, e é lá que o teste vai limpar.
+                assert wrapper == scratch.resolve() / "run-daily.cmd"
+                assert b"\r\r\n" not in wrapper.read_bytes()
+            finally:
+                wrapper.unlink(missing_ok=True)
+                xml.unlink(missing_ok=True)
+
+            # O arquivo de produção está exatamente como estava: mesmo
+            # estado, mesmos bytes, mesmo timestamp.
+            assert production.exists() == existed
+            if existed:
+                assert production.read_bytes() == before
+                assert production.stat().st_mtime_ns == before_mtime
+        finally:
+            # Restaura o que uma rodada com o defeito teria destruído: a tarefa
+            # de produção não pertence ao teste.
+            if existed:
+                if not production.exists():
+                    production.write_bytes(before)
+                elif production.read_bytes() != before:
+                    production.write_bytes(before)
+                os.utime(production, ns=(before_atime, before_mtime))
+
     def test_a_denied_registration_names_the_real_usual_cause(self, scratch: Path) -> None:
         """A mensagem tem de apontar a causa, não um palpite.
 

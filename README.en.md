@@ -206,16 +206,29 @@ nothing in the `task.log`, because the wrapper was not there to run). The fix is
 `tools/synthetic_clouds/schedule/windows.py` and keeps the production path identical. Detail in
 [regression/mapa-impacto-s4b3c.md](docs/regression/mapa-impacto-s4b3c.md) §3.3.
 
+**And now that has a test (S4b3-D).** The regression test that was missing is in
+`tools/synthetic_clouds/tests/test_schedule.py`: a plan with a temporary `config_path` writes the
+wrapper **there**, and the suite leaves the production `schedule/run-daily.cmd` **byte-identical**
+(same `sha256`, same `LastWriteTime`) — proven red-green (revert the fix and both tests fail; with
+the fix they pass), and the suite went from 92 to **94 passed**. `docs/AGENDAMENTO.en.md` was
+corrected (ledger of 16 days up to `2026-10-31`, task **registered**, fired on its own at
+`2026-10-31 13:06:47`). On the consumer side, the `[SYNTH] AWS acct-01` account was aligned
+through the official mechanism with the export the simulator publishes
+(`synthetic-focus12-daily-full`): the default workspace's cost reading went from `8,333.66` to
+**`65,575.88`** — the same figure as the homologation account, which **did not move**. Detail in
+[regression/mapa-impacto-s4b3d.md](docs/regression/mapa-impacto-s4b3d.md).
+
 **Debts on this front.** The Kubernetes plane **has** TLS since S4b2-E (own name
 `opencost.synthetic-clouds.test`, with the SAN on the front's leaf), but still has **no** real
 cloud hostname to imitate; `scripts/synthetic-clouds/up.ps1` does **not**
 bring that plane up (it comes up with the integration, which owns the link); and
 `docs/DECISOES-PENDENTES.md` still says the `k8s-sim` "has no Containerfile and no
 compose service" — a sentence that became false at S4b2-B, in a file outside this
-phase's allowlist, so the text was not corrected here. S4b3-C leaves a debt of the same
-kind: `docs/AGENDAMENTO.en.md` (the English twin of the scheduling document) still says the
-task is not registered and that the ledger stops at `2026-10-26` — it is **not** in the
-phase's allowlist, so the text was not corrected here.
+phase's allowlist, so the text was not corrected here. S4b3-D closes the debt S4b3-C left on
+`docs/AGENDAMENTO.en.md` (corrected in this phase) and **leaves one of the same kind**:
+`docs/AGENDAMENTO.md` (the Portuguese twin) still says the task is not registered and that the
+ledger stops at `2026-10-26` — it is **not** in this phase's allowlist, so the text was not
+corrected here.
 
 ## Environment
 
