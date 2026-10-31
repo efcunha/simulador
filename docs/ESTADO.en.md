@@ -5,7 +5,7 @@ Language: **English** | [Português](ESTADO.md)
 Living document. It records what exists, what was decided and why, so that the
 work can continue without depending on conversation context.
 
-Last updated: **2026-10-31** (revision `a03f949f`, branch `feat/p76-security-posture-gcp-azure`).
+Last updated: **2026-10-31** (revision `605458e2`, branch `feat/p76-security-posture-gcp-azure`).
 
 ## Recorded deliveries
 
@@ -22,6 +22,7 @@ Last updated: **2026-10-31** (revision `a03f949f`, branch `feat/p76-security-pos
 | `a9633aa6` | S4b3-D — the fix gets its test, the English document gets true, and the `[SYNTH]` account reads the export the simulator publishes | The S4b3-C fix gave the generated wrapper to its configuration and left the **regression test** as declared debt (the tests directory was outside that phase's allowlist). Two tests pin it now: a plan whose `config_path` points at a temporary directory writes the wrapper **there**, and the suite leaves the production `schedule/run-daily.cmd` **byte-identical** (same `sha256`, same `LastWriteTime`) — restoring it if a run ever touches it, so a red run cannot take the daily job's wrapper away. Proven red-green (revert the fix → both tests fail; restore → both pass): the scheduler suite goes **92 → 94 passed**, with ruff and mypy at their pre-existing baselines (4 and 10, none in the new tests). `docs/AGENDAMENTO.en.md` was corrected — it still said the task **is not registered** and that the ledger stops at `2026-10-26`; the task **is** registered (next run `2026-11-01T12:00:00`, fired on its own on `2026-10-31` at 13:06:47 with `Last Result: 0`) and the ledger holds **16 days** (`2026-10-16` → `2026-10-31`). On the consumer side no code changed: the `[SYNTH] AWS acct-01` account was aligned **through the official API** with the export the renderer publishes (`synthetic-focus12-daily-full`, was `cloudpilot-focus12-daily-full`), the official ingestion promoted **29,946 rows / US$ 65,575.88** into the workspace `e757043f`, and `/costs/unified` moved from **8,333.66** to **65,575.88** — the same figure as the homologation account in `9ff4da5f`, which **did not move**. Detail in [regression/mapa-impacto-s4b3d.md](regression/mapa-impacto-s4b3d.md). |
 | `6765522b` | S4b3-E — the document debt that never existed is erased and the `k8s-sim` URLs become the front's | S4b3-D closed the debt S4b3-C left on `docs/AGENDAMENTO.en.md` and **wrote, in the same breath, a debt that never existed**: that `docs/AGENDAMENTO.md` (the Portuguese twin) was still out of date — "11 days", ledger up to `2026-10-26`, task not registered. It was not: S4b3-C (`77a6a03a`) had already corrected it, and the git proves it — `git diff 77a6a03a HEAD -- docs/AGENDAMENTO.md` comes out **empty** (exit 0) and grepping the file for "11 dias"/"não registrada" finds nothing (exit 1). The file says **16 days** (`2026-10-16` → `2026-10-31`), the task **registered**, `Last Result: 0`. The debt was recorded by **deduction** (the EN twin was wrong, so the PT had to be too) — and deduction is not a reading. This phase erases the false record from both READMEs and from `mapa-impacto-s4b3d.md` (§7.1, §3 and the header), **preserving** the dated records of what the EN document said before S4b3-D and **without** rewriting the message of `dadba889`. In the same phase the **`k8s-sim` URLs** were aligned with the TLS front: the consumer URL is **`https://opencost.synthetic-clouds.test`** (the front's own name, with the SAN on the leaf, since S4b2-E), and the alias `k8s-sim:8089` is now described by what it is — the front's **upstream** on the bridge. `deploy/synthetic-clouds/README.md` loses the "**No TLS.**" block (false since S4b2-E), the `.env.example` documents the new `K8S_SIM_URL`, and both `docs/DECISOES-PENDENTES*` stop claiming that the `k8s-sim` "has no Containerfile and no compose service" — it has had both since S4b2-B. **Documentation all the way**: no line of code, container, scheduled task or CloudPilot configuration was touched. Detail in [regression/mapa-impacto-s4b3e.md](regression/mapa-impacto-s4b3e.md). |
 | `a03f949f` | S4b3-F — the `AGENTS.md` and the integration docs speak about the real `k8s-sim` | The `AGENTS.md` is the repository's compass, and it carried **two** false claims about the `k8s-sim`. The first had **already been seen and named** on 2026-10-30 — `mapa-impacto-s4b2c.md` §6 records that the file said "the extreme case: without a `Containerfile`", that the sentence "went false at S4b2-B", and that the `AGENTS.md` was "explicitly forbidden from being edited in this phase": a **named debt** nobody paid. The second had **never** been seen: the file declared an **open gap** about the cluster's native id, and the S4b1-E had **closed it the same day** (`a64b8414`: `native_id` per cluster — **309 clusters** — accepted as a filter alias and **not** published; `mapa-impacto-s4b1d.md` §8 already listed it under "Closed in S4b1-E"). Both passages now say what is true, and the **permanent rules stay intact**: the emulators' tests still do not run in the generator's venv and the `k8s-sim`'s `pytest` still runs rooted at `emulators/k8s-sim`, with its own `pyproject.toml`. The `integration/README.md` stops saying "TLS for the Kubernetes plane is the rest of S4b2" and starts saying what the `ensure-cloudpilot.ps1` does (guarantee the **path**: the alias, the SAN on the leaf and the front) and what it **does not** do (point the consumer at the plane — that is CloudPilot's own configuration — and write the route, which lives in `nginx.conf`); the `k8s-sim` contract **keeps** its dated S4b2-C block as a record and gains a dated retification; `INTEGRACAO-CLOUDPILOT-TLS.md` L23 now carries the consumer URL. The consumer URL is **`https://opencost.synthetic-clouds.test`** (the front's own name, with the SAN on the leaf) and it is now in all **four** documents; `k8s-sim:8089` is the front's **upstream** on the bridge, in plain HTTP. **Documentation all the way**: no line of code, container, scheduled task or CloudPilot configuration was touched. Detail in [regression/mapa-impacto-s4b3f.md](regression/mapa-impacto-s4b3f.md). |
+| `605458e2` | S4b2-G — the Kubernetes API in the `k8s-sim`: the three routes the consumer calls | The contract's §9 named "Kubernetes API server" as pending **without saying which one** — §9 is the list of what the previous phase did not implement, not a specification. This phase closes **one slice**, and the surface was **measured**, not chosen: read from the consumer's code (read-only) and approved at the phase checkpoint. There are **three** routes — `GET /api/v1/namespaces` (the `ConnectionTester` that runs before a kubeconfig is saved, and the `gcp`/`azure` providers), `GET /api/v1/pods` (the `aws` provider, through the **official** `kubernetes` client) and `GET /api/v1/namespaces/{ns}/pods` (the `gcp`/`azure` ones, once per namespace) — answering under the **same HTTPS name** the OpenCost contract already used: the front already proxies `location /` to the `k8s-sim:8089` upstream, and the front's `nginx.conf` is **outside the allowlist**, so a new name was not an option. The new plane asks for **`Authorization: Bearer <token>`** (the simulator models no identity and no RBAC: any non-empty token passes; without one, **401** with the official `Status`) and the OpenCost plane **keeps not asking** — each plane in its own contract. What it publishes is **the same estate the OpenCost contract prices**: the `payments` namespace, the `api` workload and one pod, with `requests` = `cpu: "2"` and `memory: "4Gi"` — the consumer sums the pods' requests to obtain a namespace's usage, and publishing another number would make the simulator tell two truths about the same cluster. What the estate **does not** model is not published (no `limits`, no `status`, no `image`, no `resourceVersion`, no `uid` in the metadata) — **except** the owner reference's `uid`, which the official model **requires** and which the official client **refused** to deserialize without it (`ValidationError: uid — Input should be a valid string`, measured on `kubernetes` 37.x). Measured: **122 passed** (91 before + **31** new), ruff and mypy clean; the `k8s-sim` rebuilt and **recreated alone**; the three routes answered **200** from inside the `cloudpilot_backend` through the HTTPS name; the official client parsed the payload into a `V1PodList`; the real `ConnectionTester` answered `success` with **1 namespace**; the homologation account's kubeconfig test endpoint answered `success`; and the OpenCost contract kept answering **200** with the same numbers (`payments/api`, 3.88 USD) through the real provider. The **502** after the recreation was **two** things, both measured: the `k8s-sim` alias on the bridge (which is not in the compose) and the upstream **IP** in the nginx (which, without a `resolver`, resolves the name **once**, at configuration load) — fixed with `podman network connect` + `nginx -s reload`, **without** recreating the front. Detail in [regression/mapa-impacto-s4b2g.md](regression/mapa-impacto-s4b2g.md). |
 
 
 
@@ -1766,3 +1767,86 @@ generator, not of the emulators, not of CloudPilot. The last measurement is the 
 `aee05eb9` (**1111 passed · 20 skipped**) — the later revisions are documentation-only.
 
 Detail in [regression/mapa-impacto-s4b3f.md](regression/mapa-impacto-s4b3f.md).
+
+## S4b2-G — the Kubernetes API in the `k8s-sim`: the three routes the consumer calls (2026-10-31)
+
+**The surface was measured, not chosen.** The contract's §9 named "Kubernetes API server" as
+pending **without saying which one**: §9 is the list of what the previous phase did not implement,
+not a specification. The three routes came from reading the **consumer's code** (read-only, on
+2026-10-31) and were approved at the phase checkpoint: `GET /api/v1/namespaces` (the
+`ConnectionTester` that runs **before** a kubeconfig is saved, and the `gcp`/`azure` providers),
+`GET /api/v1/pods` (the `aws` provider, through the **official** `kubernetes` client) and
+`GET /api/v1/namespaces/{ns}/pods` (the `gcp`/`azure` ones, once per namespace).
+
+**The same name, the same path.** The new routes answer under
+**`https://opencost.synthetic-clouds.test`** — the name the OpenCost contract already used. The
+front already forwarded `location /` to the `k8s-sim:8089` upstream, and the front's `nginx.conf` is
+**outside the allowlist**: a new name would have meant touching the front. No file under
+`deploy/**` was touched — neither the `compose.k8s.yaml`, nor the TLS, nor the network.
+
+**Each plane in its own contract.** The new plane asks for **`Authorization: Bearer <token>`**: the
+simulator models no identity and no RBAC, so **any** non-empty token is accepted — refusing it
+would be refusing a fact the simulator cannot check — and the **absence** of the token is refused
+with **401** and the official `Status`. The OpenCost plane **keeps not asking for a token**: it
+never did. The shapes differ by contract too: the new plane uses `NamespaceList`, `PodList` and
+`Status`, and **not** the OpenCost `code`/`data` envelope.
+
+**What the plane publishes is the same estate the OpenCost contract prices.** The `payments`
+namespace, the `api` workload and one pod, with `requests` = `cpu: "2"` and `memory: "4Gi"` — the
+2 cores and 4 GiB per day of the contract's §6. The consumer builds a namespace's cost by
+**summing its pods' requests**, so publishing another number would make the simulator say **two
+truths** about the same cluster; a test pins that coherence between the two planes. What the estate
+**does not** model is not published: no `limits`, no pod `status`, no `image`, no `resourceVersion`,
+no `uid` in the metadata.
+
+**The `uid` the official model requires — and that only the real client reported.** The first
+version of the plane omitted the owner reference's `uid`, and the CloudPilot's official client
+(`kubernetes` 37.0.1) **refused** the payload: `ValidationError: uid — Input should be a valid
+string`. The `uid` is a **required** field of the `V1OwnerReference` model — measured field by
+field (`model_fields` with `is_required()`): `V1OwnerReference` requires `apiVersion`, `kind`,
+`name` and **`uid`**; `V1Container`, `name`; `V1PodSpec`, `containers`; `V1PodList` and
+`V1NamespaceList`, `items`. The fix publishes a **declared, deterministic placeholder**
+(`synthetic-deployment-api`), which says what it is instead of wearing a UUID it did not earn — and
+the tests pin the whole list as literals, so that the next required field the model asks for does
+not go unnoticed. A test that only checked the JSON "looked right" would have accepted the
+payload: what rejected it was **the real client, running**.
+
+**The 502 detour, and its root cause.** After the container was recreated, **every** route under
+the name returned **502 Bad Gateway** — including the ones that already worked. There were **two**
+causes, both measured: the **`k8s-sim` alias** on the CloudPilot bridge (which is **not** in the
+`compose.k8s.yaml`; the `ensure-cloudpilot.ps1` is what attaches it) and the upstream **IP** inside
+the nginx (which has **no `resolver`**: the name is resolved **once**, at configuration load, and
+the front kept pointing at the old IP, `10.89.0.19`, while the new container was already at
+`10.89.0.21`). The fix was `podman network connect --alias k8s-sim …` + `nginx -s reload` —
+**without** recreating the front, which kept the same PID, the same uptime and the same aliases.
+The `ensure-cloudpilot.ps1` re-attaches the alias when it is missing, but it **does not** reload
+the nginx: that is now documented in `INTEGRACAO-CLOUDPILOT-TLS.md`, and it is the operational
+debt this phase leaves.
+
+**Measured.** The `k8s-sim` suite: **122 passed** (91 before + **31** new), ruff and mypy clean.
+The `k8s-sim` was rebuilt and **recreated alone** (`podman compose … up -d --build k8s-sim`), with
+the other planes and the CloudPilot containers intact (raw `podman ps`: all "Up 4 hours", only the
+new `k8s-sim`). The three routes answered **200** from inside the `cloudpilot_backend` through the
+HTTPS name; without a token, **401**; an unknown namespace, **404** with `reason: "NotFound"`. The
+**official** `kubernetes` client parsed the payload into a `V1PodList` (1 pod, `payments/api`,
+`owner=Deployment/api`, `requests={"cpu": "2", "memory": "4Gi"}`) and `list_namespace()` returned
+`["payments"]`. The CloudPilot's **real `ConnectionTester`** answered `success: true`,
+`namespace_count: 1`. In the **homologation account**, the kubeconfig test endpoint answered
+`{"success": true, "namespace_count": 1, "server_url": "https://opencost.synthetic-clouds.test"}`.
+And the OpenCost contract **did not regress**: through the **real provider** with the homologation
+account's saved config, `success: true` and the cost of `TEMP-aks_cluster-0025` by **name** and by
+**native id** — `payments/api`, **3.88 USD**, `2026-10-01`, the same numbers as S4b2-E.
+
+**What is still open.** The contract's §9 closes the "Kubernetes API server" pending item — and the
+S4b3-F section above, which lists it as open, is a **dated record** of 2026-10-31, from before this
+phase. Still **open**, and the rest of S4b2: **Prometheus**, **Kubecost**, the Kubernetes plane's
+**UI** and the **migration**. And still declared: the new plane **is not** an API server (no
+`/version`, no `apis/apps/v1`, no Metrics API, no `nodes`, no RBAC — all in the contract's §2.2.6);
+the CloudPilot UI's "Test Connection" button is still broken (a **pre-existing** defect,
+`opencost.py:47` / `kubecost.py:44`, **outside** the allowlist); the homologation account's
+`/finops/kubernetes/clusters` answers `no_data` ("First sync has not completed yet") — a
+**pre-existing** CloudPilot state, the "run sync" pending item S4b2-E had already declared; and the
+contract's English twin (`docs/k8s-sim-opencost-contract.en.md`) still **does not exist** (a S4b1
+pending item).
+
+Detail in [regression/mapa-impacto-s4b2g.md](regression/mapa-impacto-s4b2g.md).
